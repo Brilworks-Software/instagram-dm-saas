@@ -1,0 +1,88 @@
+# Dependencies
+node_modules/
+**/node_modules/
+.pnp
+.pnp.js
+.yarn/install-state.gz
+
+# Environment variables
+.env
+.env.local
+.env*.local
+.env.production
+.env.development
+**/.env
+**/.env.local
+
+# Build outputs
+dist/
+build/
+.next/
+out/
+*.tsbuildinfo
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# IDE
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+*.iml
+
+# Testing
+coverage/
+.nyc_output/
+*.lcov
+
+# Misc
+*.pem
+.cache/
+.temp/
+.tmp/
+
+# Vercel
+.vercel
+
+# Prisma
+prisma/migrations/*.sql
+!prisma/migrations/.gitkeep
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Chrome extension build
+extension/dist/
+extension/*.zip
+extension/*.crx
+extension/*.pem
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# Supabase
+.branches/
+.temp/
+
