@@ -168,25 +168,21 @@ export default function InstagramSettingsPage() {
           // Save to Supabase database
           const supabase = createClient();
           
-          // Get current user's workspace
+          // Get current user's workspace (will create if doesn't exist)
           const { data: { user: authUser } } = await supabase.auth.getUser();
           if (!authUser) {
             setErrorMessage('Please log in');
             return;
           }
 
-          const { data: user } = await supabase
-            .from('users')
-            .select('workspace_id')
-            .eq('supabase_auth_id', authUser.id)
-            .single();
+          // Use client-side helper function that ensures workspace exists
+          const { getOrCreateUserWorkspaceId } = await import('@/lib/supabase/user-workspace-client');
+          const workspaceId = await getOrCreateUserWorkspaceId();
 
-          if (!user?.workspace_id) {
-            setErrorMessage('No workspace found');
+          if (!workspaceId) {
+            setErrorMessage('Failed to get or create workspace. Please try refreshing the page.');
             return;
           }
-
-          const workspaceId = user.workspace_id;
           
           // Check if account already exists
           const { data: existingAccount } = await supabase
@@ -394,7 +390,7 @@ export default function InstagramSettingsPage() {
     try {
       const supabase = createClient();
       
-      // Get current user's workspace
+      // Get current user's workspace (will create if doesn't exist)
       const { data: { user: authUser } } = await supabase.auth.getUser();
       if (!authUser) {
         setErrorMessage('Please log in');
@@ -402,14 +398,12 @@ export default function InstagramSettingsPage() {
         return;
       }
 
-      const { data: user } = await supabase
-        .from('users')
-        .select('workspace_id')
-        .eq('supabase_auth_id', authUser.id)
-        .single();
+      // Use client-side helper function that ensures workspace exists
+      const { getOrCreateUserWorkspaceId } = await import('@/lib/supabase/user-workspace-client');
+      const workspaceId = await getOrCreateUserWorkspaceId();
 
-      if (!user?.workspace_id) {
-        setErrorMessage('No workspace found');
+      if (!workspaceId) {
+        setErrorMessage('Failed to get or create workspace. Please try refreshing the page.');
         setIsVerifyingCookies(false);
         return;
       }
@@ -419,7 +413,7 @@ export default function InstagramSettingsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           cookies,
-          workspaceId: user.workspace_id 
+          workspaceId: workspaceId 
         }),
       });
 
@@ -431,7 +425,7 @@ export default function InstagramSettingsPage() {
           .from('instagram_accounts')
           .select('id')
           .eq('ig_user_id', data.account.pk)
-          .eq('workspace_id', user.workspace_id)
+          .eq('workspace_id', workspaceId)
           .single();
 
         // Track Instagram account connection
@@ -445,7 +439,7 @@ export default function InstagramSettingsPage() {
         const { data: savedAccount, error } = await supabase
           .from('instagram_accounts')
           .upsert({
-            workspace_id: user.workspace_id,
+            workspace_id: workspaceId,
             ig_user_id: data.account.pk,
             ig_username: data.account.username,
             profile_picture_url: data.account.profilePicUrl,

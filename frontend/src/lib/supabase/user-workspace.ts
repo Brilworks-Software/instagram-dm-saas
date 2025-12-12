@@ -6,7 +6,8 @@ type User = Database['public']['Tables']['users']['Row'];
 
 /**
  * Get the current user's workspace
- * Returns null if user is not authenticated or has no workspace
+ * Creates a workspace if one doesn't exist
+ * Returns null if user is not authenticated
  */
 export async function getUserWorkspace(): Promise<Workspace | null> {
   const supabase = await createClient();
@@ -19,14 +20,61 @@ export async function getUserWorkspace(): Promise<Workspace | null> {
   }
 
   // Get user record from users table
-  const { data: user, error: userError } = await supabase
+  let { data: user, error: userError } = await supabase
     .from('users')
-    .select('workspace_id, workspace:workspaces(*)')
+    .select('workspace_id, workspace:workspaces(*), email, name')
     .eq('supabase_auth_id', authUser.id)
     .single();
 
+  // If user doesn't exist, create user and workspace
   if (userError || !user) {
-    return null;
+    console.log('User not found in database, creating workspace...');
+    const result = await createUserWorkspace(
+      authUser.id,
+      authUser.email || '',
+      authUser.user_metadata?.full_name || authUser.user_metadata?.name
+    );
+    
+    if (!result) {
+      console.error('Failed to create workspace for user');
+      return null;
+    }
+    
+    return result.workspace;
+  }
+
+  // If user exists but has no workspace, create one
+  if (!user.workspace_id || !user.workspace) {
+    console.log('User has no workspace, creating one...');
+    
+    const workspaceSlug = (user.email || authUser.email || 'user').split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '-');
+    
+    const { data: workspace, error: workspaceError } = await supabase
+      .from('workspaces')
+      .insert({
+        name: user.name || user.email?.split('@')[0] || 'My Workspace',
+        slug: workspaceSlug,
+      })
+      .select()
+      .single();
+
+    if (workspaceError || !workspace) {
+      console.error('Error creating workspace:', workspaceError);
+      return null;
+    }
+
+    // Update user with workspace_id
+    const { error: updateError } = await supabase
+      .from('users')
+      .update({ workspace_id: workspace.id })
+      .eq('supabase_auth_id', authUser.id);
+
+    if (updateError) {
+      console.error('Error updating user with workspace:', updateError);
+      return null;
+    }
+
+    return workspace;
   }
 
   return (user.workspace as Workspace) || null;
@@ -34,11 +82,24 @@ export async function getUserWorkspace(): Promise<Workspace | null> {
 
 /**
  * Get the current user's workspace ID
- * Returns null if user is not authenticated or has no workspace
+ * Creates a workspace if one doesn't exist
+ * Returns null if user is not authenticated
  */
 export async function getUserWorkspaceId(): Promise<string | null> {
   const workspace = await getUserWorkspace();
   return workspace?.id || null;
+}
+
+/**
+ * Ensure user has a workspace, creating one if needed
+ * This is a helper function to guarantee workspace exists
+ */
+export async function ensureUserWorkspace(): Promise<{ workspace: Workspace; workspaceId: string } | null> {
+  const workspace = await getUserWorkspace();
+  if (!workspace) {
+    return null;
+  }
+  return { workspace, workspaceId: workspace.id };
 }
 
 /**
