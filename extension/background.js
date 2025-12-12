@@ -1,7 +1,22 @@
 // DMflow Background Service Worker
 // Handles cookie access and communication
 
-const BACKEND_URL = 'http://localhost:3001';
+// Get backend URL from storage or use default
+let BACKEND_URL = 'http://localhost:3001';
+
+// Load config from storage on startup
+chrome.storage.sync.get(['backendUrl'], (result) => {
+  if (result.backendUrl) {
+    BACKEND_URL = result.backendUrl;
+  }
+});
+
+// Listen for config updates
+chrome.storage.onChanged.addListener((changes) => {
+  if (changes.backendUrl) {
+    BACKEND_URL = changes.backendUrl.newValue;
+  }
+});
 
 // Listen for messages from popup
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {

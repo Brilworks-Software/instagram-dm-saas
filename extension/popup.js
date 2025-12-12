@@ -1,8 +1,21 @@
 // DMflow Instagram Session Grabber
 // This extension extracts Instagram cookies and sends them to DMflow
 
-const APP_URL = 'http://localhost:3000';
-const BACKEND_URL = 'http://localhost:3001';
+// Get URLs from storage or use defaults
+let APP_URL = 'http://localhost:3000';
+let BACKEND_URL = 'http://localhost:3001';
+
+// Load config from storage
+chrome.storage.sync.get(['appUrl', 'backendUrl'], (result) => {
+  if (result.appUrl) APP_URL = result.appUrl;
+  if (result.backendUrl) BACKEND_URL = result.backendUrl;
+});
+
+// Listen for config updates
+chrome.storage.onChanged.addListener((changes) => {
+  if (changes.appUrl) APP_URL = changes.appUrl.newValue;
+  if (changes.backendUrl) BACKEND_URL = changes.backendUrl.newValue;
+});
 
 // DOM Elements
 const grabBtn = document.getElementById('grab-btn');
