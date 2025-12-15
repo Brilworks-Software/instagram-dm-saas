@@ -29,9 +29,13 @@ This guide covers the best **FREE** platforms to deploy your NestJS backend API.
    - Select your repository
    - Railway will auto-detect it's a Node.js app
 
-4. **Configure Settings**
+4. **Configure Settings** ⚠️ IMPORTANT
    - Click on the service → Settings
-   - **Root Directory**: `backend`
+   - **Root Directory**: `backend` (This is CRITICAL!)
+   - **Build Command**: Leave empty (Railway will auto-detect from package.json)
+   - **Start Command**: Leave empty (Railway will use `npm run start:prod` from package.json)
+   
+   **OR** if Railway doesn't auto-detect:
    - **Build Command**: `npm install && npm run build`
    - **Start Command**: `npm run start:prod`
 
