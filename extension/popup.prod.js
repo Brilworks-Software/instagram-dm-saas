@@ -3,7 +3,7 @@
 
 // PRODUCTION URLs - Hardcoded for Production
 const APP_URL = 'https://bulkdm-saas.netlify.app';
-const BACKEND_URL = 'https://bulkdm-saas.netlify.app'; // Update when backend is deployed separately
+const BACKEND_URL = 'https://bulkdm-saas.netlify.app'; // Frontend proxies to backend API
 
 // DOM Elements
 const grabBtn = document.getElementById('grab-btn');
@@ -72,7 +72,7 @@ async function getInstagramCookies() {
 
 // Verify session with backend
 async function verifySession(cookies) {
-  const response = await fetch(`${BACKEND_URL}/api/instagram/cookie/verify`, {
+  const response = await fetch(`${BACKEND_URL}/api/proxy/instagram/cookie/verify`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ cookies })
@@ -93,7 +93,7 @@ async function verifySession(cookies) {
 
 // Connect account
 async function connectAccount(cookies) {
-  const response = await fetch(`${BACKEND_URL}/api/instagram/cookie/connect`, {
+  const response = await fetch(`${BACKEND_URL}/api/proxy/instagram/cookie/connect`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ cookies })

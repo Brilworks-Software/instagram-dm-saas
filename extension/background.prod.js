@@ -2,7 +2,7 @@
 // Handles cookie access and communication
 
 // PRODUCTION URL - Hardcoded for Production
-const BACKEND_URL = 'https://bulkdm-saas.netlify.app'; // Update when backend is deployed separately
+const BACKEND_URL = 'https://bulkdm-saas.netlify.app'; // Frontend proxies to backend API
 
 // Install event
 chrome.runtime.onInstalled.addListener(() => {
