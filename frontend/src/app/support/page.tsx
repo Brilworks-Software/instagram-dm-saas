@@ -58,7 +58,7 @@ export default function SupportPage() {
       title: "Documentation",
       description: "Browse our guides",
       action: "View docs",
-      href: "#"
+      href: "/docs"
     },
     {
       icon: Video,
@@ -128,12 +128,21 @@ export default function SupportPage() {
               </div>
               <h3 className="text-lg font-semibold text-foreground mb-2">{option.title}</h3>
               <p className="text-sm text-foreground-muted mb-4">{option.description}</p>
-              <a
-                href={option.href}
-                className="text-accent hover:underline text-sm font-medium"
-              >
-                {option.action} →
-              </a>
+              {option.href.startsWith('/') ? (
+                <Link
+                  href={option.href}
+                  className="text-accent hover:underline text-sm font-medium"
+                >
+                  {option.action} →
+                </Link>
+              ) : (
+                <a
+                  href={option.href}
+                  className="text-accent hover:underline text-sm font-medium"
+                >
+                  {option.action} →
+                </a>
+              )}
             </div>
           ))}
         </div>
