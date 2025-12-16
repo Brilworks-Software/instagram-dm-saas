@@ -1,0 +1,55 @@
+# ============================================
+# VERCEL ENVIRONMENT VARIABLES - COPY & PASTE
+# ============================================
+# 
+# Copy these into Vercel Dashboard → Your Project → Settings → Environment Variables
+# Replace placeholder values with your actual values
+#
+# ============================================
+
+# Database (Required)
+# Get from: Vercel Postgres, Supabase, Railway, or other provider
+DATABASE_URL=postgresql://user:password@host:port/database
+DIRECT_URL=postgresql://user:password@host:port/database
+
+# Supabase (Required)
+# Get from: Supabase Dashboard → Settings → API
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
+# Backend URL (Set after first deployment)
+# This will be your Vercel URL: https://your-project.vercel.app
+NEXT_PUBLIC_BACKEND_URL=https://your-project.vercel.app
+
+# Security (Required - Generate your own!)
+# Generate with: openssl rand -base64 32
+JWT_SECRET=your-generated-secret-min-32-characters
+ENCRYPTION_KEY=your-generated-key-32-characters
+
+# Optional: Analytics
+NEXT_PUBLIC_POSTHOG_KEY=
+NEXT_PUBLIC_POSTHOG_HOST=https://us.i.posthog.com
+
+# ============================================
+# HOW TO GET VALUES:
+# ============================================
+# 
+# DATABASE_URL & DIRECT_URL:
+#   - Vercel: Dashboard → Storage → Create Postgres → Copy URL
+#   - Supabase: Dashboard → Settings → Database → Connection string
+#   - Railway: PostgreSQL Service → Variables → DATABASE_URL
+#
+# NEXT_PUBLIC_SUPABASE_URL & NEXT_PUBLIC_SUPABASE_ANON_KEY:
+#   - Supabase Dashboard → Settings → API
+#   - Copy "Project URL" and "anon public" key
+#
+# JWT_SECRET & ENCRYPTION_KEY:
+#   - Run: openssl rand -base64 32
+#   - Generate two different values
+#
+# NEXT_PUBLIC_BACKEND_URL:
+#   - Set after first deployment
+#   - Use your Vercel project URL
+#
+# ============================================
+

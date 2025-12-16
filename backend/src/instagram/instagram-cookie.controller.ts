@@ -154,14 +154,37 @@ export class InstagramCookieController {
   @Post('verify')
   @HttpCode(HttpStatus.OK)
   async verifyCookies(@Body() body: { cookies: InstagramCookies }) {
-    this.logger.log('Verifying Instagram cookies...');
+    try {
+      this.logger.log('Verifying Instagram cookies...');
 
-    const userInfo = await this.cookieService.verifySession(body.cookies);
+      if (!body.cookies || !body.cookies.sessionId || !body.cookies.dsUserId) {
+        this.logger.warn('Invalid cookies provided - missing required fields');
+        return {
+          success: false,
+          error: 'Invalid cookies. Missing sessionId or dsUserId. Please make sure you are logged in to Instagram.',
+          message: 'Invalid cookies. Missing sessionId or dsUserId.',
+        };
+      }
 
-    return {
-      success: true,
-      user: userInfo,
-    };
+      const userInfo = await this.cookieService.verifySession(body.cookies);
+
+      return {
+        success: true,
+        user: userInfo,
+      };
+    } catch (error: any) {
+      this.logger.error('Error verifying cookies:', error);
+      
+      // Handle NestJS exceptions
+      const errorMessage = error?.response?.message || error?.message || 'Failed to verify Instagram session';
+      const statusCode = error?.status || error?.statusCode || 400;
+      
+      return {
+        success: false,
+        error: errorMessage,
+        message: errorMessage,
+      };
+    }
   }
 
   /**

@@ -13,9 +13,11 @@
     "https://instagram.com/*",
     "http://localhost:3000/*",
     "http://localhost:3001/*",
-    "https://dmflow-saas.netlify.app/*",
+    "https://bulkdm-saas.netlify.app/*",
     "https://*.netlify.app/*",
-    "https://*.netlify.com/*"
+    "https://*.netlify.com/*",
+    "https://instagram-dm-saas-production.up.railway.app/*",
+    "https://*.railway.app/*"
   ],
   "action": {
     "default_popup": "popup.html",

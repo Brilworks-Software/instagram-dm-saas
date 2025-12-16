@@ -2,8 +2,8 @@
 // This extension extracts Instagram cookies and sends them to BulkDM
 
 // PRODUCTION URLs - Hardcoded for Production
-const APP_URL = 'https://bulkdm-saas.netlify.app';
-const BACKEND_URL = 'https://bulkdm-saas.netlify.app'; // Update when backend is deployed separately
+const APP_URL = 'https://instagram-dm-saas-h94m.vercel.app';
+// Single Next.js project on Vercel - API routes are on the same domain
 
 // DOM Elements
 const grabBtn = document.getElementById('grab-btn');
@@ -72,7 +72,7 @@ async function getInstagramCookies() {
 
 // Verify session with backend
 async function verifySession(cookies) {
-  const response = await fetch(`${BACKEND_URL}/api/instagram/cookie/verify`, {
+  const response = await fetch(`${APP_URL}/api/instagram/cookie/verify`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ cookies })
@@ -93,7 +93,7 @@ async function verifySession(cookies) {
 
 // Connect account
 async function connectAccount(cookies) {
-  const response = await fetch(`${BACKEND_URL}/api/instagram/cookie/connect`, {
+  const response = await fetch(`${APP_URL}/api/instagram/cookie/connect`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ cookies })
@@ -134,7 +134,7 @@ async function grabSession() {
       verifyResult = await verifySession(cookies);
     } catch (fetchError) {
       showStatus(statusError);
-      errorMessage.textContent = `Cannot connect to backend at ${BACKEND_URL}. Please check your internet connection.`;
+      errorMessage.textContent = `Cannot connect to backend at ${APP_URL}. Please check your internet connection.`;
       grabBtn.disabled = false;
       instructions.classList.remove('hidden');
       return;
@@ -204,7 +204,7 @@ async function grabSession() {
   } catch (error) {
     console.error('Error:', error);
     showStatus(statusError);
-    errorMessage.textContent = `Network error. Make sure BulkDM backend is running at ${BACKEND_URL}.`;
+    errorMessage.textContent = `Network error. Make sure BulkDM is accessible at ${APP_URL}.`;
     grabBtn.disabled = false;
     instructions.classList.remove('hidden');
   }

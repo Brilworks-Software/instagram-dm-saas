@@ -504,7 +504,7 @@ export default function InstagramSettingsPage() {
           });
           
           // Update accountsWithCookies to show as active
-          setAccountsWithCookies(prev => new Set([...prev, newAccount.id]));
+          setAccountsWithCookies(prev => new Set([...Array.from(prev), newAccount.id]));
         }
 
         setSuccessMessage(`Connected @${data.account.username} successfully!`);

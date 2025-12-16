@@ -1,156 +1,136 @@
-# 🚀 Deploy to Netlify - Quick Start
+# 🚀 Deploy to Vercel Now - Step by Step
 
-Follow these steps to deploy your BulkDM application to Netlify.
+## Option 1: Deploy via Vercel Dashboard (Easiest)
 
-## Step 1: Deploy Frontend to Netlify
+### Step 1: Push to GitHub
+```bash
+git add .
+git commit -m "Ready for Vercel deployment"
+git push origin vercel-single-project
+```
 
-### Via Netlify Dashboard (Easiest)
+### Step 2: Create Project on Vercel
 
-1. **Go to Netlify**
-   - Visit: https://app.netlify.com
-   - Make sure you're logged in
+1. **Go to Vercel**: https://vercel.com
+2. **Sign in** with GitHub
+3. **Click "Add New Project"**
+4. **Import your repository**: `drdhavaltrivedi/instagram-dm-saas`
+5. **Select branch**: `vercel-single-project` (or `main`)
 
-2. **Import Your Project**
-   - Click "Add new site" → "Import an existing project"
-   - Click "Deploy with GitHub"
-   - Authorize Netlify if needed
-   - Select repository: `instagram-dm-saas`
+### Step 3: Configure Project
 
-3. **Configure Build Settings**
-   - **Base directory**: `frontend`
-   - **Build command**: `npm run build`
-   - **Publish directory**: `.next`
-   - **Node version**: `20` (or leave default)
+Vercel will auto-detect Next.js. Verify:
+- **Framework Preset**: Next.js ✅
+- **Root Directory**: `.` (root) ✅
+- **Build Command**: `npm run build` ✅
+- **Output Directory**: `.next` ✅
 
-4. **Add Environment Variables**
-   Click "Show advanced" → "New variable" and add each:
+### Step 4: Set Environment Variables
 
-   ```
-   NEXT_PUBLIC_SUPABASE_URL
-   = your_supabase_url_here
-   
-   NEXT_PUBLIC_SUPABASE_ANON_KEY
-   = your_supabase_anon_key_here
-   
-   NEXT_PUBLIC_BACKEND_URL
-   = http://localhost:3001
-   (Update this after backend is deployed)
-   
-   NEXT_PUBLIC_POSTHOG_KEY
-   = phc_24Q6SdPJCXZNP7GfojwBdEIVIEZOmqgrgjOR8014afI
-   
-   NEXT_PUBLIC_POSTHOG_HOST
-   = https://us.i.posthog.com
-   
-   NEXT_PUBLIC_META_APP_ID
-   = your_meta_app_id (optional)
-   
-   NEXT_PUBLIC_META_OAUTH_REDIRECT_URI
-   = https://your-site-name.netlify.app/api/instagram/callback
-   (Update with your actual Netlify URL after deployment)
-   ```
+**Before deploying**, click **"Environment Variables"** and add:
 
-5. **Deploy!**
-   - Click "Deploy site"
-   - Wait 2-5 minutes for build
-   - Your site will be live! 🎉
+```env
+DATABASE_URL=your-database-url
+DIRECT_URL=your-direct-url
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+NEXT_PUBLIC_BACKEND_URL=https://your-project.vercel.app
+JWT_SECRET=your-jwt-secret
+ENCRYPTION_KEY=your-encryption-key
+```
 
-## Step 2: Deploy Backend
+**Note**: Set `NEXT_PUBLIC_BACKEND_URL` after first deployment with your actual Vercel URL.
 
-The backend (NestJS) needs to be deployed separately. Choose one:
+### Step 5: Deploy
 
-### Option A: Railway (Recommended - Free tier available)
+1. Click **"Deploy"**
+2. Wait for build to complete (~2-3 minutes)
+3. Your app will be live at: `https://your-project.vercel.app`
 
-1. Go to https://railway.app
-2. Sign up with GitHub
-3. Click "New Project" → "Deploy from GitHub repo"
-4. Select `instagram-dm-saas` repository
-5. Click "Add Service" → "GitHub Repo"
-6. Configure:
-   - **Root Directory**: `backend`
-   - **Build Command**: `npm install && npm run build`
-   - **Start Command**: `npm run start:prod`
-7. Add Environment Variables:
-   ```
-   DATABASE_URL=your_postgresql_url
-   DIRECT_URL=your_direct_postgresql_url
-   JWT_SECRET=your_jwt_secret
-   ENCRYPTION_KEY=your_32_char_encryption_key
-   NODE_ENV=production
-   PORT=3001
-   ```
-8. Get your Railway URL (e.g., `https://your-app.up.railway.app`)
-9. Update `NEXT_PUBLIC_BACKEND_URL` in Netlify with this URL
+### Step 6: Update Backend URL
 
-### Option B: Render
-
-1. Go to https://render.com
-2. Sign up with GitHub
-3. Click "New" → "Web Service"
-4. Connect your GitHub repo
-5. Configure:
-   - **Root Directory**: `backend`
-   - **Build Command**: `npm install && npm run build`
-   - **Start Command**: `npm run start:prod`
-6. Add same environment variables as Railway
-7. Get Render URL and update Netlify
-
-## Step 3: Update Configuration
-
-After both are deployed:
-
-1. **Update Netlify Environment Variable**
-   - Go to Netlify Dashboard → Site Settings → Environment Variables
-   - Update `NEXT_PUBLIC_BACKEND_URL` with your backend URL
-   - Trigger a new deploy
-
-2. **Update Extension URLs** (if you've published it)
-   - See `EXTENSION_DEPLOYMENT.md`
-   - Update extension with production URLs
-
-## Step 4: Test Everything
-
-1. Visit your Netlify site
-2. Test login/signup
-3. Test Instagram account connection
-4. Test campaign creation
-5. Test lead search
-6. Check PostHog dashboard for events
-
-## ✅ Deployment Checklist
-
-- [ ] Frontend deployed to Netlify
-- [ ] Environment variables set in Netlify
-- [ ] Backend deployed (Railway/Render/etc)
-- [ ] Backend environment variables set
-- [ ] `NEXT_PUBLIC_BACKEND_URL` updated in Netlify
-- [ ] Site is accessible
-- [ ] All features tested
-- [ ] PostHog tracking verified
-
-## 🆘 Troubleshooting
-
-**Build fails?**
-- Check build logs in Netlify
-- Verify Node version is 20
-- Check environment variables are set
-
-**API calls fail?**
-- Verify `NEXT_PUBLIC_BACKEND_URL` is correct
-- Check backend is running
-- Check CORS settings in backend
-
-**Database errors?**
-- Run migrations: `npx prisma migrate deploy` (in backend)
-- Verify `DATABASE_URL` is correct
-
-## 📞 Need Help?
-
-- Netlify Docs: https://docs.netlify.com
-- Railway Docs: https://docs.railway.app
-- Check `NETLIFY_DEPLOYMENT.md` for detailed guide
+After deployment:
+1. Copy your Vercel URL
+2. Go to **Settings** → **Environment Variables**
+3. Update `NEXT_PUBLIC_BACKEND_URL` to your Vercel URL
+4. **Redeploy** (or wait for auto-redeploy)
 
 ---
 
-**Ready? Let's deploy! 🚀**
+## Option 2: Deploy via Vercel CLI
 
+### Step 1: Install & Login
+
+```bash
+# Install Vercel CLI (already in package.json)
+npm install
+
+# Login to Vercel
+npx vercel login
+```
+
+### Step 2: Deploy
+
+```bash
+# Deploy to preview
+npx vercel
+
+# Or deploy to production
+npx vercel --prod
+```
+
+### Step 3: Set Environment Variables
+
+```bash
+# Add each variable
+npx vercel env add DATABASE_URL
+npx vercel env add DIRECT_URL
+npx vercel env add NEXT_PUBLIC_SUPABASE_URL
+npx vercel env add NEXT_PUBLIC_SUPABASE_ANON_KEY
+npx vercel env add NEXT_PUBLIC_BACKEND_URL
+npx vercel env add JWT_SECRET
+npx vercel env add ENCRYPTION_KEY
+
+# Pull env vars locally (optional)
+npx vercel env pull .env.local
+```
+
+---
+
+## 📋 Quick Checklist
+
+Before deploying, make sure you have:
+
+- [ ] Database URL (Vercel Postgres, Supabase, or Railway)
+- [ ] Supabase URL and anon key
+- [ ] Generated JWT_SECRET (32+ chars)
+- [ ] Generated ENCRYPTION_KEY (32 chars)
+- [ ] Code pushed to GitHub
+- [ ] All changes committed
+
+---
+
+## 🎯 After Deployment
+
+1. **Test the app**: Visit your Vercel URL
+2. **Run migrations**: 
+   ```bash
+   npx vercel env pull .env.local
+   npm run prisma:migrate:prod
+   ```
+3. **Update extension**: Change `APP_URL` in `extension/popup.prod.js`
+4. **Test extension**: Load in Chrome and test connection
+
+---
+
+## 🔗 Your Project Info
+
+- **GitHub**: `drdhavaltrivedi/instagram-dm-saas`
+- **Branch**: `vercel-single-project`
+- **Vercel URL**: Will be assigned after deployment
+
+---
+
+## ✅ Ready to Deploy!
+
+Your project is ready. Choose Option 1 (Dashboard) for easiest deployment, or Option 2 (CLI) for more control.

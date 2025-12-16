@@ -1,5 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Enable standalone output for Docker
+  output: 'standalone',
   // Image optimization
   images: {
     domains: ['instagram.com', 'cdninstagram.com', 'scontent.cdninstagram.com'],

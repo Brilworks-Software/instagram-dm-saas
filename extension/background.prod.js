@@ -2,7 +2,8 @@
 // Handles cookie access and communication
 
 // PRODUCTION URL - Hardcoded for Production
-const BACKEND_URL = 'https://bulkdm-saas.netlify.app'; // Update when backend is deployed separately
+const APP_URL = 'https://bulkdm-saas.netlify.app';
+// Extension uses Netlify proxy routes which forward to Railway backend
 
 // Install event
 chrome.runtime.onInstalled.addListener(() => {
@@ -12,7 +13,7 @@ chrome.runtime.onInstalled.addListener(() => {
 // Message handler
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'getBackendUrl') {
-    sendResponse({ url: BACKEND_URL });
+    sendResponse({ url: APP_URL });
   }
 });
 

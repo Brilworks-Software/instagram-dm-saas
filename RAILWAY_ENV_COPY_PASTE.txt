@@ -1,0 +1,40 @@
+# ============================================
+# RAILWAY ENVIRONMENT VARIABLES - COPY & PASTE
+# ============================================
+# 
+# IMPORTANT: 
+# 1. Replace DATABASE_URL with your Railway PostgreSQL connection string
+# 2. Replace DIRECT_URL with your Railway PostgreSQL direct connection string
+# 3. Generate new secure secrets for JWT_SECRET and ENCRYPTION_KEY for production
+# 4. Get DATABASE_URL from Railway Dashboard → PostgreSQL Service → Variables tab
+#
+# ============================================
+
+DATABASE_URL=YOUR_RAILWAY_POSTGRES_CONNECTION_STRING_HERE
+DIRECT_URL=YOUR_RAILWAY_POSTGRES_DIRECT_CONNECTION_STRING_HERE
+JWT_SECRET=wAJUUr7GPFADRrdbze9UetTAYJJpd+CunPrpAYJBweA=
+ENCRYPTION_KEY=OvO0hpeBBumWMKpptlpxZZxjt3deakjeRXpjInpdN2Y=
+FRONTEND_URL=https://bulkdm-saas.netlify.app
+NODE_ENV=production
+PORT=3001
+
+# ============================================
+# HOW TO GET DATABASE_URL FROM RAILWAY:
+# ============================================
+# 1. Go to Railway Dashboard
+# 2. Click on your PostgreSQL service
+# 3. Go to Variables tab
+# 4. Copy the DATABASE_URL value
+# 5. Use the same value for DIRECT_URL (or get direct connection if available)
+#
+# Example format:
+# postgresql://postgres:PASSWORD@containers-us-west-123.railway.app:5432/railway
+#
+# ============================================
+# SECRETS GENERATED:
+# ============================================
+# JWT_SECRET and ENCRYPTION_KEY are randomly generated secure values
+# These are different from your local dev values for security
+#
+# ============================================
+

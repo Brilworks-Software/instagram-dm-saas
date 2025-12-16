@@ -2,7 +2,7 @@
 // Handles cookie access and communication
 
 // Production URLs
-const PRODUCTION_BACKEND_URL = 'https://dmflow-saas.netlify.app'; // Update this when backend is deployed
+const PRODUCTION_BACKEND_URL = 'https://bulkdm-saas.netlify.app'; // Frontend proxies to backend API
 const DEV_BACKEND_URL = 'http://localhost:3001';
 
 // Get backend URL from storage or use smart default

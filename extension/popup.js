@@ -2,8 +2,8 @@
 // This extension extracts Instagram cookies and sends them to BulkDM
 
 // Production URLs
-const PRODUCTION_APP_URL = 'https://dmflow-saas.netlify.app';
-const PRODUCTION_BACKEND_URL = 'https://dmflow-saas.netlify.app'; // Update this when backend is deployed
+const PRODUCTION_APP_URL = 'https://bulkdm-saas.netlify.app';
+const PRODUCTION_BACKEND_URL = 'https://bulkdm-saas.netlify.app'; // Frontend proxies to backend API
 
 // Development URLs
 const DEV_APP_URL = 'http://localhost:3000';
