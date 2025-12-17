@@ -6,6 +6,7 @@ import { createUserWorkspace } from '@/lib/supabase/user-workspace';
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get('code');
+  const type = requestUrl.searchParams.get('type'); // 'recovery' for password reset
   const origin = requestUrl.origin;
 
   if (code) {
@@ -34,6 +35,12 @@ export async function GET(request: Request) {
     const { data, error } = await supabase.auth.exchangeCodeForSession(code);
     
     if (!error && data.user) {
+      // If this is a password reset flow, redirect to reset-password page
+      // The session is already established, so no need to pass the code
+      if (type === 'recovery') {
+        return NextResponse.redirect(`${origin}/reset-password`);
+      }
+
       // Check if user already has a workspace
       const { data: existingUser } = await supabase
         .from('users')

@@ -2,10 +2,10 @@
 
 export const dynamic = 'force-dynamic';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { Instagram, Mail, Lock, ArrowRight, Sparkles, AlertCircle } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Instagram, Mail, Lock, ArrowRight, Sparkles, AlertCircle, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -15,12 +15,31 @@ import { usePostHog } from '@/hooks/use-posthog';
 export default function LoginPage() {
   const { capture, identify } = usePostHog();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const [loginMethod, setLoginMethod] = useState<'password' | 'magic'>('password');
   const [magicLinkSent, setMagicLinkSent] = useState(false);
+
+  useEffect(() => {
+    // Check for password reset success message
+    const passwordReset = searchParams.get('password_reset');
+    if (passwordReset === 'success') {
+      setSuccess('Your password has been reset successfully. Please sign in with your new password.');
+      // Clean up URL
+      router.replace('/login', { scroll: false });
+    }
+
+    // Check for auth callback errors
+    const authError = searchParams.get('error');
+    if (authError === 'auth_callback_error') {
+      setError('Authentication failed. Please try again.');
+      router.replace('/login', { scroll: false });
+    }
+  }, [searchParams, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -214,6 +233,14 @@ export default function LoginPage() {
             <h2 className="text-2xl font-bold text-foreground mb-2">Welcome back</h2>
             <p className="text-foreground-muted">Sign in to your account to continue</p>
           </div>
+
+          {/* Success Message */}
+          {success && (
+            <div className="mb-6 p-4 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center gap-3">
+              <CheckCircle className="h-5 w-5 text-emerald-500 flex-shrink-0" />
+              <p className="text-sm text-emerald-500">{success}</p>
+            </div>
+          )}
 
           {/* Error Message */}
           {error && (
