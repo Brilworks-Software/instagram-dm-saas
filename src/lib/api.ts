@@ -9,20 +9,17 @@ import type {
 // API Configuration
 // ============================================================================
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+// Use empty string for relative URLs since backend and frontend are on the same domain
+// All endpoints already include '/api/' prefix, so they work as relative paths
 
 interface FetchOptions extends RequestInit {
   params?: Record<string, string | number | boolean | undefined>;
 }
 
 class ApiClient {
-  private baseUrl: string;
   private workspaceId: string | null = null;
   private userId: string | null = null;
 
-  constructor(baseUrl: string) {
-    this.baseUrl = baseUrl;
-  }
 
   setAuth(workspaceId: string, userId: string) {
     this.workspaceId = workspaceId;
@@ -32,7 +29,8 @@ class ApiClient {
   private async fetch<T>(endpoint: string, options: FetchOptions = {}): Promise<T> {
     const { params, ...fetchOptions } = options;
     
-    let url = `${this.baseUrl}${endpoint}`;
+    // Use endpoint directly as relative URL (backend and frontend are on same domain)
+    let url = endpoint;
     
     if (params) {
       const searchParams = new URLSearchParams();
@@ -84,15 +82,15 @@ class ApiClient {
   // ==========================================================================
 
   async getInstagramAccounts(): Promise<InstagramAccount[]> {
-    return this.fetch<InstagramAccount[]>('/instagram/accounts');
+    return this.fetch<InstagramAccount[]>('/api/instagram/accounts');
   }
 
   async startInstagramOAuth(): Promise<{ authUrl: string }> {
-    return this.fetch<{ authUrl: string }>('/instagram/oauth/start');
+    return this.fetch<{ authUrl: string }>('/api/instagram/oauth/start');
   }
 
   async disconnectInstagramAccount(accountId: string): Promise<{ success: boolean }> {
-    return this.fetch<{ success: boolean }>(`/instagram/accounts/${accountId}/disconnect`, {
+    return this.fetch<{ success: boolean }>(`/api/instagram/accounts/${accountId}/disconnect`, {
       method: 'POST',
     });
   }
@@ -107,20 +105,20 @@ class ApiClient {
     page?: number;
     limit?: number;
   }): Promise<Conversation[]> {
-    return this.fetch<Conversation[]>('/inbox/conversations', {
+    return this.fetch<Conversation[]>('/api/inbox/conversations', {
       params: options,
     });
   }
 
   async getConversation(conversationId: string): Promise<Conversation> {
-    return this.fetch<Conversation>(`/inbox/conversations/${conversationId}`);
+    return this.fetch<Conversation>(`/api/inbox/conversations/${conversationId}`);
   }
 
   async updateConversationStatus(
     conversationId: string,
     status: string
   ): Promise<Conversation> {
-    return this.fetch<Conversation>(`/inbox/conversations/${conversationId}/status`, {
+    return this.fetch<Conversation>(`/api/inbox/conversations/${conversationId}/status`, {
       method: 'PATCH',
       body: JSON.stringify({ status }),
     });
@@ -134,20 +132,20 @@ class ApiClient {
     page?: number;
     limit?: number;
   }): Promise<Message[]> {
-    return this.fetch<Message[]>(`/inbox/conversations/${conversationId}/messages`, {
+    return this.fetch<Message[]>(`/api/inbox/conversations/${conversationId}/messages`, {
       params: options,
     });
   }
 
   async sendMessage(conversationId: string, content: string): Promise<Message> {
-    return this.fetch<Message>(`/inbox/conversations/${conversationId}/messages`, {
+    return this.fetch<Message>(`/api/inbox/conversations/${conversationId}/messages`, {
       method: 'POST',
       body: JSON.stringify({ content }),
     });
   }
 
   async markAsRead(conversationId: string): Promise<void> {
-    return this.fetch<void>(`/inbox/conversations/${conversationId}/read`, {
+    return this.fetch<void>(`/api/inbox/conversations/${conversationId}/read`, {
       method: 'POST',
     });
   }
@@ -157,35 +155,35 @@ class ApiClient {
   // ==========================================================================
 
   async getCampaigns(): Promise<Campaign[]> {
-    return this.fetch<Campaign[]>('/campaigns');
+    return this.fetch<Campaign[]>('/api/campaigns');
   }
 
   async getCampaign(campaignId: string): Promise<Campaign> {
-    return this.fetch<Campaign>(`/campaigns/${campaignId}`);
+    return this.fetch<Campaign>(`/api/campaigns/${campaignId}`);
   }
 
   async createCampaign(data: Partial<Campaign>): Promise<Campaign> {
-    return this.fetch<Campaign>('/campaigns', {
+    return this.fetch<Campaign>('/api/campaigns', {
       method: 'POST',
       body: JSON.stringify(data),
     });
   }
 
   async updateCampaign(campaignId: string, data: Partial<Campaign>): Promise<Campaign> {
-    return this.fetch<Campaign>(`/campaigns/${campaignId}`, {
+    return this.fetch<Campaign>(`/api/campaigns/${campaignId}`, {
       method: 'PATCH',
       body: JSON.stringify(data),
     });
   }
 
   async startCampaign(campaignId: string): Promise<Campaign> {
-    return this.fetch<Campaign>(`/campaigns/${campaignId}/start`, {
+    return this.fetch<Campaign>(`/api/campaigns/${campaignId}/start`, {
       method: 'POST',
     });
   }
 
   async pauseCampaign(campaignId: string): Promise<Campaign> {
-    return this.fetch<Campaign>(`/campaigns/${campaignId}/pause`, {
+    return this.fetch<Campaign>(`/api/campaigns/${campaignId}/pause`, {
       method: 'POST',
     });
   }
@@ -199,7 +197,7 @@ class ApiClient {
     targetPersona: string;
     tone: string;
   }): Promise<{ template: string }> {
-    return this.fetch<{ template: string }>('/ai/generate-template', {
+    return this.fetch<{ template: string }>('/api/ai/generate-template', {
       method: 'POST',
       body: JSON.stringify(params),
     });
@@ -207,7 +205,7 @@ class ApiClient {
 
   async getSuggestedReplies(conversationId: string): Promise<{ suggestions: string[] }> {
     return this.fetch<{ suggestions: string[] }>(
-      `/ai/conversations/${conversationId}/suggestions`
+      `/api/ai/conversations/${conversationId}/suggestions`
     );
   }
 
@@ -219,46 +217,46 @@ class ApiClient {
     limit?: number;
     skip?: number;
   }): Promise<any[]> {
-    return this.fetch<any[]>('/notifications', {
+    return this.fetch<any[]>('/api/notifications', {
       params: options,
     });
   }
 
   async getUnreadNotifications(limit?: number): Promise<any[]> {
-    return this.fetch<any[]>('/notifications/unread', {
+    return this.fetch<any[]>('/api/notifications/unread', {
       params: { limit },
     });
   }
 
   async getUnreadCount(): Promise<{ count: number }> {
-    return this.fetch<{ count: number }>('/notifications/unread/count');
+    return this.fetch<{ count: number }>('/api/notifications/unread/count');
   }
 
   async markNotificationAsRead(notificationId: string): Promise<{ success: boolean }> {
-    return this.fetch<{ success: boolean }>(`/notifications/${notificationId}/read`, {
+    return this.fetch<{ success: boolean }>(`/api/notifications/${notificationId}/read`, {
       method: 'PUT',
     });
   }
 
   async markAllNotificationsAsRead(): Promise<{ success: boolean }> {
-    return this.fetch<{ success: boolean }>('/notifications/read-all', {
+    return this.fetch<{ success: boolean }>('/api/notifications/read-all', {
       method: 'PUT',
     });
   }
 
   async getNotificationPreferences(): Promise<any[]> {
-    return this.fetch<any[]>('/notifications/preferences');
+    return this.fetch<any[]>('/api/notifications/preferences');
   }
 
   async updateNotificationPreference(
     type: string,
     preferences: { email?: boolean; push?: boolean; inApp?: boolean }
   ): Promise<any> {
-    return this.fetch<any>(`/notifications/preferences/${type}`, {
+    return this.fetch<any>(`/api/notifications/preferences/${type}`, {
       method: 'PUT',
       body: JSON.stringify(preferences),
     });
   }
 }
 
-export const api = new ApiClient(API_BASE_URL);
+export const api = new ApiClient();

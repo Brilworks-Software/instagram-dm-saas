@@ -30,7 +30,7 @@ import { usePostHog } from '@/hooks/use-posthog';
 
 const META_APP_ID = process.env.NEXT_PUBLIC_META_APP_ID;
 const META_OAUTH_REDIRECT_URI = process.env.NEXT_PUBLIC_META_OAUTH_REDIRECT_URI || `${typeof window !== 'undefined' ? window.location.origin : ''}/api/instagram/callback`;
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3000';
 
 interface InstagramCookies {
   sessionId: string;
@@ -399,7 +399,7 @@ export default function InstagramSettingsPage() {
         setErrorMessage(data.message || 'Failed to verify cookies');
       }
     } catch (error) {
-      setErrorMessage('Failed to connect to backend. Make sure it\'s running on port 3001.');
+      setErrorMessage('Failed to connect to backend. Make sure it\'s running on port 3000.');
     } finally {
       setIsVerifyingCookies(false);
     }
@@ -906,7 +906,7 @@ export default function InstagramSettingsPage() {
                     {[
                       { key: 'META_APP_ID', value: 'your_app_id' },
                       { key: 'META_APP_SECRET', value: 'your_app_secret' },
-                      { key: 'META_OAUTH_REDIRECT_URI', value: 'http://localhost:3001/api/instagram/oauth/callback' },
+                      { key: 'META_OAUTH_REDIRECT_URI', value: 'http://localhost:3000/api/instagram/oauth/callback' },
                     ].map((env) => (
                       <div key={env.key} className="flex items-center gap-2 bg-background-secondary rounded px-3 py-2">
                         <code className="flex-1 text-xs text-foreground-muted">
@@ -930,7 +930,7 @@ export default function InstagramSettingsPage() {
                 <div className="bg-background-elevated rounded-lg p-4">
                   <h3 className="font-medium text-foreground mb-2">3. Start the Backend Server</h3>
                   <p className="text-sm text-foreground-muted mb-2">
-                    Run the NestJS backend on port 3001:
+                    Run the NestJS backend on port 3000:
                   </p>
                   <div className="flex items-center gap-2 bg-background-secondary rounded px-3 py-2">
                     <code className="flex-1 text-xs text-foreground-muted">

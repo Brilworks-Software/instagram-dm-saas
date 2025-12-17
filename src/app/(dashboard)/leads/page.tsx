@@ -30,7 +30,8 @@ import { cn } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
 import { usePostHog } from '@/hooks/use-posthog';
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
+// Use relative URLs since we're on the same domain (Next.js API routes)
+// All API calls use relative URLs since backend and frontend are on the same domain
 
 interface Lead {
   id: string;
@@ -332,12 +333,12 @@ export default function LeadsPage() {
 
       switch (type) {
         case 'username':
-          endpoint = `${BACKEND_URL}/api/instagram/cookie/users/search`;
+          endpoint = '/api/instagram/cookie/users/search';
           body.query = query;
           body.limit = Math.min(currentLimit, 50); // Username search limited to 50
           break;
         case 'hashtag':
-          endpoint = `${BACKEND_URL}/api/instagram/cookie/hashtag/${query.replace('#', '')}/users`;
+          endpoint = `/api/instagram/cookie/hashtag/${query.replace('#', '')}/users`;
           body.limit = currentLimit;
           body.searchSource = 'bio'; // Always use bio search for hashtags
           // Include bio keywords for filtering
@@ -358,7 +359,7 @@ export default function LeadsPage() {
             return;
           }
           // Use followListType to decide followers or following
-          endpoint = `${BACKEND_URL}/api/instagram/cookie/user/${userId}/${followListType}`;
+          endpoint = `/api/instagram/cookie/user/by-id/${userId}/${followListType}`;
           body.limit = currentLimit;
           break;
       }
@@ -438,7 +439,7 @@ export default function LeadsPage() {
     setSearchResults([]);
 
     try {
-      const userRes = await fetch(`${BACKEND_URL}/api/instagram/cookie/user/${searchQuery.replace('@', '')}/profile`, {
+      const userRes = await fetch(`/api/instagram/cookie/user/${searchQuery.replace('@', '')}/profile`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ cookies }),
@@ -528,7 +529,7 @@ export default function LeadsPage() {
         scannedCount++;
         
         // Fetch full profile with bio
-        const profileRes = await fetch(`${BACKEND_URL}/api/instagram/cookie/user/${userProfile.username}/profile`, {
+        const profileRes = await fetch(`/api/instagram/cookie/user/${userProfile.username}/profile`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ cookies }),
@@ -596,7 +597,7 @@ export default function LeadsPage() {
       const cookies = getCookies();
       if (cookies) {
         try {
-          const res = await fetch(`${BACKEND_URL}/api/instagram/cookie/user/${lead.igUsername}/profile`, {
+          const res = await fetch(`/api/instagram/cookie/user/${lead.igUsername}/profile`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ cookies }),
@@ -640,7 +641,7 @@ export default function LeadsPage() {
 
     for (const lead of leadsToMessage) {
       try {
-        const response = await fetch(`${BACKEND_URL}/api/instagram/cookie/dm/send`, {
+        const response = await fetch('/api/instagram/cookie/dm/send', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

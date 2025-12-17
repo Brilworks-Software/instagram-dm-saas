@@ -338,7 +338,7 @@ export default function CampaignsPage() {
       // If starting campaign, trigger processing
       if (newStatus === 'RUNNING') {
         try {
-          const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/campaigns/${campaignId}/process`, {
+          const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/campaigns/${campaignId}/process`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -368,7 +368,7 @@ export default function CampaignsPage() {
         if (campaign) {
           try {
             // Call the notification endpoint
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/notifications/campaign-complete`, {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/notifications/campaign-complete`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',

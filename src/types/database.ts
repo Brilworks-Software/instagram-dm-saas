@@ -290,6 +290,7 @@ export type Database = {
         Row: {
           access_token: string
           access_token_expires_at: string | null
+          cookies: Json | null
           created_at: string
           daily_dm_limit: number
           dm_limit_reset_at: string | null
@@ -308,6 +309,7 @@ export type Database = {
         Insert: {
           access_token: string
           access_token_expires_at?: string | null
+          cookies?: Json | null
           created_at?: string
           daily_dm_limit?: number
           dm_limit_reset_at?: string | null
@@ -326,6 +328,7 @@ export type Database = {
         Update: {
           access_token?: string
           access_token_expires_at?: string | null
+          cookies?: Json | null
           created_at?: string
           daily_dm_limit?: number
           dm_limit_reset_at?: string | null

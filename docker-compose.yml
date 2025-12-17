@@ -28,14 +28,14 @@ services:
       dockerfile: Dockerfile
     container_name: bulkdm-backend
     ports:
-      - "3001:3001"
+      - "3000:3000"
     environment:
       - DATABASE_URL=postgresql://bulkdm:bulkdm_password@postgres:5432/bulkdm_db
       - DIRECT_URL=postgresql://bulkdm:bulkdm_password@postgres:5432/bulkdm_db
       - JWT_SECRET=${JWT_SECRET:-your-super-secret-jwt-key-min-32-chars-change-in-production}
       - ENCRYPTION_KEY=${ENCRYPTION_KEY:-your-32-character-encryption-key}
       - FRONTEND_URL=http://localhost:3000
-      - PORT=3001
+      - PORT=3000
       - NODE_ENV=production
     depends_on:
       postgres:
@@ -55,7 +55,7 @@ services:
     environment:
       - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
       - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
-      - NEXT_PUBLIC_BACKEND_URL=http://localhost:3001
+      - NEXT_PUBLIC_BACKEND_URL=http://localhost:3000
       - NEXT_PUBLIC_POSTHOG_KEY=${NEXT_PUBLIC_POSTHOG_KEY:-}
       - NEXT_PUBLIC_POSTHOG_HOST=${NEXT_PUBLIC_POSTHOG_HOST:-https://us.i.posthog.com}
       - NODE_ENV=production

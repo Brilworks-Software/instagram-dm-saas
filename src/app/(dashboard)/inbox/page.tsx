@@ -11,7 +11,7 @@ import { cn } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
 import type { Conversation, Message } from '@/types';
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
+// All API calls use relative URLs since backend and frontend are on the same domain
 
 interface InstagramAccount {
   id: string;
@@ -252,17 +252,48 @@ export default function InboxPage() {
       if (cookiesStr) {
         try {
           const cookies = JSON.parse(cookiesStr);
-          const response = await fetch(`${BACKEND_URL}/api/instagram/cookie/dm/send-by-id`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              cookies,
-              recipientUserId: selectedConversation.contact.igUserId,
-              message: content,
-            }),
-          });
+          
+          // Check if user ID is valid (numeric) or use username fallback
+          const userId = selectedConversation.contact.igUserId;
+          const username = selectedConversation.contact.igUsername;
+          const isValidUserId = userId && /^\d+$/.test(String(userId).trim());
+          
+          let response;
+          let result;
+          
+          if (isValidUserId) {
+            // Use user ID-based sending
+            response = await fetch('/api/instagram/cookie/dm/send-by-id', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                cookies,
+                recipientUserId: userId,
+                message: content,
+              }),
+            });
+          } else if (username) {
+            // Fallback to username-based sending
+            console.log('Using username fallback for sending DM:', username);
+            response = await fetch('/api/instagram/cookie/dm/send', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                cookies,
+                recipientUsername: username.replace('@', ''),
+                message: content,
+              }),
+            });
+          } else {
+            throw new Error('No valid user ID or username available');
+          }
 
-          const result = await response.json();
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ error: 'Request failed' }));
+            throw new Error(errorData.error || errorData.message || `HTTP ${response.status}: Failed to send`);
+          }
+
+          result = await response.json();
           
           if (result.success) {
             // Update message status to SENT
@@ -275,7 +306,7 @@ export default function InboxPage() {
               prev.map(m => m.id === newMessage.id ? { ...m, status: 'SENT' } : m)
             );
           } else {
-            throw new Error(result.message || 'Failed to send');
+            throw new Error(result.error || result.message || 'Failed to send');
           }
         } catch (sendError) {
           console.error('Error sending via Instagram:', sendError);
@@ -337,7 +368,7 @@ export default function InboxPage() {
       // First, get user info from Instagram
       let recipientInfo: any = null;
       try {
-        const userResponse = await fetch(`${BACKEND_URL}/api/instagram/cookie/user/${username}`, {
+        const userResponse = await fetch(`/api/instagram/cookie/user/${username}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ cookies }),
@@ -351,7 +382,7 @@ export default function InboxPage() {
       }
 
       // Send the DM
-      const response = await fetch(`${BACKEND_URL}/api/instagram/cookie/dm/send`, {
+      const response = await fetch('/api/instagram/cookie/dm/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -382,19 +413,24 @@ export default function InboxPage() {
           return;
         }
 
-        const recipientUserId = recipientInfo?.pk || result.recipientId || `user_${username}`;
+        // Get valid user ID - only use numeric IDs, otherwise leave null
+        const recipientUserId = recipientInfo?.pk || result.recipientId;
+        const validUserId = recipientUserId && /^\d+$/.test(String(recipientUserId).trim()) 
+          ? String(recipientUserId).trim() 
+          : null;
         
         // Upsert contact (RLS will verify workspace_id)
+        // Note: ig_user_id can be null if we don't have a valid numeric ID
         const { data: contact } = await supabase
           .from('contacts')
           .upsert({
             workspace_id: user.workspace_id,
-            ig_user_id: String(recipientUserId),
+            ig_user_id: validUserId, // Can be null if invalid
             ig_username: username,
             name: recipientInfo?.fullName || username,
             profile_picture_url: recipientInfo?.profilePicUrl,
           }, {
-            onConflict: 'ig_user_id,workspace_id'
+            onConflict: 'ig_username,workspace_id' // Use username as conflict key instead
           })
           .select()
           .single();
@@ -488,7 +524,7 @@ export default function InboxPage() {
 
     setIsSyncing(true);
     try {
-      const response = await fetch(`${BACKEND_URL}/api/instagram/cookie/inbox/sync`, {
+      const response = await fetch('/api/instagram/cookie/inbox/sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

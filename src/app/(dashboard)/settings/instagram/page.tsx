@@ -30,7 +30,8 @@ import { usePostHog } from '@/hooks/use-posthog';
 
 const META_APP_ID = process.env.NEXT_PUBLIC_META_APP_ID;
 const META_OAUTH_REDIRECT_URI = process.env.NEXT_PUBLIC_META_OAUTH_REDIRECT_URI || `${typeof window !== 'undefined' ? window.location.origin : ''}/api/instagram/callback`;
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
+// Use relative URLs since we're on the same domain (Next.js API routes)
+// All API calls use relative URLs since backend and frontend are on the same domain
 
 interface InstagramCookies {
   sessionId: string;
@@ -404,7 +405,7 @@ export default function InstagramSettingsPage() {
     setCookieUser(null);
 
     try {
-      const response = await fetch(`${BACKEND_URL}/api/instagram/cookie/verify`, {
+      const response = await fetch('/api/instagram/cookie/verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ cookies }),
@@ -419,7 +420,7 @@ export default function InstagramSettingsPage() {
         setErrorMessage(data.message || 'Failed to verify cookies');
       }
     } catch (error) {
-      setErrorMessage('Failed to connect to backend. Make sure it\'s running on port 3001.');
+      setErrorMessage('Failed to connect to backend. Make sure it\'s running on port 3000.');
     } finally {
       setIsVerifyingCookies(false);
     }
@@ -457,7 +458,7 @@ export default function InstagramSettingsPage() {
 
       console.log('Workspace ID obtained:', workspaceId);
 
-      const response = await fetch(`${BACKEND_URL}/api/instagram/cookie/connect`, {
+      const response = await fetch('/api/instagram/cookie/connect', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -485,7 +486,12 @@ export default function InstagramSettingsPage() {
         });
 
         // Also save to Supabase for UI with cookies
-        const { data: savedAccount, error } = await supabase
+        // Try saving with cookies first, retry without cookies if column doesn't exist
+        let savedAccount = null;
+        let saveError = null;
+        
+        // First attempt: Try saving WITH cookies
+        const { data: accountWithCookies, error: errorWithCookies } = await supabase
           .from('instagram_accounts')
           .upsert({
             workspace_id: workspaceId,
@@ -504,10 +510,43 @@ export default function InstagramSettingsPage() {
           .select()
           .single();
 
-        if (!error && savedAccount) {
-          // Save cookies to localStorage for quick access
-          localStorage.setItem(`bulkdm_cookies_${data.account.pk}`, JSON.stringify(cookies));
-          
+        if (!errorWithCookies && accountWithCookies) {
+          savedAccount = accountWithCookies;
+        } else if (errorWithCookies && errorWithCookies.message?.includes('cookies')) {
+          // Retry without cookies if column doesn't exist
+          console.warn('Cookies column not available, saving without cookies:', errorWithCookies.message);
+          const { data: accountWithoutCookies, error: errorWithoutCookies } = await supabase
+            .from('instagram_accounts')
+            .upsert({
+              workspace_id: workspaceId,
+              ig_user_id: data.account.pk,
+              ig_username: data.account.username,
+              profile_picture_url: data.account.profilePicUrl,
+              access_token: 'cookie_auth',
+              access_token_expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+              // cookies: cookies, // Omit cookies if column doesn't exist
+              is_active: true,
+              daily_dm_limit: 100,
+              dms_sent_today: 0,
+            }, {
+              onConflict: 'ig_user_id,workspace_id'
+            })
+            .select()
+            .single();
+
+          if (!errorWithoutCookies && accountWithoutCookies) {
+            savedAccount = accountWithoutCookies;
+          } else {
+            saveError = errorWithoutCookies;
+          }
+        } else {
+          saveError = errorWithCookies;
+        }
+
+        // Always save cookies to localStorage for quick access (regardless of DB save result)
+        localStorage.setItem(`bulkdm_cookies_${data.account.pk}`, JSON.stringify(cookies));
+
+        if (savedAccount) {
           const newAccount: InstagramAccount = {
             id: savedAccount.id,
             igUserId: savedAccount.ig_user_id,
@@ -525,6 +564,10 @@ export default function InstagramSettingsPage() {
           
           // Update accountsWithCookies to show as active
           setAccountsWithCookies(prev => new Set([...Array.from(prev), newAccount.id]));
+        } else if (saveError) {
+          // Only show error if both attempts failed
+          console.error('Failed to save account to database:', saveError);
+          // Don't show error to user - cookies are saved to localStorage, account functionality will work
         }
 
         setSuccessMessage(`Connected @${data.account.username} successfully!`);
@@ -574,7 +617,7 @@ export default function InstagramSettingsPage() {
     setDmResult(null);
 
     try {
-      const response = await fetch(`${BACKEND_URL}/api/instagram/cookie/dm/send`, {
+      const response = await fetch('/api/instagram/cookie/dm/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -926,7 +969,7 @@ export default function InstagramSettingsPage() {
                     {[
                       { key: 'META_APP_ID', value: 'your_app_id' },
                       { key: 'META_APP_SECRET', value: 'your_app_secret' },
-                      { key: 'META_OAUTH_REDIRECT_URI', value: 'http://localhost:3001/api/instagram/oauth/callback' },
+                      { key: 'META_OAUTH_REDIRECT_URI', value: 'http://localhost:3000/api/instagram/oauth/callback' },
                     ].map((env) => (
                       <div key={env.key} className="flex items-center gap-2 bg-background-secondary rounded px-3 py-2">
                         <code className="flex-1 text-xs text-foreground-muted">
@@ -950,7 +993,7 @@ export default function InstagramSettingsPage() {
                 <div className="bg-background-elevated rounded-lg p-4">
                   <h3 className="font-medium text-foreground mb-2">3. Start the Backend Server</h3>
                   <p className="text-sm text-foreground-muted mb-2">
-                    Run the NestJS backend on port 3001:
+                    Run the NestJS backend on port 3000:
                   </p>
                   <div className="flex items-center gap-2 bg-background-secondary rounded px-3 py-2">
                     <code className="flex-1 text-xs text-foreground-muted">

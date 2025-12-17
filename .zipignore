@@ -1,0 +1,16 @@
+node_modules
+.next
+.git
+.env.local
+.env
+*.log
+.DS_Store
+dist
+build
+coverage
+.vercel
+.vscode
+.idea
+*.swp
+*.swo
+*~

@@ -1,110 +1,26 @@
 // BulkDM Instagram Session Grabber
 // This extension extracts Instagram cookies and sends them to BulkDM
 
-// Production URLs
-const PRODUCTION_APP_URL = 'https://bulkdm-saas.netlify.app';
-const PRODUCTION_BACKEND_URL = 'https://bulkdm-saas.netlify.app'; // Frontend proxies to backend API
+// Load configuration
+let APP_URL = '';
+let BACKEND_URL = '';
+let currentEnv = null;
 
-// Development URLs
-const DEV_APP_URL = 'http://localhost:3000';
-const DEV_BACKEND_URL = 'http://localhost:3001';
-
-// Get URLs from storage or use smart defaults
-let APP_URL = PRODUCTION_APP_URL;
-let BACKEND_URL = PRODUCTION_BACKEND_URL;
-
-// Load config from storage
-chrome.storage.sync.get(['appUrl', 'backendUrl', 'useProduction'], (result) => {
-  if (result.appUrl) {
-    APP_URL = result.appUrl;
-  } else if (result.useProduction === false) {
-    // Use localhost if explicitly set to false
-    APP_URL = DEV_APP_URL;
-  }
-  
-  if (result.backendUrl) {
-    BACKEND_URL = result.backendUrl;
-  } else if (result.useProduction === false) {
-    // Use localhost if explicitly set to false
-    BACKEND_URL = DEV_BACKEND_URL;
-  }
-  
-  // Auto-detect: Try to ping production, fallback to localhost
-  if (!result.appUrl && !result.useProduction) {
-    detectEnvironment();
-  }
-});
-
-// Auto-detect environment (production vs localhost)
-async function detectEnvironment() {
-  try {
-    // Try to fetch from production
-    const response = await fetch(`${PRODUCTION_APP_URL}/api/health`, {
-      method: 'HEAD',
-      mode: 'no-cors',
-      cache: 'no-cache'
-    });
-    // If we can reach production, use it
-    APP_URL = PRODUCTION_APP_URL;
-    BACKEND_URL = PRODUCTION_BACKEND_URL;
-    chrome.storage.sync.set({ useProduction: true });
-    updateEnvIndicator(true);
-  } catch (error) {
-    // Production not available, try localhost
-    try {
-      const localResponse = await fetch(`${DEV_APP_URL}/api/health`, {
-        method: 'HEAD',
-        mode: 'no-cors',
-        cache: 'no-cache'
-      });
-      APP_URL = DEV_APP_URL;
-      BACKEND_URL = DEV_BACKEND_URL;
-      chrome.storage.sync.set({ useProduction: false });
-      updateEnvIndicator(false);
-    } catch (localError) {
-      // Neither available, default to production
-      APP_URL = PRODUCTION_APP_URL;
-      BACKEND_URL = PRODUCTION_BACKEND_URL;
-      updateEnvIndicator(true);
-    }
-  }
+// Initialize configuration
+async function initConfig() {
+  currentEnv = await CONFIG.getCurrent();
+  APP_URL = currentEnv.APP_URL;
+  BACKEND_URL = currentEnv.BACKEND_URL;
+  updateEnvIndicator();
 }
 
-// Update environment indicator
-function updateEnvIndicator(isProduction) {
-  if (envText) {
-    if (isProduction) {
-      envText.textContent = `🌐 Connected to: ${PRODUCTION_APP_URL}`;
-      envText.style.color = '#22c55e';
-    } else {
-      envText.textContent = `💻 Connected to: ${DEV_APP_URL} (Local)`;
-      envText.style.color = '#eab308';
-    }
-  }
-}
-
-// Update indicator on load
-chrome.storage.sync.get(['useProduction', 'appUrl'], (result) => {
-  if (result.appUrl) {
-    const isProd = result.appUrl.includes('netlify.app');
-    updateEnvIndicator(isProd);
-  } else {
-    updateEnvIndicator(result.useProduction !== false);
-  }
-});
+// Initialize on load
+initConfig();
 
 // Listen for config updates
-chrome.storage.onChanged.addListener((changes) => {
-  if (changes.appUrl) APP_URL = changes.appUrl.newValue;
-  if (changes.backendUrl) BACKEND_URL = changes.backendUrl.newValue;
-  if (changes.useProduction !== undefined) {
-    if (changes.useProduction.newValue === false) {
-      APP_URL = DEV_APP_URL;
-      BACKEND_URL = DEV_BACKEND_URL;
-    } else {
-      APP_URL = PRODUCTION_APP_URL;
-      BACKEND_URL = PRODUCTION_BACKEND_URL;
-    }
+chrome.storage.onChanged.addListener(async (changes) => {
+  if (changes.envMode || changes.appUrl || changes.backendUrl) {
+    await initConfig();
   }
 });
 
@@ -121,11 +37,30 @@ const instructions = document.getElementById('instructions');
 const statusNotInstagram = document.getElementById('status-not-instagram');
 const statusNotLoggedIn = document.getElementById('status-not-logged-in');
 const statusSuccess = document.getElementById('status-success');
-const statusError = document.getElementById('status-error');
+const statusError = document.getElementById('error-message');
 const statusConnecting = document.getElementById('status-connecting');
 const errorMessage = document.getElementById('error-message');
 const envIndicator = document.getElementById('env-indicator');
 const envText = document.getElementById('env-text');
+
+// Update environment indicator
+function updateEnvIndicator() {
+  if (envText && currentEnv) {
+    const modeLabels = {
+      production: '🌐 PRODUCTION',
+      local: '💻 LOCAL',
+      custom: '⚙️ CUSTOM'
+    };
+    const colors = {
+      production: '#22c55e',
+      local: '#eab308',
+      custom: '#3b82f6'
+    };
+    
+    envText.textContent = `${modeLabels[currentEnv.mode] || '🌐'}: ${APP_URL}`;
+    envText.style.color = colors[currentEnv.mode] || '#22c55e';
+  }
+}
 
 // Hide all status messages
 function hideAllStatus() {
@@ -201,6 +136,11 @@ async function connectAccount(cookies) {
 // Main grab session function
 async function grabSession() {
   try {
+    // Ensure config is loaded
+    if (!APP_URL || !BACKEND_URL) {
+      await initConfig();
+    }
+    
     // Check if on Instagram
     const isInstagram = await checkCurrentTab();
     if (!isInstagram) {
@@ -231,29 +171,10 @@ async function grabSession() {
       verifyResult = await verifySession(cookies);
     } catch (fetchError) {
       showStatus(statusError);
-      // Try to switch to localhost if production fails
-      if (APP_URL === PRODUCTION_APP_URL) {
-        console.log('Production backend failed, trying localhost...');
-        APP_URL = DEV_APP_URL;
-        BACKEND_URL = DEV_BACKEND_URL;
-        chrome.storage.sync.set({ useProduction: false });
-        updateEnvIndicator(false);
-        
-        // Retry with localhost
-        try {
-          verifyResult = await verifySession(cookies);
-        } catch (localError) {
-          errorMessage.textContent = `Cannot connect to backend. Tried both production and localhost. Make sure backend is running.`;
-          grabBtn.disabled = false;
-          instructions.classList.remove('hidden');
-          return;
-        }
-      } else {
-        errorMessage.textContent = 'Cannot connect to backend. Make sure it is running on port 3001.';
-        grabBtn.disabled = false;
-        instructions.classList.remove('hidden');
-        return;
-      }
+      errorMessage.textContent = `Cannot connect to backend at ${BACKEND_URL}. ${currentEnv?.mode === 'local' ? 'Make sure backend is running.' : 'Please check your internet connection.'}`;
+      grabBtn.disabled = false;
+      instructions.classList.remove('hidden');
+      return;
     }
     
     if (!verifyResult.success) {
@@ -320,7 +241,7 @@ async function grabSession() {
   } catch (error) {
     console.error('Error:', error);
     showStatus(statusError);
-    errorMessage.textContent = 'Network error. Make sure BulkDM backend is running.';
+    errorMessage.textContent = `Network error. Make sure BulkDM is accessible at ${APP_URL}.`;
     grabBtn.disabled = false;
     instructions.classList.remove('hidden');
   }
@@ -341,6 +262,7 @@ openAppBtn.addEventListener('click', () => {
 
 // Check current tab on popup open
 (async () => {
+  await initConfig();
   const isInstagram = await checkCurrentTab();
   if (!isInstagram) {
     showStatus(statusNotInstagram);
@@ -354,4 +276,3 @@ openAppBtn.addEventListener('click', () => {
     }
   }
 })();
-

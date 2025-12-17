@@ -16,7 +16,7 @@
     "vercel:env:pull": "vercel env pull .env.local"
   },
   "dependencies": {
-    "@prisma/client": "^5.7.0",
+    "@prisma/client": "^5.22.0",
     "@supabase/ssr": "^0.5.1",
     "@supabase/supabase-js": "^2.47.10",
     "bullmq": "^5.1.0",

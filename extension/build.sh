@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Build script for BulkDM Chrome Extension
-# Creates separate ZIP files for LOCAL and PRODUCTION versions
+# Creates a unified ZIP file that works for both LOCAL and PRODUCTION
 
 echo "🚀 Building BulkDM Chrome Extension..."
 
@@ -9,84 +9,50 @@ echo "🚀 Building BulkDM Chrome Extension..."
 VERSION=$(grep -o '"version": "[^"]*"' manifest.json | cut -d'"' -f4)
 
 # Clean previous builds
-rm -rf build-local build-prod
-rm -f bulkdm-extension-local-v*.zip bulkdm-extension-prod-v*.zip
+rm -rf build
+rm -f bulkdm-extension-v*.zip
 
 echo ""
-echo "📦 Building LOCAL version..."
+echo "📦 Building unified extension..."
 echo "================================"
 
-# Create local build directory
-mkdir -p build-local
+# Create build directory
+mkdir -p build
 
-# Copy common files
-cp popup.html build-local/
-cp -r icons build-local/
+# Copy all necessary files
+cp manifest.json build/
+cp popup.html build/
+cp popup.js build/
+cp background.js build/
+cp config.js build/
+cp -r icons build/
 
-# Copy local-specific files
-cp manifest.local.json build-local/manifest.json
-cp popup.local.js build-local/popup.js
-cp background.local.js build-local/background.js
-
-# Copy config.js if it exists
-[ -f config.js ] && cp config.js build-local/
-
-# Create local ZIP
-cd build-local
-ZIP_NAME_LOCAL="bulkdm-extension-local-v${VERSION}.zip"
-zip -r "../$ZIP_NAME_LOCAL" . -x "*.DS_Store" "*.git*"
+# Create unified ZIP
+cd build
+ZIP_NAME="bulkdm-extension-v${VERSION}.zip"
+zip -r "../$ZIP_NAME" . -x "*.DS_Store" "*.git*"
 cd ..
 
-# Clean up local build
-rm -rf build-local
+# Clean up build directory
+rm -rf build
 
-echo "✅ Local build complete: $ZIP_NAME_LOCAL"
+echo "✅ Build complete: $ZIP_NAME"
 echo ""
-
-echo "📦 Building PRODUCTION version..."
-echo "================================"
-
-# Create production build directory
-mkdir -p build-prod
-
-# Copy common files
-cp popup.html build-prod/
-cp -r icons build-prod/
-
-# Copy production-specific files
-cp manifest.prod.json build-prod/manifest.json
-cp popup.prod.js build-prod/popup.js
-cp background.prod.js build-prod/background.js
-
-# Copy config.js if it exists
-[ -f config.js ] && cp config.js build-prod/
-
-# Create production ZIP
-cd build-prod
-ZIP_NAME_PROD="bulkdm-extension-prod-v${VERSION}.zip"
-zip -r "../$ZIP_NAME_PROD" . -x "*.DS_Store" "*.git*"
-cd ..
-
-# Clean up production build
-rm -rf build-prod
-
-echo "✅ Production build complete: $ZIP_NAME_PROD"
-echo ""
-
 echo "🎉 Build Summary:"
 echo "================================"
-echo "📦 Local version:    $ZIP_NAME_LOCAL"
-echo "📦 Production version: $ZIP_NAME_PROD"
+echo "📦 Extension: $ZIP_NAME"
 echo ""
 echo "📝 Next steps:"
-echo "  LOCAL:"
-echo "  1. Extract $ZIP_NAME_LOCAL"
-echo "  2. Load unpacked extension in Chrome"
-echo "  3. Use for development with localhost:3000/3001"
+echo "  1. Extract $ZIP_NAME"
+echo "  2. Load unpacked extension in Chrome (chrome://extensions)"
+echo "  3. Extension works for both local and production:"
+echo "     - Defaults to production (Vercel)"
+echo "     - Can be configured via chrome.storage API"
 echo ""
-echo "  PRODUCTION:"
-echo "  1. Review $ZIP_NAME_PROD"
+echo "  For Chrome Web Store:"
+echo "  1. Review $ZIP_NAME"
 echo "  2. Go to https://chrome.google.com/webstore/devconsole"
-echo "  3. Upload $ZIP_NAME_PROD"
+echo "  3. Upload $ZIP_NAME"
 echo "  4. Fill in store listing details"
 echo "  5. Submit for review"
+echo ""

@@ -16,7 +16,7 @@ JWT_SECRET=wAJUUr7GPFADRrdbze9UetTAYJJpd+CunPrpAYJBweA=
 ENCRYPTION_KEY=OvO0hpeBBumWMKpptlpxZZxjt3deakjeRXpjInpdN2Y=
 FRONTEND_URL=https://bulkdm-saas.netlify.app
 NODE_ENV=production
-PORT=3001
+PORT=3000
 
 # ============================================
 # HOW TO GET DATABASE_URL FROM RAILWAY:

@@ -9,21 +9,16 @@ import type {
 // API Configuration
 // ============================================================================
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 interface FetchOptions extends RequestInit {
   params?: Record<string, string | number | boolean | undefined>;
 }
 
 class ApiClient {
-  private baseUrl: string;
   private workspaceId: string | null = null;
   private userId: string | null = null;
 
-  constructor(baseUrl: string) {
-    this.baseUrl = baseUrl;
-  }
-
+ 
   setAuth(workspaceId: string, userId: string) {
     this.workspaceId = workspaceId;
     this.userId = userId;
@@ -32,7 +27,7 @@ class ApiClient {
   private async fetch<T>(endpoint: string, options: FetchOptions = {}): Promise<T> {
     const { params, ...fetchOptions } = options;
     
-    let url = `${this.baseUrl}${endpoint}`;
+    let url = `${endpoint}`;
     
     if (params) {
       const searchParams = new URLSearchParams();
@@ -261,4 +256,4 @@ class ApiClient {
   }
 }
 
-export const api = new ApiClient(API_BASE_URL);
+export const api = new ApiClient();
