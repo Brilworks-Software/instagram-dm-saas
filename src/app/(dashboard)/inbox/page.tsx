@@ -194,7 +194,7 @@ export default function InboxPage() {
     if (viewMode === 'all' || selectedAccount) {
       fetchConversations();
     }
-  }, [selectedAccount, viewMode, fetchConversations]);
+  }, [selectedAccount?.id, viewMode, fetchConversations]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -325,6 +325,11 @@ export default function InboxPage() {
               .update({ last_message_at: new Date().toISOString() })
               .eq('id', selectedConversation.id);
             
+            // Show success toast
+            toast.success('Message sent!', {
+              description: `Message sent to @${selectedConversation.contact.igUsername}`,
+            });
+            
             // Refresh conversations to update the list and show new messages
             await fetchConversations();
             await fetchAccounts();
@@ -345,6 +350,11 @@ export default function InboxPage() {
           setMessages(prev =>
             prev.map(m => m.id === newMessage.id ? { ...m, status: 'FAILED' } : m)
           );
+          
+          // Show error toast
+          toast.error('Failed to send message', {
+            description: (sendError as Error).message || 'Please try again.',
+          });
         }
       } else {
         // No cookies - just simulate sending
@@ -460,27 +470,50 @@ export default function InboxPage() {
           return;
         }
 
-        // Get valid user ID - only use numeric IDs, otherwise leave null
+        // Get valid user ID - only use numeric IDs, otherwise use a placeholder
         const recipientUserId = recipientInfo?.pk || result.recipientId;
         const validUserId = recipientUserId && /^\d+$/.test(String(recipientUserId).trim()) 
           ? String(recipientUserId).trim() 
-          : null;
+          : `username_${username}`; // Use username-based ID if no valid numeric ID
         
         // Upsert contact (RLS will verify workspace_id)
-        // Note: ig_user_id can be null if we don't have a valid numeric ID
-        const { data: contact } = await supabase
+        // First try to find existing contact by username
+        const { data: existingContact } = await supabase
           .from('contacts')
-          .upsert({
-            workspace_id: user.workspace_id,
-            ig_user_id: validUserId, // Can be null if invalid
-            ig_username: username,
-            name: recipientInfo?.fullName || username,
-            profile_picture_url: recipientInfo?.profilePicUrl,
-          }, {
-            onConflict: 'ig_username,workspace_id' // Use username as conflict key instead
-          })
-          .select()
-          .single();
+          .select('*')
+          .eq('workspace_id', user.workspace_id)
+          .eq('ig_username', username)
+          .maybeSingle();
+        
+        let contact;
+        if (existingContact) {
+          // Update existing contact
+          const { data: updatedContact } = await supabase
+            .from('contacts')
+            .update({
+              ig_user_id: validUserId,
+              name: recipientInfo?.fullName || username,
+              profile_picture_url: recipientInfo?.profilePicUrl,
+            })
+            .eq('id', existingContact.id)
+            .select()
+            .single();
+          contact = updatedContact;
+        } else {
+          // Create new contact
+          const { data: newContact } = await supabase
+            .from('contacts')
+            .insert({
+              workspace_id: user.workspace_id,
+              ig_user_id: validUserId,
+              ig_username: username,
+              name: recipientInfo?.fullName || username,
+              profile_picture_url: recipientInfo?.profilePicUrl,
+            })
+            .select()
+            .single();
+          contact = newContact;
+        }
 
         if (contact) {
           // Upsert conversation
