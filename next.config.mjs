@@ -25,12 +25,20 @@ const nextConfig = {
     missingSuspenseWithCSRBailout: false,
   },
   // Webpack configuration for Supabase and path aliases
-  webpack: (config, { isServer }) => {
-    // Add path alias for @/ to src/ - must be set before fallback
-    if (!config.resolve.alias) {
-      config.resolve.alias = {};
-    }
-    config.resolve.alias['@'] = path.resolve(__dirname, 'src');
+  webpack: (config, { isServer, dir }) => {
+    // Get the absolute path to src directory
+    // Use 'dir' parameter which is the project directory, or fallback to __dirname
+    const projectRoot = dir || __dirname;
+    const srcPath = path.resolve(projectRoot, 'src');
+    
+    // Ensure resolve exists
+    config.resolve = config.resolve || {};
+    
+    // Set alias - this is the key fix for Vercel
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      '@': srcPath,
+    };
 
     if (!isServer) {
       config.resolve.fallback = {
