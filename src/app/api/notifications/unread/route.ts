@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
-import { notificationService } from '@/lib/backend/notifications/notification-service';
-import { requireAuth } from '@/lib/backend/auth';
+import { notificationService } from '@/lib/server/notifications/notification-service';
+import { requireAuth } from '@/lib/server/auth';
 
 export async function GET(request: NextRequest) {
   try {

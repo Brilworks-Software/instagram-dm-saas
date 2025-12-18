@@ -1,4 +1,3 @@
-"use server";
 import { NextRequest } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { getCurrentUser } from '@/lib/supabase/user-workspace';

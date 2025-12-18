@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { instagramOAuthService } from '@/lib/backend/instagram/oauth-service';
+import { instagramOAuthService } from '@/lib/server/instagram/oauth-service';
 
 export async function GET(request: NextRequest) {
   const frontendUrl = process.env.NEXT_PUBLIC_FRONTEND_URL || process.env.FRONTEND_URL || 'http://localhost:3000';

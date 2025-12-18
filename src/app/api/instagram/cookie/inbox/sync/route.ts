@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { instagramCookieService } from '@/lib/backend/instagram/cookie-service';
-import { prisma } from '@/lib/backend/prisma/client';
-import type { InstagramCookies } from '@/lib/backend/instagram/types';
+import { instagramCookieService } from '@/lib/server/instagram/cookie-service';
+import { prisma } from '@/lib/server/prisma/client';
+import type { InstagramCookies } from '@/lib/server/instagram/types';
 
 export async function POST(request: NextRequest) {
   try {
