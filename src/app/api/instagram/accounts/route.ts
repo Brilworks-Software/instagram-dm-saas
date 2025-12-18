@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
-import { instagramOAuthService } from '@/lib/backend/instagram/oauth-service';
-import { requireAuth } from '@/lib/backend/auth';
+import { instagramOAuthService } from '../../../../lib/backend/instagram/oauth-service';
+import { requireAuth } from '../../../../lib/backend/auth';
 
 export async function GET(request: NextRequest) {
   try {
