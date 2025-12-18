@@ -25,23 +25,27 @@ const nextConfig = {
     missingSuspenseWithCSRBailout: false,
   },
   // Webpack configuration for Supabase and path aliases
-  webpack: (config, { isServer }) => {
+  webpack: (config, { isServer, dir }) => {
     // Get the absolute path to src directory
-    const projectRoot = process.cwd();
+    // Use dir parameter (Next.js provides this) for reliable path resolution
+    const projectRoot = dir || process.cwd();
     const srcPath = path.resolve(projectRoot, 'src');
     
-    // CRITICAL: Set alias BEFORE any other resolve configuration
-    // This ensures webpack uses the alias for module resolution
-    if (!config.resolve) {
-      config.resolve = {};
-    }
+    // CRITICAL: Ensure resolve and alias exist
+    config.resolve = config.resolve || {};
+    config.resolve.alias = config.resolve.alias || {};
     
-    // Set the @ alias - must be absolute path
-    // Use both direct assignment and spread to ensure it's set
-    config.resolve.alias = {
-      ...(config.resolve.alias || {}),
-      '@': srcPath,
-    };
+    // Set the @ alias - MUST be absolute path
+    // Overwrite to ensure it's set correctly (don't merge, replace)
+    config.resolve.alias['@'] = srcPath;
+    
+    // Also add src to modules for fallback resolution
+    if (!config.resolve.modules) {
+      config.resolve.modules = [];
+    }
+    if (!config.resolve.modules.includes(srcPath)) {
+      config.resolve.modules.unshift(srcPath);
+    }
 
     // Client-side fallbacks
     if (!isServer) {
