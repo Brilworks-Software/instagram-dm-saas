@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { instagramBrowserService } from '@/lib/instagram/browser-service';
+import { instagramBrowserService } from '@/lib/backend/instagram/browser-service';
 
 export async function POST(
   request: NextRequest,

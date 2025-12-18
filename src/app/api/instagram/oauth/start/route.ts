@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { instagramOAuthService } from '@/lib/instagram/oauth-service';
+import { instagramOAuthService } from '@/lib/backend/instagram/oauth-service';
 
 export async function POST(request: NextRequest) {
   try {
