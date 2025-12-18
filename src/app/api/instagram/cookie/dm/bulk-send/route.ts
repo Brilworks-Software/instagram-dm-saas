@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
-import { instagramCookieService } from '@/lib/backend/instagram/cookie-service';
-import type { InstagramCookies } from '@/lib/backend/instagram/types';
+import { instagramCookieService } from '@/lib/instagram/cookie-service';
+import type { InstagramCookies } from '@/lib/instagram/types';
 
 interface BulkSendDMRequest {
   cookies: InstagramCookies;

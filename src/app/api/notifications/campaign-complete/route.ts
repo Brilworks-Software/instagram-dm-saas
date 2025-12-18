@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
-import { notificationService } from '@/lib/backend/notifications/notification-service';
-import { requireAuth } from '@/lib/backend/auth';
+import { notificationService } from '@/lib/notifications/notification-service';
+import { requireAuth } from '@/lib/auth';
 
 export async function POST(request: NextRequest) {
   try {
