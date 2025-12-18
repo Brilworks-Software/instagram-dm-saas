@@ -170,30 +170,9 @@ async function verifySession(cookies) {
   }
 }
 
-// Connect account
-async function connectAccount(cookies) {
-  // Get current backend URL from config
-  const config = await CONFIG.getCurrent();
-  const url = buildApiUrl(config.BACKEND_URL, 'api/instagram/cookie/connect');
-  
-  try {
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ cookies })
-    });
-    
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || errorData.error || `HTTP ${response.status}`);
-    }
-    
-    return response.json();
-  } catch (error) {
-    console.error('Connect account error:', error);
-    throw error;
-  }
-}
+// Note: connectAccount function removed - cookies are now stored in localStorage only
+// No database storage is performed. Cookies are verified and passed to frontend
+// which saves them to localStorage.
 
 // Main grab session function
 async function grabSession() {
@@ -275,46 +254,63 @@ async function grabSession() {
       userAvatar.textContent = user.username.charAt(0).toUpperCase();
     }
 
-    // Connect account
-    let connectResult;
-    try {
-      connectResult = await connectAccount(cookies);
-    } catch (connectError) {
-      // Even if connect fails, we have verified - show success
-      connectResult = { success: true, account: user };
-    }
-    
-    if (connectResult.success || user) {
+    // Cookies verified successfully - save to localStorage and pass only user ID
+    if (user) {
       showStatus(statusSuccess);
       openAppBtn.classList.remove('hidden');
       grabBtn.textContent = '✅ Connected!';
       grabBtn.disabled = true;
       
-      // Save to chrome storage
-      const accountData = {
-        id: `cookie_${user.pk}`,
-        pk: user.pk,
-        username: user.username,
-        fullName: user.fullName,
-        profilePicUrl: user.profilePicUrl,
-        cookies: cookies,
-        connectedAt: new Date().toISOString()
-      };
+      // Save cookies to chrome.storage.local (will be transferred to page localStorage)
+      const storageKey = `bulkdm_cookies_${user.pk}`;
+      await chrome.storage.local.set({ [storageKey]: cookies });
+      console.log(`✓ Cookies saved to chrome.storage.local (key: ${storageKey})`);
       
-      chrome.storage.local.set({ connectedAccount: accountData });
-      
-      // Open BulkDM app with account data in URL
-      const encodedAccount = btoa(JSON.stringify(accountData));
+      // Open BulkDM app with ONLY Instagram user ID in URL
+      // Frontend will read cookies from localStorage based on this ID
       setTimeout(async () => {
         const config = await CONFIG.getCurrent();
         const cleanAppUrl = config.APP_URL.replace(/\/+$/, '');
-        const redirectUrl = `${cleanAppUrl}/settings/instagram?connected=${encodedAccount}`;
-        console.log('Opening BulkDM at:', redirectUrl);
-        chrome.tabs.create({ url: redirectUrl });
+        // Pass only user ID and account metadata (no cookies in URL)
+        const accountMetadata = {
+          igUserId: user.pk,
+          username: user.username,
+          fullName: user.fullName,
+          profilePicUrl: user.profilePicUrl,
+        };
+        const encodedMetadata = btoa(JSON.stringify(accountMetadata));
+        const redirectUrl = `${cleanAppUrl}/settings/instagram?ig_user_id=${user.pk}&account=${encodedMetadata}`;
+        console.log('Opening BulkDM with user ID:', user.pk);
+        console.log('Cookies stored in chrome.storage.local, will be transferred to page localStorage');
+        
+        // Create tab and inject script to save cookies directly to page localStorage
+        chrome.tabs.create({ url: redirectUrl }, (tab) => {
+          // Wait for tab to load, then inject script to save cookies to localStorage
+          chrome.tabs.onUpdated.addListener(function listener(tabId, info) {
+            if (tabId === tab.id && info.status === 'complete') {
+              chrome.tabs.onUpdated.removeListener(listener);
+              // Inject script to save cookies directly to page localStorage
+              chrome.scripting.executeScript({
+                target: { tabId: tab.id },
+                func: (userId, cookieData) => {
+                  // Save cookies directly to page localStorage
+                  const storageKey = `bulkdm_cookies_${userId}`;
+                  localStorage.setItem(storageKey, JSON.stringify(cookieData));
+                  console.log(`✓ Cookies saved to page localStorage (key: ${storageKey})`);
+                  return true;
+                },
+                args: [user.pk, cookies]
+              }).catch(err => {
+                console.error('Failed to inject script:', err);
+                // Fallback: cookies are in chrome.storage.local, frontend can request them
+              });
+            }
+          });
+        });
       }, 1500);
     } else {
       showStatus(statusError);
-      errorMessage.textContent = connectResult.message || 'Connection failed';
+      errorMessage.textContent = 'Failed to verify session';
       grabBtn.disabled = false;
     }
 

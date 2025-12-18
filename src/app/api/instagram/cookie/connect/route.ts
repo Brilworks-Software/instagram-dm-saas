@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { instagramCookieService } from '@/lib/backend/instagram/cookie-service';
 import { prisma } from '@/lib/backend/prisma/client';
+import { getAuthContext } from '@/lib/backend/auth';
+import { getUserWorkspaceId } from '@/lib/supabase/user-workspace';
 import type { InstagramCookies } from '@/lib/backend/instagram/types';
 
 export async function POST(request: NextRequest) {
@@ -23,19 +25,44 @@ export async function POST(request: NextRequest) {
     // Verify session first
     const userInfo = await instagramCookieService.verifySession(cookies);
 
-    // Save to database
-    const defaultWorkspaceId = workspaceId || '11111111-1111-1111-1111-111111111111';
-    let savedAccountId = `cookie_${userInfo.pk}`;
+    // Try to get workspace ID from authentication or use provided one
+    let finalWorkspaceId = workspaceId;
     
-    try {
-      const savedAccount = await instagramCookieService.saveAccountWithCookies(
-        defaultWorkspaceId,
-        cookies,
-        userInfo
-      );
-      savedAccountId = savedAccount.id;
-    } catch (dbError: any) {
-      console.warn('Database unavailable, account verified but not persisted:', dbError.message);
+    if (!finalWorkspaceId) {
+      // Try to get from authenticated user
+      const auth = await getAuthContext(request);
+      if (auth) {
+        finalWorkspaceId = auth.workspaceId;
+        console.log(`✅ Got workspace ID from authenticated user: ${finalWorkspaceId}`);
+      } else {
+        // Try to get workspace ID from user workspace helper (server-side)
+        finalWorkspaceId = await getUserWorkspaceId();
+        if (finalWorkspaceId) {
+          console.log(`✅ Got workspace ID from server-side helper: ${finalWorkspaceId}`);
+        }
+      }
+    }
+
+    let savedAccountId = `cookie_${userInfo.pk}`;
+    let savedToDatabase = false;
+    
+    // Only save to database if we have a valid workspace ID
+    if (finalWorkspaceId) {
+      try {
+        const savedAccount = await instagramCookieService.saveAccountWithCookies(
+          finalWorkspaceId,
+          cookies,
+          userInfo
+        );
+        savedAccountId = savedAccount.id;
+        savedToDatabase = true;
+        console.log(`✅ Saved Instagram account @${userInfo.username} to workspace ${finalWorkspaceId}`);
+      } catch (dbError: any) {
+        console.warn('Database save failed:', dbError.message);
+        // Continue even if DB save fails - frontend can save it
+      }
+    } else {
+      console.warn('⚠️ No workspace ID available - account not saved to database. Frontend will handle saving.');
     }
 
     const headers = new Headers();
@@ -50,6 +77,8 @@ export async function POST(request: NextRequest) {
         profilePicUrl: userInfo.profilePicUrl,
         isPrivate: userInfo.isPrivate,
       },
+      workspaceId: finalWorkspaceId, // Return workspace ID so frontend knows which one to use
+      savedToDatabase, // Indicate if saved to database
       cookiesEncrypted: Buffer.from(JSON.stringify(cookies)).toString('base64'),
     }, { headers });
   } catch (error: any) {

@@ -132,6 +132,32 @@ export class InstagramCookieService {
   }
 
   /**
+   * Decrypt cookies from encrypted storage
+   */
+  decryptCookies(encrypted: string): InstagramCookies {
+    try {
+      // Check if it's encrypted format (iv:encrypted) or base64
+      if (encrypted.includes(':')) {
+        const [ivHex, encryptedHex] = encrypted.split(':');
+        const key = getEncryptionKey();
+        const algorithm = 'aes-256-cbc';
+        const iv = Buffer.from(ivHex, 'hex');
+        const decipher = crypto.createDecipheriv(algorithm, Buffer.from(key, 'utf8'), iv);
+        
+        let decrypted = decipher.update(encryptedHex, 'hex', 'utf8');
+        decrypted += decipher.final('utf8');
+        
+        return JSON.parse(decrypted);
+      } else {
+        // Fallback: base64 decode
+        return JSON.parse(Buffer.from(encrypted, 'base64').toString('utf8'));
+      }
+    } catch (error: any) {
+      throw new Error(`Failed to decrypt cookies: ${error.message}`);
+    }
+  }
+
+  /**
    * Save Instagram account with cookies to database
    */
   async saveAccountWithCookies(

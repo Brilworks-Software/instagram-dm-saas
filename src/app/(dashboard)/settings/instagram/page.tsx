@@ -134,31 +134,30 @@ export default function InstagramSettingsPage() {
 
       setAccounts(transformedAccounts);
       
-      // Load cookies from Supabase and restore to localStorage
+      // Check localStorage for cookies (cookies are stored in localStorage ONLY, not in Supabase)
       const accountsWithValidCookies = new Set<string>();
       for (const acc of data || []) {
-        if (acc.cookies && typeof acc.cookies === 'object') {
+        // Check if cookies exist in localStorage for this account
+        const localStorageKey = `bulkdm_cookies_${acc.ig_user_id}`;
+        const cookiesStr = localStorage.getItem(localStorageKey);
+        
+        if (cookiesStr) {
           try {
-            // Restore cookies to localStorage if not already there
-            const localStorageKey = `bulkdm_cookies_${acc.ig_user_id}`;
-            if (!localStorage.getItem(localStorageKey)) {
-              localStorage.setItem(localStorageKey, JSON.stringify(acc.cookies));
-              console.log(`✓ Restored cookies from Supabase for @${acc.ig_username}`);
-            }
-            
+            const cookies = JSON.parse(cookiesStr);
             // Check if cookies are valid
-            if (acc.cookies.sessionId && acc.cookies.csrfToken && acc.cookies.dsUserId) {
+            if (cookies.sessionId && cookies.csrfToken && cookies.dsUserId) {
               accountsWithValidCookies.add(acc.id);
+              console.log(`✓ Found valid cookies in localStorage for @${acc.ig_username}`);
             }
           } catch (e) {
-            console.error('Failed to restore cookies for account:', acc.ig_username, e);
+            console.error('Failed to parse cookies from localStorage for account:', acc.ig_username, e);
           }
         }
       }
       
       setAccountsWithCookies(accountsWithValidCookies);
       
-      // Also check localStorage cookies (for backward compatibility)
+      // Note: Cookies are no longer stored in Supabase - they are in localStorage only
       setTimeout(() => {
         checkAccountCookies(transformedAccounts);
       }, 100);
@@ -175,6 +174,102 @@ export default function InstagramSettingsPage() {
   }, [fetchAccounts]);
 
   // Check for success/error from OAuth callback or extension
+  // Helper function to save account to database
+  const handleAccountSave = useCallback(async (igUserId: string, accountMetadata: any) => {
+    const supabase = createClient();
+    
+    // Get current user's workspace
+    const { data: { user: authUser } } = await supabase.auth.getUser();
+    if (!authUser) {
+      setErrorMessage('Please log in');
+      return;
+    }
+
+    const { getOrCreateUserWorkspaceId } = await import('@/lib/supabase/user-workspace-client');
+    const workspaceId = await getOrCreateUserWorkspaceId();
+
+    if (!workspaceId) {
+      setErrorMessage('Failed to get or create workspace. Please try refreshing the page.');
+      return;
+    }
+    
+    // Check if account already exists
+    const { data: existingAccount } = await supabase
+      .from('instagram_accounts')
+      .select('id')
+      .eq('ig_user_id', String(igUserId))
+      .eq('workspace_id', workspaceId)
+      .single();
+
+    // Prepare account data to save (WITHOUT cookies - cookies stored in localStorage ONLY)
+    const accountDataToSave = {
+      ig_username: accountMetadata.username || `user_${igUserId}`,
+      profile_picture_url: accountMetadata.profilePicUrl || null,
+      access_token: 'cookie_auth', // Placeholder - no actual cookies stored
+      access_token_expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+      is_active: true,
+    };
+
+    let saveSuccess = false;
+    let saveError: string | null = null;
+
+    // Save account metadata to Supabase (cookies are NOT saved to database)
+    try {
+      if (existingAccount) {
+        const { error: updateError } = await supabase
+          .from('instagram_accounts')
+          .update(accountDataToSave)
+          .eq('id', existingAccount.id);
+
+        if (updateError) {
+          console.error('Error updating account:', updateError);
+          saveError = 'Failed to update account: ' + updateError.message;
+        } else {
+          console.log('✓ Account updated successfully (cookies in localStorage only)');
+          saveSuccess = true;
+        }
+      } else {
+        const { error: insertError } = await supabase
+          .from('instagram_accounts')
+          .insert({
+            workspace_id: workspaceId,
+            ig_user_id: String(igUserId),
+            ...accountDataToSave,
+            daily_dm_limit: 100,
+            dms_sent_today: 0,
+            fb_page_id: `cookie_auth_${igUserId}`,
+            permissions: ['cookie_auth', 'dm_send', 'dm_read'],
+          });
+
+        if (insertError) {
+          console.error('Error inserting account:', insertError);
+          saveError = 'Failed to save account: ' + insertError.message;
+        } else {
+          console.log('✓ Account inserted successfully (cookies in localStorage only)');
+          saveSuccess = true;
+        }
+      }
+    } catch (error: any) {
+      console.error('Unexpected error:', error);
+      saveError = 'Failed to save account: ' + (error.message || 'Unknown error');
+    }
+
+    // Cookies are already in localStorage (transferred by extension)
+    console.log(`✓ Cookies already in localStorage (key: bulkdm_cookies_${igUserId})`);
+    
+    // Show success message
+    if (saveSuccess) {
+      setErrorMessage(null);
+      setTimeout(() => {
+        setSuccessMessage(`Successfully connected @${accountMetadata.username || igUserId}! Cookies stored in localStorage only.`);
+        fetchAccounts();
+      }, 100);
+    } else if (saveError) {
+      setErrorMessage(saveError);
+      setSuccessMessage(null);
+    }
+  }, [fetchAccounts]);
+
   useEffect(() => {
     const handleConnectedAccount = async () => {
       const params = new URLSearchParams(window.location.search);
@@ -184,115 +279,69 @@ export default function InstagramSettingsPage() {
       const message = params.get('message');
       const connectedData = params.get('connected');
 
-      // Handle account connected from extension
+      // Handle account connected from extension (new approach: only user ID in URL)
+      const igUserId = params.get('ig_user_id');
+      const accountParam = params.get('account');
+      
+      if (igUserId) {
+        try {
+          // Parse account metadata from URL (if provided)
+          let accountMetadata: any = {};
+          if (accountParam) {
+            accountMetadata = JSON.parse(atob(accountParam));
+          }
+          
+          console.log('Received Instagram user ID from extension:', igUserId);
+          
+          // Check if cookies exist in localStorage (transferred by extension script)
+          const localStorageKey = `bulkdm_cookies_${igUserId}`;
+          const cookiesStr = localStorage.getItem(localStorageKey);
+          
+          if (!cookiesStr) {
+            console.warn('Cookies not found in localStorage. Extension may not have transferred them yet.');
+            // Wait a bit and retry (extension script might still be running)
+            setTimeout(async () => {
+              const retryCookies = localStorage.getItem(localStorageKey);
+              if (!retryCookies) {
+                setErrorMessage('Cookies not found. Please try connecting again.');
+              } else {
+                // Retry the save process
+                await handleAccountSave(igUserId, accountMetadata);
+              }
+            }, 1000);
+            return;
+          }
+          
+          // Save account to database and show success
+          await handleAccountSave(igUserId, accountMetadata);
+          
+        } catch (e) {
+          console.error('Failed to process connected account:', e);
+          setErrorMessage('Failed to process account data');
+        }
+        window.history.replaceState({}, '', window.location.pathname);
+        return;
+      }
+      
+      // Legacy support: Handle old format with full account data
       if (connectedData) {
         try {
           const accountData = JSON.parse(atob(connectedData));
-          console.log('Received account data from extension:', accountData);
+          console.log('Received account data from extension (legacy format):', accountData);
           
-          // Save to Supabase database
-          const supabase = createClient();
-          
-          // Get current user's workspace (will create if doesn't exist)
-          const { data: { user: authUser } } = await supabase.auth.getUser();
-          if (!authUser) {
-            setErrorMessage('Please log in');
-            return;
-          }
-
-          // Use client-side helper function that ensures workspace exists
-          const { getOrCreateUserWorkspaceId } = await import('@/lib/supabase/user-workspace-client');
-          const workspaceId = await getOrCreateUserWorkspaceId();
-
-          if (!workspaceId) {
-            setErrorMessage('Failed to get or create workspace. Please try refreshing the page.');
-            return;
+          // Save cookies to localStorage
+          const localStorageKey = `bulkdm_cookies_${accountData.pk}`;
+          if (accountData.cookies) {
+            localStorage.setItem(localStorageKey, JSON.stringify(accountData.cookies));
           }
           
-          // Check if account already exists
-          const { data: existingAccount } = await supabase
-            .from('instagram_accounts')
-            .select('id')
-            .eq('ig_user_id', String(accountData.pk))
-            .eq('workspace_id', workspaceId)
-            .single();
-
-          const encryptedCookies = btoa(JSON.stringify(accountData.cookies));
+          // Save account metadata
+          await handleAccountSave(accountData.pk, {
+            username: accountData.username,
+            fullName: accountData.fullName,
+            profilePicUrl: accountData.profilePicUrl,
+          });
           
-          // Prepare account data to save (without cookies - cookies stored in localStorage only)
-          // This avoids the "cookies column not found" error until the column is added to the database
-          const accountDataToSave = {
-            ig_username: accountData.username,
-            profile_picture_url: accountData.profilePicUrl,
-            access_token: encryptedCookies,
-            access_token_expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-            is_active: true,
-          };
-
-          let saveSuccess = false;
-          let saveError: string | null = null;
-
-          // Save account (cookies are stored in localStorage, not database for now)
-          try {
-            if (existingAccount) {
-              // Update existing account
-              const { error: updateError } = await supabase
-                .from('instagram_accounts')
-                .update(accountDataToSave)
-                .eq('id', existingAccount.id);
-
-              if (updateError) {
-                console.error('Error updating account:', updateError);
-                saveError = 'Failed to update account: ' + updateError.message;
-              } else {
-                console.log('✓ Account updated successfully');
-                saveSuccess = true;
-              }
-            } else {
-              // Insert new account
-              const { error: insertError } = await supabase
-                .from('instagram_accounts')
-                .insert({
-                  workspace_id: workspaceId,
-                  ig_user_id: String(accountData.pk),
-                  ...accountDataToSave,
-                  daily_dm_limit: 100,
-                  dms_sent_today: 0,
-                  fb_page_id: `cookie_auth_${accountData.pk}`,
-                  permissions: ['cookie_auth', 'dm_send', 'dm_read'],
-                });
-
-              if (insertError) {
-                console.error('Error inserting account:', insertError);
-                saveError = 'Failed to save account: ' + insertError.message;
-              } else {
-                console.log('✓ Account inserted successfully');
-                saveSuccess = true;
-              }
-            }
-          } catch (error: any) {
-            console.error('Unexpected error:', error);
-            saveError = 'Failed to save account: ' + (error.message || 'Unknown error');
-          }
-
-          // Save cookies to localStorage for quick DM sending (always do this)
-          localStorage.setItem(`bulkdm_cookies_${accountData.pk}`, JSON.stringify(accountData.cookies));
-          
-          // Only show error if save actually failed, otherwise show success
-          if (saveSuccess) {
-            // Clear any previous errors FIRST - account was saved successfully
-            setErrorMessage(null);
-            // Small delay to ensure error is cleared before showing success
-            setTimeout(() => {
-              setSuccessMessage(`Successfully connected @${accountData.username}!`);
-              // Refresh accounts list
-              fetchAccounts();
-            }, 100);
-          } else if (saveError) {
-            // Only show error if save actually failed (and retry also failed)
-            setErrorMessage(saveError);
-            setSuccessMessage(null); // Clear success message if there's an error
-          }
         } catch (e) {
           console.error('Failed to save connected account:', e);
           setErrorMessage('Failed to process account data');
@@ -311,7 +360,7 @@ export default function InstagramSettingsPage() {
     };
 
     handleConnectedAccount();
-  }, [fetchAccounts]);
+  }, [fetchAccounts, handleAccountSave]);
 
   const handleConnect = async () => {
     setIsConnecting(true);

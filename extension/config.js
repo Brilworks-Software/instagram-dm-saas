@@ -20,7 +20,7 @@ const CONFIG = {
   },
   
   // Version
-  VERSION: '1.0.1',
+  VERSION: '1.0.3',
   
   // Get current environment configuration
   getCurrent() {

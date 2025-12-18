@@ -1,12 +1,13 @@
 {
   "manifest_version": 3,
   "name": "BulkDM - Instagram Session Grabber",
-  "version": "1.0.1",
+  "version": "1.0.3",
   "description": "Automatically connect your Instagram account to BulkDM with one click",
   "permissions": [
     "cookies",
     "activeTab",
-    "storage"
+    "storage",
+    "scripting"
   ],
   "host_permissions": [
     "https://www.instagram.com/*",
