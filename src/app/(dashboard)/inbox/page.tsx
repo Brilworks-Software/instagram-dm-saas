@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { Search, RefreshCw, MessageSquare, Instagram, AlertCircle, Send, Plus } from 'lucide-react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { Search, RefreshCw, MessageSquare, Instagram, AlertCircle, Send, Plus, ChevronDown, Check, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import { Header } from '@/components/layout/header';
 import { Input } from '@/components/ui/input';
@@ -28,6 +28,7 @@ export default function InboxPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [accounts, setAccounts] = useState<InstagramAccount[]>([]);
   const [selectedAccount, setSelectedAccount] = useState<InstagramAccount | null>(null);
+  const [viewMode, setViewMode] = useState<'all' | 'account'>('account'); // 'all' for all inbox, 'account' for specific account
   const [isLoadingConversations, setIsLoadingConversations] = useState(true);
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -37,6 +38,8 @@ export default function InboxPage() {
   const [newDmMessage, setNewDmMessage] = useState('');
   const [isSendingNewDm, setIsSendingNewDm] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [isAccountDropdownOpen, setIsAccountDropdownOpen] = useState(false);
+  const accountDropdownRef = useRef<HTMLDivElement>(null);
 
   // Fetch Instagram accounts first
   const fetchAccounts = useCallback(async () => {
@@ -70,7 +73,7 @@ export default function InboxPage() {
 
   // Fetch conversations from Supabase
   const fetchConversations = useCallback(async () => {
-    if (!selectedAccount) {
+    if (viewMode === 'account' && !selectedAccount) {
       setIsLoadingConversations(false);
       return;
     }
@@ -78,14 +81,23 @@ export default function InboxPage() {
     setIsLoadingConversations(true);
     try {
       const supabase = createClient();
-      const { data, error } = await supabase
+      
+      // Build query based on view mode
+      let query = supabase
         .from('conversations')
         .select(`
           *,
           contact:contacts(*),
           instagram_account:instagram_accounts(id, ig_username)
-        `)
-        .eq('instagram_account_id', selectedAccount.id)
+        `);
+      
+      // If viewing specific account, filter by account ID
+      if (viewMode === 'account' && selectedAccount) {
+        query = query.eq('instagram_account_id', selectedAccount.id);
+      }
+      // If viewing all, get all conversations (no filter)
+      
+      const { data, error } = await query
         .order('last_message_at', { ascending: false, nullsFirst: false });
 
       if (error) throw error;
@@ -121,7 +133,7 @@ export default function InboxPage() {
     } finally {
       setIsLoadingConversations(false);
     }
-  }, [selectedAccount]);
+  }, [selectedAccount, viewMode]);
 
   // Fetch messages for a conversation
   const fetchMessages = useCallback(async (conversationId: string) => {
@@ -177,12 +189,26 @@ export default function InboxPage() {
     fetchAccounts();
   }, [fetchAccounts]);
 
-  // Load conversations when account changes
+  // Load conversations when account or view mode changes
   useEffect(() => {
-    if (selectedAccount) {
+    if (viewMode === 'all' || selectedAccount) {
       fetchConversations();
     }
-  }, [selectedAccount, fetchConversations]);
+  }, [selectedAccount, viewMode, fetchConversations]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (accountDropdownRef.current && !accountDropdownRef.current.contains(event.target as Node)) {
+        setIsAccountDropdownOpen(false);
+      }
+    };
+
+    if (isAccountDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [isAccountDropdownOpen]);
 
   // Handle conversation selection
   const handleSelectConversation = useCallback((conversation: Conversation) => {
@@ -352,7 +378,16 @@ export default function InboxPage() {
 
   // Handle sending new DM
   const handleSendNewDm = async () => {
-    if (!selectedAccount || !newDmUsername || !newDmMessage) return;
+    // For new DM, we need a specific account selected
+    const accountToUse = selectedAccount || (accounts.length > 0 ? accounts[0] : null);
+    if (!accountToUse || !newDmUsername || !newDmMessage) {
+      if (!accountToUse) {
+        toast.error('Account required', {
+          description: 'Please select an Instagram account to send a message.',
+        });
+      }
+      return;
+    }
 
     setIsSendingNewDm(true);
     try {
@@ -360,7 +395,7 @@ export default function InboxPage() {
       const username = newDmUsername.replace('@', '').trim();
       
       // Get cookies from localStorage
-      const cookiesStr = localStorage.getItem(`bulkdm_cookies_${selectedAccount.igUserId}`);
+      const cookiesStr = localStorage.getItem(`bulkdm_cookies_${accountToUse.igUserId}`);
       
       if (!cookiesStr) {
         toast.error('Session expired', {
@@ -396,7 +431,7 @@ export default function InboxPage() {
           cookies,
           recipientUsername: username,
           message: newDmMessage,
-          accountId: selectedAccount.id, // Pass account ID to update daily limit
+          accountId: accountToUse.id, // Pass account ID to update daily limit
         }),
       });
 
@@ -452,7 +487,7 @@ export default function InboxPage() {
           const { data: conversation } = await supabase
             .from('conversations')
             .upsert({
-              instagram_account_id: selectedAccount.id,
+              instagram_account_id: accountToUse.id,
               contact_id: contact.id,
               status: 'OPEN',
               last_message_at: new Date().toISOString(),
@@ -488,16 +523,16 @@ export default function InboxPage() {
         
         // Select the newly created conversation if it exists
         if (contact) {
-          // Wait a moment for the conversation to be in the list
-          setTimeout(async () => {
-            const { data: updatedConversations } = await supabase
-              .from('conversations')
-              .select(`
-                *,
-                contact:contacts(*),
-                instagram_account:instagram_accounts(id, ig_username)
-              `)
-              .eq('instagram_account_id', selectedAccount.id)
+            // Wait a moment for the conversation to be in the list
+            setTimeout(async () => {
+              const { data: updatedConversations } = await supabase
+                .from('conversations')
+                .select(`
+                  *,
+                  contact:contacts(*),
+                  instagram_account:instagram_accounts(id, ig_username)
+                `)
+                .eq('instagram_account_id', accountToUse.id)
               .eq('contact_id', contact.id)
               .order('last_message_at', { ascending: false })
               .limit(1)
@@ -673,9 +708,9 @@ export default function InboxPage() {
     }
   }, [filteredConversations, selectedConversation, handleSelectConversation]);
 
-  // Auto-poll for new messages every 30 seconds
+  // Auto-poll for new messages every 30 seconds (only for specific account view)
   useEffect(() => {
-    if (!selectedAccount) return;
+    if (viewMode !== 'account' || !selectedAccount) return;
 
     const pollInterval = setInterval(async () => {
       try {
@@ -687,18 +722,18 @@ export default function InboxPage() {
     }, 30000); // Poll every 30 seconds
 
     return () => clearInterval(pollInterval);
-  }, [selectedAccount?.id]); // Only depend on account ID
+  }, [selectedAccount?.id, viewMode]); // Only depend on account ID and view mode
 
   // Auto-sync inbox when account changes (initial sync)
   useEffect(() => {
-    if (selectedAccount) {
+    if (viewMode === 'account' && selectedAccount) {
       // Sync inbox when account is selected (with a small delay to avoid rate limits)
       const syncTimer = setTimeout(() => {
         handleSyncInbox(false); // Silent sync on account change
       }, 2000);
       return () => clearTimeout(syncTimer);
     }
-  }, [selectedAccount?.id]); // Only sync when account ID changes
+  }, [selectedAccount?.id, viewMode]); // Only sync when account ID or view mode changes
 
   const totalUnread = conversations.reduce((sum, c) => sum + c.unreadCount, 0);
 
@@ -716,34 +751,120 @@ export default function InboxPage() {
       <div className="flex-1 flex overflow-hidden">
         {/* Conversation List Sidebar */}
         <div className="w-96 border-r border-border flex flex-col bg-background-secondary/30">
-          {/* Account Selector */}
+          {/* Enhanced Account Selector */}
           {accounts.length > 0 && (
             <div className="p-4 border-b border-border bg-background-elevated/50">
               <label className="block text-xs font-medium text-foreground-muted mb-2">
-                Instagram Account
+                View Inbox
               </label>
-              <select
-                value={selectedAccount?.id || ''}
-                onChange={(e) => {
-                  const acc = accounts.find(a => a.id === e.target.value);
-                  if (acc) {
-                    setSelectedAccount(acc);
-                    setSelectedConversation(null);
-                  }
-                }}
-                className="w-full px-3 py-2.5 rounded-lg bg-background border border-border text-foreground text-sm font-medium focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
-              >
-                {accounts.map(acc => (
-                  <option key={acc.id} value={acc.id}>
-                    @{acc.igUsername} {acc.id === selectedAccount?.id ? '✓' : ''}
-                  </option>
-                ))}
-              </select>
-              {accounts.length > 1 && (
-                <p className="text-xs text-foreground-subtle mt-1.5">
-                  {accounts.length} account{accounts.length > 1 ? 's' : ''} connected
-                </p>
-              )}
+              <div className="relative" ref={accountDropdownRef}>
+                <button
+                  onClick={() => setIsAccountDropdownOpen(!isAccountDropdownOpen)}
+                  className="w-full px-3 py-2.5 rounded-lg bg-background border border-border text-foreground text-sm font-medium hover:border-accent/50 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20 transition-colors flex items-center justify-between"
+                >
+                  <div className="flex items-center gap-2">
+                    {viewMode === 'all' ? (
+                      <>
+                        <Users className="h-4 w-4 text-accent" />
+                        <span>All Inbox</span>
+                        <span className="text-xs text-foreground-muted ml-1">
+                          ({conversations.length})
+                        </span>
+                      </>
+                    ) : selectedAccount ? (
+                      <>
+                        <Instagram className="h-4 w-4 text-accent" />
+                        <span>@{selectedAccount.igUsername}</span>
+                        <span className="text-xs text-foreground-muted ml-1">
+                          ({conversations.length})
+                        </span>
+                      </>
+                    ) : (
+                      <span>Select account</span>
+                    )}
+                  </div>
+                  <ChevronDown className={cn(
+                    "h-4 w-4 text-foreground-muted transition-transform",
+                    isAccountDropdownOpen && "transform rotate-180"
+                  )} />
+                </button>
+
+                {isAccountDropdownOpen && (
+                  <div className="absolute z-50 w-full mt-1 bg-background-elevated border border-border rounded-lg shadow-xl overflow-hidden">
+                    {/* All Inbox Option */}
+                    <button
+                      onClick={() => {
+                        setViewMode('all');
+                        setSelectedAccount(null);
+                        setSelectedConversation(null);
+                        setIsAccountDropdownOpen(false);
+                      }}
+                      className={cn(
+                        "w-full px-3 py-2.5 text-left flex items-center gap-2 hover:bg-background-secondary transition-colors",
+                        viewMode === 'all' && "bg-background-secondary border-l-2 border-accent"
+                      )}
+                    >
+                      <Users className={cn(
+                        "h-4 w-4",
+                        viewMode === 'all' ? "text-accent" : "text-foreground-muted"
+                      )} />
+                      <span className={cn(
+                        "text-sm font-medium flex-1",
+                        viewMode === 'all' ? "text-foreground" : "text-foreground-muted"
+                      )}>
+                        All Inbox
+                      </span>
+                      {viewMode === 'all' && (
+                        <Check className="h-4 w-4 text-accent" />
+                      )}
+                    </button>
+
+                    {/* Divider */}
+                    {accounts.length > 0 && (
+                      <div className="border-t border-border my-1" />
+                    )}
+
+                    {/* Account List */}
+                    <div className="max-h-64 overflow-y-auto">
+                      {accounts.map(acc => (
+                        <button
+                          key={acc.id}
+                          onClick={() => {
+                            setViewMode('account');
+                            setSelectedAccount(acc);
+                            setSelectedConversation(null);
+                            setIsAccountDropdownOpen(false);
+                          }}
+                          className={cn(
+                            "w-full px-3 py-2.5 text-left flex items-center gap-2 hover:bg-background-secondary transition-colors",
+                            viewMode === 'account' && selectedAccount?.id === acc.id && "bg-background-secondary border-l-2 border-accent"
+                          )}
+                        >
+                          <Instagram className={cn(
+                            "h-4 w-4",
+                            viewMode === 'account' && selectedAccount?.id === acc.id ? "text-accent" : "text-foreground-muted"
+                          )} />
+                          <span className={cn(
+                            "text-sm font-medium flex-1",
+                            viewMode === 'account' && selectedAccount?.id === acc.id ? "text-foreground" : "text-foreground-muted"
+                          )}>
+                            @{acc.igUsername}
+                          </span>
+                          {viewMode === 'account' && selectedAccount?.id === acc.id && (
+                            <Check className="h-4 w-4 text-accent" />
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+              <p className="text-xs text-foreground-subtle mt-2">
+                {viewMode === 'all' 
+                  ? `${accounts.length} account${accounts.length > 1 ? 's' : ''} connected`
+                  : selectedAccount && `Viewing @${selectedAccount.igUsername} inbox`
+                }
+              </p>
             </div>
           )}
 
@@ -793,10 +914,18 @@ export default function InboxPage() {
               <Button
                 size="sm"
                 variant="secondary"
-                onClick={() => handleSyncInbox()}
-                disabled={isSyncing || !selectedAccount}
+                onClick={() => {
+                  if (viewMode === 'all') {
+                    toast.info('Sync individual accounts', {
+                      description: 'Please select a specific account to sync its inbox.',
+                    });
+                  } else {
+                    handleSyncInbox(true);
+                  }
+                }}
+                disabled={isSyncing || (viewMode === 'account' && !selectedAccount)}
                 className="ml-auto"
-                title="Sync messages from Instagram"
+                title={viewMode === 'all' ? 'Select an account to sync' : 'Sync messages from Instagram'}
               >
                 <RefreshCw className={cn("h-3.5 w-3.5", isSyncing && "animate-spin")} />
                 {isSyncing ? 'Syncing...' : 'Sync'}
