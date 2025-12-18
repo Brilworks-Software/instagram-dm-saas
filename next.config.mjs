@@ -1,6 +1,5 @@
 import path from 'path';
 import { fileURLToPath } from 'url';
-import TsconfigPathsPlugin from 'tsconfig-paths-webpack-plugin';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -31,30 +30,18 @@ const nextConfig = {
     const projectRoot = process.cwd();
     const srcPath = path.resolve(projectRoot, 'src');
     
-    // Ensure resolve exists
-    config.resolve = config.resolve || {};
-    config.resolve.alias = config.resolve.alias || {};
-    
-    // Set the @ alias - must be absolute path
-    config.resolve.alias['@'] = srcPath;
-    
-    // Add tsconfig-paths-webpack-plugin to resolve paths from tsconfig.json
-    // This ensures paths work even if webpack alias doesn't
-    if (config.resolve.plugins) {
-      config.resolve.plugins = config.resolve.plugins.filter(
-        (plugin) => !(plugin instanceof TsconfigPathsPlugin)
-      );
-    } else {
-      config.resolve.plugins = [];
+    // CRITICAL: Set alias BEFORE any other resolve configuration
+    // This ensures webpack uses the alias for module resolution
+    if (!config.resolve) {
+      config.resolve = {};
     }
     
-    // Add the plugin to read tsconfig paths
-    config.resolve.plugins.push(
-      new TsconfigPathsPlugin({
-        configFile: path.resolve(projectRoot, 'tsconfig.json'),
-        extensions: ['.ts', '.tsx', '.js', '.jsx'],
-      })
-    );
+    // Set the @ alias - must be absolute path
+    // Use both direct assignment and spread to ensure it's set
+    config.resolve.alias = {
+      ...(config.resolve.alias || {}),
+      '@': srcPath,
+    };
 
     // Client-side fallbacks
     if (!isServer) {

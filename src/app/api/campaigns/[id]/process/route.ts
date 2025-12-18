@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
-import { campaignService } from '../../../../../lib/backend/campaigns/campaign-service';
-import { requireAuth } from '../../../../../lib/backend/auth';
+import { campaignService } from '@/lib/backend/campaigns/campaign-service';
+import { requireAuth } from '@/lib/backend/auth';
 
 export async function POST(
   request: NextRequest,
