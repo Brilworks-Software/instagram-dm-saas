@@ -39,12 +39,18 @@ const nextConfig = {
     // Overwrite to ensure it's set correctly (don't merge, replace)
     config.resolve.alias['@'] = srcPath;
     
-    // Also add src to modules for fallback resolution
+    // Add project root and src to modules for better resolution
+    // This helps webpack resolve relative imports correctly
     if (!config.resolve.modules) {
-      config.resolve.modules = [];
+      config.resolve.modules = ['node_modules'];
     }
+    // Add src directory to modules array (before node_modules for priority)
     if (!config.resolve.modules.includes(srcPath)) {
-      config.resolve.modules.unshift(srcPath);
+      config.resolve.modules = [srcPath, ...config.resolve.modules];
+    }
+    // Also add project root for absolute resolution
+    if (!config.resolve.modules.includes(projectRoot)) {
+      config.resolve.modules = [projectRoot, ...config.resolve.modules];
     }
 
     // Client-side fallbacks
