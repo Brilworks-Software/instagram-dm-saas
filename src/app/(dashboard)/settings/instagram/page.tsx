@@ -205,14 +205,37 @@ export default function InstagramSettingsPage() {
     const handleMessage = (event: MessageEvent) => {
       if (event.data && event.data.type === 'SOCIALORA_COOKIES_SAVED') {
         console.log('Received cookies via postMessage:', event.data);
-        const { userId, cookies } = event.data;
+        const { userId, cookies, storageKey } = event.data;
         if (cookies && userId) {
-          const localStorageKey = `socialora_cookies_${userId}`;
-          localStorage.setItem(localStorageKey, JSON.stringify(cookies));
-          console.log('✓ Cookies saved from postMessage to localStorage');
-          setTimeout(() => {
-            fetchAccounts();
-          }, 500);
+          const localStorageKey = storageKey || `socialora_cookies_${userId}`;
+          try {
+            localStorage.setItem(localStorageKey, JSON.stringify(cookies));
+            console.log('✓ Cookies saved from postMessage to localStorage (key:', localStorageKey, ')');
+            
+            // If we have an ig_user_id in URL, trigger account save
+            const urlParams = new URLSearchParams(window.location.search);
+            const igUserId = urlParams.get('ig_user_id');
+            if (igUserId && igUserId === userId) {
+              const accountParam = urlParams.get('account');
+              let accountMetadata: any = {};
+              if (accountParam) {
+                try {
+                  accountMetadata = JSON.parse(atob(accountParam));
+                } catch (e) {
+                  console.error('Failed to parse account metadata:', e);
+                }
+              }
+              setTimeout(() => {
+                handleAccountSave(userId, accountMetadata);
+              }, 300);
+            } else {
+              setTimeout(() => {
+                fetchAccounts();
+              }, 500);
+            }
+          } catch (e) {
+            console.error('Failed to save cookies from postMessage:', e);
+          }
         }
       }
     };
@@ -354,41 +377,76 @@ export default function InstagramSettingsPage() {
           const localStorageKey = `socialora_cookies_${igUserId}`;
           let cookiesStr = localStorage.getItem(localStorageKey);
           
+          // Also check for cookies with username as fallback
+          if (!cookiesStr && accountMetadata.username) {
+            const usernameKey = `socialora_cookies_${accountMetadata.username}`;
+            cookiesStr = localStorage.getItem(usernameKey);
+            if (cookiesStr) {
+              console.log('Found cookies using username key, moving to userId key');
+              localStorage.setItem(localStorageKey, cookiesStr);
+            }
+          }
+          
           if (!cookiesStr) {
-            console.warn('Cookies not found in localStorage. Trying to get from extension...');
+            console.warn('Cookies not found in localStorage. Starting polling...');
+            console.log('Looking for key:', localStorageKey);
+            console.log('Available localStorage keys:', Object.keys(localStorage).filter(k => k.includes('socialora') || k.includes('cookie')));
             
-            // Try to get cookies from extension via message (fallback)
-            // Note: This won't work directly from the page, but we'll try localStorage polling
-            const tryGetFromExtension = () => {
-              // The page can't directly access chrome.runtime, so we rely on
-              // the injected script to save to localStorage
-              // Just proceed to localStorage polling
-              retryLocalStorage();
-            };
+            // Retry localStorage with polling - increased retries and shorter interval
+            let retryCount = 0;
+            const maxRetries = 15; // Increased from 8 to 15
+            const retryInterval = 500; // Reduced from 1000ms to 500ms for faster detection
             
-            // Retry localStorage with polling
-            const retryLocalStorage = () => {
-              let retryCount = 0;
-              const maxRetries = 8;
-              const retryInterval = 1000; // 1 second
+            const checkCookies = setInterval(() => {
+              retryCount++;
               
-              const checkCookies = setInterval(() => {
-                retryCount++;
-                const retryCookies = localStorage.getItem(localStorageKey);
-                
+              // Check primary key
+              let retryCookies = localStorage.getItem(localStorageKey);
+              
+              // Also check username key as fallback
+              if (!retryCookies && accountMetadata.username) {
+                const usernameKey = `socialora_cookies_${accountMetadata.username}`;
+                retryCookies = localStorage.getItem(usernameKey);
                 if (retryCookies) {
-                  clearInterval(checkCookies);
-                  console.log(`✓ Cookies found in localStorage after ${retryCount} retries`);
-                  handleAccountSave(igUserId, accountMetadata);
-                } else if (retryCount >= maxRetries) {
-                  clearInterval(checkCookies);
-                  setErrorMessage('Cookies not found. Please try connecting again using the extension. Make sure you clicked "Grab Instagram Session" in the extension popup.');
+                  console.log('Found cookies using username key, moving to userId key');
+                  localStorage.setItem(localStorageKey, retryCookies);
                 }
-              }, retryInterval);
-            };
+              }
+              
+              // Check all socialora cookie keys as last resort
+              if (!retryCookies) {
+                const allKeys = Object.keys(localStorage).filter(k => k.startsWith('socialora_cookies_'));
+                if (allKeys.length > 0) {
+                  console.log('Found socialora cookie keys:', allKeys);
+                  // Try the most recent one (last in array)
+                  const lastKey = allKeys[allKeys.length - 1];
+                  retryCookies = localStorage.getItem(lastKey);
+                  if (retryCookies) {
+                    console.log(`Using cookies from key: ${lastKey}, moving to correct key: ${localStorageKey}`);
+                    localStorage.setItem(localStorageKey, retryCookies);
+                  }
+                }
+              }
+              
+              if (retryCookies) {
+                clearInterval(checkCookies);
+                console.log(`✓ Cookies found in localStorage after ${retryCount} retries`);
+                try {
+                  const cookies = JSON.parse(retryCookies);
+                  console.log('Cookies structure:', Object.keys(cookies));
+                  handleAccountSave(igUserId, accountMetadata);
+                } catch (e) {
+                  console.error('Failed to parse cookies:', e);
+                  setErrorMessage('Cookies found but invalid format. Please try connecting again.');
+                }
+              } else if (retryCount >= maxRetries) {
+                clearInterval(checkCookies);
+                console.error('Cookies not found after all retries');
+                console.log('Final localStorage check - all keys:', Object.keys(localStorage).filter(k => k.includes('socialora') || k.includes('cookie')));
+                setErrorMessage('Cookies not found. Please try connecting again using the extension. Make sure you clicked "Grab Instagram Session" in the extension popup.');
+              }
+            }, retryInterval);
             
-            // Try extension first, then fallback to localStorage polling
-            tryGetFromExtension();
             return;
           }
           

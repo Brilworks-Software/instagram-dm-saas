@@ -356,14 +356,26 @@ async function grabSession() {
           const injectCookiesViaScript = (tabId) => {
             chrome.scripting.executeScript({
               target: { tabId: tabId },
-              func: (userId, cookieData) => {
+              func: (userId, cookieData, storageKeyFromExtension) => {
                 const storageKey = `socialora_cookies_${userId}`;
                 try {
+                  // Save to localStorage
                   localStorage.setItem(storageKey, JSON.stringify(cookieData));
                   console.log(`✓ Cookies saved to page localStorage via script injection (key: ${storageKey})`);
                   
+                  // Also save to sessionStorage as backup
+                  sessionStorage.setItem(storageKey, JSON.stringify(cookieData));
+                  
+                  // Trigger multiple events to ensure page catches it
                   window.dispatchEvent(new CustomEvent('socialora_cookies_saved', { 
                     detail: { userId, storageKey, cookies: cookieData } 
+                  }));
+                  
+                  // Also dispatch a storage event (for cross-tab communication)
+                  window.dispatchEvent(new StorageEvent('storage', {
+                    key: storageKey,
+                    newValue: JSON.stringify(cookieData),
+                    storageArea: localStorage
                   }));
                   
                   window.postMessage({
@@ -373,13 +385,21 @@ async function grabSession() {
                     storageKey: storageKey
                   }, window.location.origin);
                   
+                  // Double-check it was saved
+                  const verify = localStorage.getItem(storageKey);
+                  if (verify) {
+                    console.log('✓ Verified: Cookies are in localStorage');
+                  } else {
+                    console.error('✗ Warning: Cookies not found after saving!');
+                  }
+                  
                   return true;
                 } catch (e) {
                   console.error('Failed to save to localStorage:', e);
                   return false;
                 }
               },
-              args: [user.pk, cookies]
+              args: [user.pk, cookies, storageKey]
             }).then(() => {
               console.log('✓ Script injection successful');
             }).catch(err => {
