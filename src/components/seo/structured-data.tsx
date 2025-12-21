@@ -14,7 +14,7 @@ export function StructuredData({ type = 'WebSite', data }: StructuredDataProps) 
     '@type': type,
   };
 
-  const structuredData = {
+  const structuredData: Record<string, any> = {
     ...defaultData,
     ...data,
   };
