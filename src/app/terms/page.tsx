@@ -1,6 +1,26 @@
 import Link from 'next/link';
 import { Instagram, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Terms of Service - Instagram DM Automation | Socialora',
+  description: 'Read Socialora\'s terms of service for Instagram DM automation. Understand usage guidelines, account responsibilities, and service terms.',
+  keywords: [
+    'Socialora terms of service',
+    'Instagram automation terms',
+    'DM automation terms',
+    'Instagram automation service agreement',
+  ],
+  openGraph: {
+    title: 'Terms of Service - Instagram DM Automation | Socialora',
+    description: 'Read Socialora\'s terms of service for Instagram DM automation. Understand usage guidelines and service terms.',
+    type: 'website',
+  },
+  alternates: {
+    canonical: '/terms',
+  },
+};
 
 export default function TermsPage() {
   return (

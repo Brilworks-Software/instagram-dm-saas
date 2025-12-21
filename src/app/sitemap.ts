@@ -8,42 +8,49 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const cleanBaseUrl = baseUrl.replace(/\/$/, '');
   
   // Static pages with their priorities and change frequencies
+  // Optimized for SEO with proper priorities based on importance
   const staticPages = [
     {
       url: cleanBaseUrl,
       lastModified: new Date(),
       changeFrequency: 'daily' as const,
-      priority: 1.0,
+      priority: 1.0, // Highest priority - homepage
     },
     {
       url: `${cleanBaseUrl}/blog`,
       lastModified: new Date(),
       changeFrequency: 'daily' as const,
-      priority: 0.9,
+      priority: 0.9, // High priority - content marketing
+    },
+    {
+      url: `${cleanBaseUrl}/signup`,
+      lastModified: new Date(),
+      changeFrequency: 'weekly' as const,
+      priority: 0.9, // High priority - conversion page
     },
     {
       url: `${cleanBaseUrl}/docs`,
       lastModified: new Date(),
       changeFrequency: 'weekly' as const,
-      priority: 0.8,
-    },
-    {
-      url: `${cleanBaseUrl}/privacy`,
-      lastModified: new Date(),
-      changeFrequency: 'monthly' as const,
-      priority: 0.5,
-    },
-    {
-      url: `${cleanBaseUrl}/terms`,
-      lastModified: new Date(),
-      changeFrequency: 'monthly' as const,
-      priority: 0.5,
+      priority: 0.8, // Important - documentation
     },
     {
       url: `${cleanBaseUrl}/support`,
       lastModified: new Date(),
       changeFrequency: 'weekly' as const,
-      priority: 0.7,
+      priority: 0.7, // Medium priority - support
+    },
+    {
+      url: `${cleanBaseUrl}/privacy`,
+      lastModified: new Date(),
+      changeFrequency: 'monthly' as const,
+      priority: 0.5, // Lower priority - legal
+    },
+    {
+      url: `${cleanBaseUrl}/terms`,
+      lastModified: new Date(),
+      changeFrequency: 'monthly' as const,
+      priority: 0.5, // Lower priority - legal
     },
   ];
 

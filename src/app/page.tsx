@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { createClient } from '@/lib/supabase/client';
+import { HomepageStructuredData } from '@/components/seo/structured-data';
 
 export default function HomePage() {
   const router = useRouter();
@@ -156,6 +157,7 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-background overflow-hidden">
+      <HomepageStructuredData />
       {/* Navigation */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

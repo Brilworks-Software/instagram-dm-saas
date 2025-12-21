@@ -5,6 +5,9 @@ import { Instagram, ArrowLeft, Book, MessageSquare, Send, Target, BarChart3, Bot
 import { Button } from '@/components/ui/button';
 import { useEffect, useState } from 'react';
 
+// Note: Metadata should be added via layout or server component wrapper
+// For now, this is a client component for interactivity
+
 export default function DocsPage() {
   const [activeSection, setActiveSection] = useState('getting-started');
 

@@ -1,6 +1,28 @@
 import Link from 'next/link';
 import { Instagram, ArrowLeft, Mail, MessageCircle, Book, HelpCircle, Search, FileText, Video, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Support - Instagram DM Automation Help Center | Socialora',
+  description: 'Get help with Instagram DM automation. Find answers to FAQs, contact support, access tutorials, and learn how to use Socialora effectively.',
+  keywords: [
+    'Instagram DM automation support',
+    'Instagram automation help',
+    'Socialora support',
+    'Instagram automation FAQ',
+    'Instagram DM automation customer service',
+    'Instagram automation troubleshooting',
+  ],
+  openGraph: {
+    title: 'Support - Instagram DM Automation Help Center | Socialora',
+    description: 'Get help with Instagram DM automation. Find answers to FAQs, contact support, and access tutorials.',
+    type: 'website',
+  },
+  alternates: {
+    canonical: '/support',
+  },
+};
 
 export default function SupportPage() {
   const faqs = [

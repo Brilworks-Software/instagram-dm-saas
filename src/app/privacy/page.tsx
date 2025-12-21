@@ -1,6 +1,27 @@
 import Link from 'next/link';
 import { Instagram, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Privacy Policy - Instagram DM Automation | Socialora',
+  description: 'Read Socialora\'s privacy policy. Learn how we protect your data when using our Instagram DM automation platform. Secure, encrypted, and GDPR compliant.',
+  keywords: [
+    'Socialora privacy policy',
+    'Instagram automation privacy',
+    'DM automation privacy',
+    'data protection Instagram automation',
+    'Instagram automation security',
+  ],
+  openGraph: {
+    title: 'Privacy Policy - Instagram DM Automation | Socialora',
+    description: 'Read Socialora\'s privacy policy. Learn how we protect your data when using our Instagram DM automation platform.',
+    type: 'website',
+  },
+  alternates: {
+    canonical: '/privacy',
+  },
+};
 
 export default function PrivacyPage() {
   return (
