@@ -176,7 +176,7 @@ export default function ResetPasswordPage() {
               <Instagram className="h-6 w-6 text-white" />
             </div>
             <span className="font-bold text-2xl tracking-tight">
-              Bulk<span className="text-accent">DM</span>
+              Social<span className="text-accent">ora</span>
             </span>
           </div>
           
@@ -201,7 +201,7 @@ export default function ResetPasswordPage() {
               <Instagram className="h-5 w-5 text-white" />
             </div>
             <span className="font-bold text-xl">
-              Bulk<span className="text-accent">DM</span>
+              Social<span className="text-accent">ora</span>
             </span>
           </div>
           

@@ -3,8 +3,66 @@
 @tailwind utilities;
 
 :root {
+  /* Default dark theme */
   --background: #0a0a0b;
+  --background-secondary: #111113;
+  --background-tertiary: #18181b;
+  --background-elevated: #1f1f23;
   --foreground: #fafafa;
+  --foreground-muted: #a1a1aa;
+  --foreground-subtle: #71717a;
+  --border: #27272a;
+  --border-hover: #3f3f46;
+  --accent-color: #ec4899; /* Default pink */
+  --accent-hover: #f472b6;
+  --accent-muted: #fda4af;
+}
+
+/* Light theme */
+.light {
+  --background: #ffffff;
+  --background-secondary: #f8f9fa;
+  --background-tertiary: #f1f3f5;
+  --background-elevated: #e9ecef;
+  --foreground: #1a1a1a;
+  --foreground-muted: #6c757d;
+  --foreground-subtle: #868e96;
+  --border: #dee2e6;
+  --border-hover: #ced4da;
+}
+
+/* Dark theme (default) */
+.dark {
+  --background: #0a0a0b;
+  --background-secondary: #111113;
+  --background-tertiary: #18181b;
+  --background-elevated: #1f1f23;
+  --foreground: #fafafa;
+  --foreground-muted: #a1a1aa;
+  --foreground-subtle: #71717a;
+  --border: #27272a;
+  --border-hover: #3f3f46;
+}
+
+/* Compact mode styles */
+body.compact-mode {
+  --spacing-unit: 0.5rem;
+}
+
+body.compact-mode .p-6 {
+  padding: 0.75rem;
+}
+
+body.compact-mode .gap-4 {
+  gap: 0.5rem;
+}
+
+body.compact-mode .mb-6 {
+  margin-bottom: 0.75rem;
+}
+
+body.compact-mode .rounded-xl {
+  border-radius: 0.5rem;
 }
 
 body {
@@ -24,23 +82,24 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #3f3f46;
+  background: var(--border);
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #52525b;
+  background: var(--border-hover);
 }
 
 /* Focus styles */
 *:focus-visible {
-  outline: 2px solid #e11d48;
+  outline: 2px solid var(--accent-color);
   outline-offset: 2px;
 }
 
 /* Selection */
 ::selection {
-  background: rgba(225, 29, 72, 0.3);
+  background: var(--accent-color);
+  opacity: 0.3;
 }
 
 /* Blog Content Styles */

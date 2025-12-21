@@ -6,6 +6,14 @@ const __dirname = path.dirname(__filename);
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Mark server-only packages as external to prevent webpack from bundling them
+  serverComponentsExternalPackages: [
+    'instagram-private-api',
+    'puppeteer',
+    'puppeteer-core',
+    'puppeteer-extra',
+    'puppeteer-extra-plugin-stealth',
+  ],
   // Vercel doesn't need standalone output
   // Image optimization
   images: {
@@ -92,6 +100,40 @@ const nextConfig = {
     // Ensure symlinks are resolved (important for Vercel builds)
     config.resolve.symlinks = true;
 
+    // For server-side, ensure instagram-private-api and related packages are external
+    // This prevents webpack from trying to bundle binary files
+    if (isServer) {
+      config.externals = config.externals || [];
+      if (typeof config.externals === 'function') {
+        const originalExternals = config.externals;
+        config.externals = [
+          originalExternals,
+          ({ request }, callback) => {
+            // Mark instagram-private-api and its dependencies as external
+            if (request && (
+              request.includes('instagram-private-api') ||
+              request.includes('puppeteer') ||
+              request.includes('puppeteer-core')
+            )) {
+              return callback(null, `commonjs ${request}`);
+            }
+            callback();
+          },
+        ];
+      } else if (Array.isArray(config.externals)) {
+        config.externals.push(({ request }, callback) => {
+          if (request && (
+            request.includes('instagram-private-api') ||
+            request.includes('puppeteer') ||
+            request.includes('puppeteer-core')
+          )) {
+            return callback(null, `commonjs ${request}`);
+          }
+          callback();
+        });
+      }
+    }
+
     // Client-side fallbacks
     if (!isServer) {
       config.resolve.fallback = {
@@ -99,6 +141,10 @@ const nextConfig = {
         fs: false,
         net: false,
         tls: false,
+        child_process: false,
+        'puppeteer': false,
+        'puppeteer-core': false,
+        'instagram-private-api': false,
       };
     }
     

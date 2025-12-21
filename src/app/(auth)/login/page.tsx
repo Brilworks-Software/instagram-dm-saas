@@ -23,6 +23,7 @@ export default function LoginPage() {
   const [success, setSuccess] = useState<string | null>(null);
   const [loginMethod, setLoginMethod] = useState<'password' | 'magic'>('password');
   const [magicLinkSent, setMagicLinkSent] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
     // Check for password reset success message
@@ -45,6 +46,10 @@ export default function LoginPage() {
     e.preventDefault();
     setIsLoading(true);
     setError(null);
+    // Reset retry count when manually submitting (not auto-retry)
+    if (!(e as any).isRetry) {
+      setRetryCount(0);
+    }
     
     const supabase = createClient();
 
@@ -84,22 +89,72 @@ export default function LoginPage() {
         router.push('/inbox');
         router.refresh();
       } else {
-        // Magic link
-        const { error } = await supabase.auth.signInWithOtp({
-          email,
-          options: {
-            emailRedirectTo: `${window.location.origin}/auth/callback`,
-          },
-        });
+        // Magic link with timeout and retry handling
+        try {
+          const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('TIMEOUT')), 30000)
+          );
 
-        if (error) {
-          setError(error.message);
+          const signInPromise = supabase.auth.signInWithOtp({
+            email,
+            options: {
+              emailRedirectTo: `${window.location.origin}/auth/callback`,
+            },
+          });
+
+          const result = await Promise.race([signInPromise, timeoutPromise]) as any;
+
+          if (result.error) {
+            const errorMsg = result.error.message || 'Unknown error';
+            if (errorMsg.includes('504') || errorMsg.includes('Gateway Timeout')) {
+              if (retryCount < 2) {
+                // Auto-retry once
+                setRetryCount(retryCount + 1);
+                setError(`Connection issue (attempt ${retryCount + 1}/3). Retrying...`);
+                // Wait 2 seconds then retry
+                setTimeout(() => {
+                  const retryEvent = { ...e, isRetry: true } as any;
+                  handleSubmit(retryEvent);
+                }, 2000);
+                return;
+              }
+              setError('Email service is temporarily unavailable. Please try again in a few moments or use password login.');
+            } else if (errorMsg.includes('rate limit') || errorMsg.includes('too many')) {
+              setError('Too many requests. Please wait a few minutes before trying again.');
+            } else {
+              setError(errorMsg);
+            }
+            setIsLoading(false);
+            setRetryCount(0);
+            return;
+          }
+
+          setMagicLinkSent(true);
           setIsLoading(false);
-          return;
+          setRetryCount(0);
+          capture('magic_link_sent', { email });
+        } catch (err: any) {
+          const errorMsg = err?.message || 'Unknown error';
+          if (errorMsg === 'TIMEOUT' || errorMsg.includes('timeout')) {
+            if (retryCount < 2) {
+              // Auto-retry once
+              setRetryCount(retryCount + 1);
+              setError(`Request timed out (attempt ${retryCount + 1}/3). Retrying...`);
+              // Wait 2 seconds then retry
+              setTimeout(() => {
+                handleSubmit(e as any);
+              }, 2000);
+              return;
+            }
+            setError('Request timed out. Please check your internet connection and try again. If the problem persists, the email service may be temporarily unavailable.');
+          } else if (errorMsg.includes('504') || errorMsg.includes('Gateway Timeout')) {
+            setError('Email service is temporarily unavailable. Please try again in a few moments or use password login.');
+          } else {
+            setError('Failed to send magic link. Please try again or use password login.');
+          }
+          setIsLoading(false);
+          setRetryCount(0);
         }
-
-        setMagicLinkSent(true);
-        setIsLoading(false);
       }
     } catch (err) {
       setError('An unexpected error occurred. Please try again.');
@@ -168,7 +223,7 @@ export default function LoginPage() {
               <Instagram className="h-6 w-6 text-white" />
             </div>
             <span className="font-bold text-2xl tracking-tight">
-              Bulk<span className="text-accent">DM</span>
+              Social<span className="text-accent">ora</span>
             </span>
           </div>
           
@@ -225,7 +280,7 @@ export default function LoginPage() {
               <Instagram className="h-5 w-5 text-white" />
             </div>
             <span className="font-bold text-xl">
-              Bulk<span className="text-accent">DM</span>
+              Social<span className="text-accent">ora</span>
             </span>
           </div>
           
@@ -278,23 +333,29 @@ export default function LoginPage() {
           
           <form onSubmit={handleSubmit} className="space-y-4">
             <Input
+              id="email"
+              name="email"
               label="Email"
               type="email"
               placeholder="you@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               leftIcon={<Mail className="h-4 w-4" />}
+              autoComplete="email"
               required
             />
             
             {loginMethod === 'password' && (
               <Input
+                id="password"
+                name="password"
                 label="Password"
                 type="password"
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 leftIcon={<Lock className="h-4 w-4" />}
+                autoComplete="current-password"
                 required
               />
             )}

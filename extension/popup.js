@@ -148,14 +148,92 @@ async function verifySession(cookies) {
   const config = await CONFIG.getCurrent();
   const url = buildApiUrl(config.BACKEND_URL, 'api/instagram/cookie/verify');
   
+  console.log('Verifying session with backend:', url);
+  console.log('Backend URL from config:', config.BACKEND_URL);
+  console.log('Environment mode:', config.mode || 'unknown');
+  
   try {
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ cookies })
-    });
+    let response;
+    let responseText;
     
-    const data = await response.json();
+    try {
+      response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cookies }),
+        // Add timeout to prevent hanging
+        signal: AbortSignal.timeout(10000) // 10 second timeout
+      });
+    } catch (fetchError) {
+      // Network error or timeout
+      console.error('Fetch error:', fetchError);
+      if (fetchError.name === 'AbortError' || fetchError.name === 'TimeoutError') {
+        return {
+          success: false,
+          message: 'Request timed out. The backend may be slow or unreachable. Please try again.'
+        };
+      }
+      if (fetchError.name === 'TypeError' && fetchError.message.includes('Failed to fetch')) {
+        return {
+          success: false,
+          message: 'Cannot connect to backend. Make sure the server is running and accessible.'
+        };
+      }
+      return {
+        success: false,
+        message: `Network error: ${fetchError.message || 'Failed to connect'}`
+      };
+    }
+    
+    // Get response text first (before checking content-type)
+    try {
+      responseText = await response.text();
+    } catch (textError) {
+      console.error('Failed to read response text:', textError);
+      return {
+        success: false,
+        message: `Server error (${response.status}). Failed to read response.`
+      };
+    }
+    
+    // Check if response is JSON before parsing
+    const contentType = response.headers.get('content-type') || '';
+    const isJson = contentType.includes('application/json');
+    
+    if (!isJson) {
+      // Server returned HTML (likely an error page)
+      console.error('Server returned non-JSON response:', responseText.substring(0, 300));
+      console.error('Response status:', response.status);
+      console.error('Content-Type:', contentType);
+      
+      // Try to extract error message from HTML if possible
+      let errorMsg = `Server error (${response.status})`;
+      if (responseText.includes('500') || responseText.includes('Internal Server Error')) {
+        errorMsg = 'Server internal error. The backend may be experiencing issues.';
+      } else if (responseText.includes('404')) {
+        errorMsg = 'API endpoint not found. Please check the backend URL configuration.';
+      } else if (responseText.includes('503') || responseText.includes('Service Unavailable')) {
+        errorMsg = 'Service unavailable. The backend may be down for maintenance.';
+      }
+      
+      return {
+        success: false,
+        message: errorMsg
+      };
+    }
+    
+    // Try to parse JSON
+    let data;
+    try {
+      data = JSON.parse(responseText);
+    } catch (parseError) {
+      console.error('JSON parse error:', parseError);
+      console.error('Response text:', responseText.substring(0, 300));
+      return {
+        success: false,
+        message: 'Server returned invalid JSON. The backend may be experiencing issues.'
+      };
+    }
     
     // Handle error responses
     if (!response.ok) {
@@ -168,9 +246,27 @@ async function verifySession(cookies) {
     return data;
   } catch (error) {
     console.error('Verify session error:', error);
+    console.error('Error type:', error.constructor.name);
+    console.error('Error message:', error.message);
+    
+    // Handle specific error types
+    if (error instanceof SyntaxError) {
+      return {
+        success: false,
+        message: 'Server returned invalid response format. The backend may be experiencing issues.'
+      };
+    }
+    
+    if (error instanceof TypeError && error.message.includes('fetch')) {
+      return {
+        success: false,
+        message: 'Cannot connect to backend. Check your internet connection and make sure the server is running.'
+      };
+    }
+    
     return {
       success: false,
-      message: error.message || 'Failed to connect to backend'
+      message: error.message || 'Failed to verify session. Please try again.'
     };
   }
 }
@@ -249,7 +345,18 @@ async function grabSession() {
     let verifyResult;
     try {
       verifyResult = await verifySession(cookies);
+      
+      // If verification failed but returned a result (not an exception)
+      if (!verifyResult.success) {
+        showStatus(statusError);
+        errorMessage.textContent = verifyResult.message || verifyResult.error || 'Session verification failed';
+        grabBtn.disabled = false; // Keep enabled for retry
+        instructions.classList.remove('hidden');
+        return;
+      }
     } catch (fetchError) {
+      // This catch block handles exceptions (network errors, timeouts, etc.)
+      console.error('Exception during verifySession:', fetchError);
       showStatus(statusError);
       const currentConfig = await CONFIG.getCurrent();
       
@@ -263,7 +370,16 @@ async function grabSession() {
         // Retry with localhost
         try {
           verifyResult = await verifySession(cookies);
+          
+          // Check if retry was successful
+          if (!verifyResult || !verifyResult.success) {
+            errorMessage.textContent = verifyResult?.message || verifyResult?.error || `Cannot connect to backend. Tried both production (${CONFIG.PRODUCTION.BACKEND_URL}) and localhost (${CONFIG.LOCAL.BACKEND_URL}). Make sure backend is running.`;
+            grabBtn.disabled = false;
+            instructions.classList.remove('hidden');
+            return;
+          }
         } catch (localError) {
+          console.error('Localhost retry also failed:', localError);
           errorMessage.textContent = `Cannot connect to backend. Tried both production (${CONFIG.PRODUCTION.BACKEND_URL}) and localhost (${CONFIG.LOCAL.BACKEND_URL}). Make sure backend is running.`;
           grabBtn.disabled = false; // Keep enabled for retry
           instructions.classList.remove('hidden');
@@ -271,16 +387,17 @@ async function grabSession() {
         }
       } else {
         const config = await CONFIG.getCurrent();
-        errorMessage.textContent = `Cannot connect to backend at ${config.BACKEND_URL}. Make sure it is running.`;
+        errorMessage.textContent = `Cannot connect to backend at ${config.BACKEND_URL}. Make sure it is running. Error: ${fetchError.message || 'Unknown error'}`;
         grabBtn.disabled = false; // Keep enabled for retry
         instructions.classList.remove('hidden');
         return;
       }
     }
     
-    if (!verifyResult.success) {
+    // Final check - make sure we have a successful result
+    if (!verifyResult || !verifyResult.success) {
       showStatus(statusError);
-      errorMessage.textContent = verifyResult.message || verifyResult.error || 'Session verification failed';
+      errorMessage.textContent = verifyResult?.message || verifyResult?.error || 'Session verification failed';
       grabBtn.disabled = false; // Keep enabled for retry
       instructions.classList.remove('hidden');
       return;
@@ -332,7 +449,14 @@ async function grabSession() {
           console.log('Tab created, waiting for content script to be ready...');
           
           // Function to send cookies via content script message
-          const sendCookiesToPage = (tabId) => {
+          const sendCookiesToPage = (tabId, retryCount = 0) => {
+            const maxRetries = 10;
+            const retryDelay = 300;
+            
+            console.log(`Attempting to send cookies to tab ${tabId} (attempt ${retryCount + 1}/${maxRetries})`);
+            console.log('User ID:', user.pk);
+            console.log('Cookies keys:', Object.keys(cookies));
+            
             // Try sending message to content script first (most reliable)
             chrome.tabs.sendMessage(tabId, {
               type: 'SAVE_COOKIES',
@@ -340,42 +464,50 @@ async function grabSession() {
               cookies: cookies
             }, (response) => {
               if (chrome.runtime.lastError) {
-                console.warn('Content script not ready yet:', chrome.runtime.lastError.message);
-                // Fallback to script injection
-                injectCookiesViaScript(tabId);
+                const errorMsg = chrome.runtime.lastError.message;
+                console.warn(`Content script not ready (attempt ${retryCount + 1}):`, errorMsg);
+                
+                if (retryCount < maxRetries) {
+                  // Retry after a delay
+                  setTimeout(() => {
+                    sendCookiesToPage(tabId, retryCount + 1);
+                  }, retryDelay);
+                } else {
+                  console.warn('Max retries reached, trying script injection');
+                  injectCookiesViaScript(tabId);
+                }
               } else if (response && response.success) {
                 console.log('✓ Cookies sent via content script successfully');
+                console.log('Response:', response);
               } else {
                 console.warn('Content script responded but failed, trying script injection');
+                console.log('Response:', response);
                 injectCookiesViaScript(tabId);
               }
             });
           };
           
-          // Fallback: Inject script directly
+          // Fallback: Inject script directly (avoids CSP by using func, not eval)
           const injectCookiesViaScript = (tabId) => {
+            console.log('Attempting script injection for tab:', tabId);
+            
+            // Use func parameter (serialized, doesn't trigger CSP eval)
             chrome.scripting.executeScript({
               target: { tabId: tabId },
-              func: (userId, cookieData, storageKeyFromExtension) => {
-                const storageKey = `socialora_cookies_${userId}`;
+              func: (userId, cookieData) => {
+                const storageKey = 'socialora_cookies_' + userId;
                 try {
                   // Save to localStorage
-                  localStorage.setItem(storageKey, JSON.stringify(cookieData));
-                  console.log(`✓ Cookies saved to page localStorage via script injection (key: ${storageKey})`);
+                  const cookiesJson = JSON.stringify(cookieData);
+                  localStorage.setItem(storageKey, cookiesJson);
+                  console.log('✓ Cookies saved via script injection (key: ' + storageKey + ')');
                   
                   // Also save to sessionStorage as backup
-                  sessionStorage.setItem(storageKey, JSON.stringify(cookieData));
+                  sessionStorage.setItem(storageKey, cookiesJson);
                   
-                  // Trigger multiple events to ensure page catches it
+                  // Trigger multiple events
                   window.dispatchEvent(new CustomEvent('socialora_cookies_saved', { 
-                    detail: { userId, storageKey, cookies: cookieData } 
-                  }));
-                  
-                  // Also dispatch a storage event (for cross-tab communication)
-                  window.dispatchEvent(new StorageEvent('storage', {
-                    key: storageKey,
-                    newValue: JSON.stringify(cookieData),
-                    storageArea: localStorage
+                    detail: { userId: userId, storageKey: storageKey, cookies: cookieData } 
                   }));
                   
                   window.postMessage({
@@ -385,38 +517,65 @@ async function grabSession() {
                     storageKey: storageKey
                   }, window.location.origin);
                   
-                  // Double-check it was saved
+                  // Verify it was saved
                   const verify = localStorage.getItem(storageKey);
                   if (verify) {
                     console.log('✓ Verified: Cookies are in localStorage');
                   } else {
-                    console.error('✗ Warning: Cookies not found after saving!');
+                    console.error('✗ ERROR: Cookies not found after saving!');
                   }
                   
-                  return true;
+                  return { success: true, storageKey: storageKey };
                 } catch (e) {
-                  console.error('Failed to save to localStorage:', e);
-                  return false;
+                  console.error('Script injection failed:', e);
+                  return { success: false, error: e.message };
                 }
               },
-              args: [user.pk, cookies, storageKey]
-            }).then(() => {
-              console.log('✓ Script injection successful');
+              args: [user.pk, cookies]
+            }).then((results) => {
+              if (results && results[0] && results[0].result && results[0].result.success) {
+                console.log('✓ Script injection successful');
+                console.log('Result:', results[0].result);
+              } else {
+                console.warn('Script injection completed but result unclear:', results);
+              }
             }).catch(err => {
-              console.error('Failed to inject script:', err);
+              console.error('Script injection failed:', err);
+              // Last resort: try with MAIN world
+              chrome.scripting.executeScript({
+                target: { tabId: tabId },
+                world: 'MAIN',
+                func: (userId, cookieData) => {
+                  const storageKey = 'socialora_cookies_' + userId;
+                  localStorage.setItem(storageKey, JSON.stringify(cookieData));
+                  sessionStorage.setItem(storageKey, JSON.stringify(cookieData));
+                  window.postMessage({
+                    type: 'SOCIALORA_COOKIES_SAVED',
+                    userId: userId,
+                    cookies: cookieData,
+                    storageKey: storageKey
+                  }, window.location.origin);
+                },
+                args: [user.pk, cookies]
+              }).catch(finalErr => {
+                console.error('All injection methods failed:', finalErr);
+              });
             });
           };
           
+          // Note: Content script ready signal goes through background
+          // We'll rely on retries and tab status instead
+          
           // Listen for tab updates
           let attempts = 0;
-          const maxAttempts = 10;
+          const maxAttempts = 15;
           const listener = (tabId, changeInfo, tabInfo) => {
             if (tabId === tab.id && changeInfo.status === 'complete') {
               attempts++;
-              // Wait a bit for content script to initialize
+              // Wait longer for content script to initialize
               setTimeout(() => {
                 sendCookiesToPage(tab.id);
-              }, 500 + (attempts * 200)); // Increasing delay for retries
+              }, 1000 + (attempts * 300)); // Longer delay for retries
               
               if (attempts >= maxAttempts) {
                 chrome.tabs.onUpdated.removeListener(listener);
@@ -431,13 +590,14 @@ async function grabSession() {
             if (tabInfo && tabInfo.status === 'complete') {
               setTimeout(() => {
                 sendCookiesToPage(tab.id);
-              }, 1000);
+              }, 1500);
             }
           });
           
-          // Clean up listener after 30 seconds
+          // Clean up listeners after 30 seconds
           setTimeout(() => {
             chrome.tabs.onUpdated.removeListener(listener);
+            chrome.runtime.onMessage.removeListener(messageListener);
           }, 30000);
         });
       }, 1500);

@@ -1,6 +1,7 @@
 import type { Config } from "tailwindcss";
 
 const config: Config = {
+  darkMode: 'class', // Enable class-based dark mode
   content: [
     "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
@@ -9,26 +10,26 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // Dark theme inspired by Linear/Vercel
+        // Use CSS variables for theme-aware colors
         background: {
-          DEFAULT: "#0a0a0b",
-          secondary: "#111113",
-          tertiary: "#18181b",
-          elevated: "#1f1f23",
+          DEFAULT: "var(--background)",
+          secondary: "var(--background-secondary)",
+          tertiary: "var(--background-tertiary)",
+          elevated: "var(--background-elevated)",
         },
         foreground: {
-          DEFAULT: "#fafafa",
-          muted: "#a1a1aa",
-          subtle: "#71717a",
+          DEFAULT: "var(--foreground)",
+          muted: "var(--foreground-muted)",
+          subtle: "var(--foreground-subtle)",
         },
         border: {
-          DEFAULT: "#27272a",
-          hover: "#3f3f46",
+          DEFAULT: "var(--border)",
+          hover: "var(--border-hover)",
         },
         accent: {
-          DEFAULT: "#e11d48", // Rose-600 for Instagram vibe
-          hover: "#f43f5e",
-          muted: "#fda4af",
+          DEFAULT: "var(--accent-color, #e11d48)", // Uses CSS variable, falls back to Rose-600
+          hover: "var(--accent-hover, #f43f5e)",
+          muted: "var(--accent-muted, #fda4af)",
         },
         success: {
           DEFAULT: "#10b981",

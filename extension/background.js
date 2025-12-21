@@ -1,4 +1,25 @@
 // Socialora Background Service Worker
+
+// Relay messages from popup to content scripts if needed
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  // Forward SAVE_COOKIES messages from popup to content script
+  if (message.type === 'FORWARD_SAVE_COOKIES' && sender.tab) {
+    chrome.tabs.sendMessage(sender.tab.id, {
+      type: 'SAVE_COOKIES',
+      userId: message.userId,
+      cookies: message.cookies
+    }, (response) => {
+      if (chrome.runtime.lastError) {
+        console.error('Background: Failed to forward message:', chrome.runtime.lastError);
+        sendResponse({ success: false, error: chrome.runtime.lastError.message });
+      } else {
+        sendResponse(response);
+      }
+    });
+    return true; // Keep channel open
+  }
+  return false;
+});
 // Handles cookie access and communication
 
 // Import config
@@ -31,6 +52,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       sendResponse({ success: true, cookies: result[storageKey] || null });
     });
     return true;
+  }
+  
+  // Content script ready signal
+  if (message.type === 'CONTENT_SCRIPT_READY' && sender.tab) {
+    console.log('Background: Content script ready for tab', sender.tab.id);
+    // Store ready state (could be used by popup if needed)
+    sendResponse({ success: true });
+    return false;
   }
 });
 
@@ -66,13 +95,41 @@ async function verifySession(cookies) {
       body: JSON.stringify({ cookies })
     });
     
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    // Check if response is JSON before parsing
+    const contentType = response.headers.get('content-type') || '';
+    const isJson = contentType.includes('application/json');
+    
+    if (!isJson) {
+      // Server returned HTML (likely an error page)
+      const text = await response.text();
+      console.error('Server returned non-JSON response:', text.substring(0, 200));
+      return {
+        success: false,
+        error: `Server error (${response.status}). The backend may be experiencing issues.`
+      };
     }
     
-    return response.json();
+    const data = await response.json();
+    
+    if (!response.ok) {
+      return {
+        success: false,
+        error: data.message || data.error || `Server error: ${response.status}`
+      };
+    }
+    
+    return data;
   } catch (error) {
     console.error('Verify session error:', error);
+    
+    // Handle JSON parse errors specifically
+    if (error instanceof SyntaxError && error.message.includes('JSON')) {
+      return {
+        success: false,
+        error: 'Server returned invalid response. The backend may be down or experiencing issues.'
+      };
+    }
+    
     return { success: false, error: error.message || 'Failed to connect to backend' };
   }
 }

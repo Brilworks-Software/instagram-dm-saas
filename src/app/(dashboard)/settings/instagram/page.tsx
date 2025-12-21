@@ -203,6 +203,69 @@ export default function InstagramSettingsPage() {
     
     // Listen for window messages (fallback communication)
     const handleMessage = (event: MessageEvent) => {
+      // Ignore messages from other origins
+      if (event.origin !== window.location.origin) {
+        return;
+      }
+      
+      // Handle cookie save from extension
+      if (event.data && event.data.type === 'SOCIALORA_COOKIES_SAVED') {
+        const { userId, cookies, storageKey } = event.data;
+        console.log('Received cookies via postMessage:', { userId, storageKey, hasCookies: !!cookies });
+        if (cookies && userId) {
+          try {
+            const cookiesJson = JSON.stringify(cookies);
+            const key = storageKey || `socialora_cookies_${userId}`;
+            localStorage.setItem(key, cookiesJson);
+            sessionStorage.setItem(key, cookiesJson);
+            console.log(`✓ Cookies saved to localStorage via postMessage (key: ${key})`);
+            
+            // If we're waiting for this user's cookies, trigger save
+            const params = new URLSearchParams(window.location.search);
+            const igUserId = params.get('ig_user_id');
+            if (igUserId === userId) {
+              const accountParam = params.get('account');
+              let accountMetadata: any = {};
+              if (accountParam) {
+                accountMetadata = JSON.parse(atob(accountParam));
+              }
+              handleAccountSave(userId, accountMetadata);
+            }
+          } catch (e) {
+            console.error('Failed to save cookies from postMessage:', e);
+          }
+        }
+      }
+      
+      // Handle cookie request response
+      if (event.data && event.data.type === 'SOCIALORA_COOKIES_RESPONSE') {
+        const { userId, cookies, storageKey } = event.data;
+        console.log('Received cookies response from extension:', { userId, storageKey, hasCookies: !!cookies });
+        if (cookies && userId) {
+          try {
+            const cookiesJson = JSON.stringify(cookies);
+            const key = storageKey || `socialora_cookies_${userId}`;
+            localStorage.setItem(key, cookiesJson);
+            sessionStorage.setItem(key, cookiesJson);
+            console.log(`✓ Cookies saved to localStorage via extension response (key: ${key})`);
+            
+            // If we're waiting for this user's cookies, trigger save
+            const params = new URLSearchParams(window.location.search);
+            const igUserId = params.get('ig_user_id');
+            if (igUserId === userId) {
+              const accountParam = params.get('account');
+              let accountMetadata: any = {};
+              if (accountParam) {
+                accountMetadata = JSON.parse(atob(accountParam));
+              }
+              handleAccountSave(userId, accountMetadata);
+            }
+          } catch (e) {
+            console.error('Failed to save cookies from extension response:', e);
+          }
+        }
+      }
+      
       if (event.data && event.data.type === 'SOCIALORA_COOKIES_SAVED') {
         console.log('Received cookies via postMessage:', event.data);
         const { userId, cookies, storageKey } = event.data;
@@ -211,6 +274,14 @@ export default function InstagramSettingsPage() {
           try {
             localStorage.setItem(localStorageKey, JSON.stringify(cookies));
             console.log('✓ Cookies saved from postMessage to localStorage (key:', localStorageKey, ')');
+            
+            // Verify it was saved
+            const verify = localStorage.getItem(localStorageKey);
+            if (verify) {
+              console.log('✓ Verified: Cookies are in localStorage after postMessage');
+            } else {
+              console.error('✗ ERROR: Cookies not found after postMessage save!');
+            }
             
             // If we have an ig_user_id in URL, trigger account save
             const urlParams = new URLSearchParams(window.location.search);
@@ -388,17 +459,40 @@ export default function InstagramSettingsPage() {
           }
           
           if (!cookiesStr) {
-            console.warn('Cookies not found in localStorage. Starting polling...');
+            console.warn('Cookies not found in localStorage. Starting polling and requesting from extension...');
             console.log('Looking for key:', localStorageKey);
             console.log('Available localStorage keys:', Object.keys(localStorage).filter(k => k.includes('socialora') || k.includes('cookie')));
             
+            // Try to request cookies from extension via postMessage
+            const requestCookiesFromExtension = () => {
+              // Request cookies from extension via window.postMessage
+              window.postMessage({
+                type: 'SOCIALORA_REQUEST_COOKIES',
+                userId: igUserId,
+                storageKey: localStorageKey
+              }, window.location.origin);
+              
+              // Also try via custom event
+              window.dispatchEvent(new CustomEvent('socialora_request_cookies', {
+                detail: { userId: igUserId, storageKey: localStorageKey }
+              }));
+            };
+            
+            // Request immediately
+            requestCookiesFromExtension();
+            
             // Retry localStorage with polling - increased retries and shorter interval
             let retryCount = 0;
-            const maxRetries = 15; // Increased from 8 to 15
-            const retryInterval = 500; // Reduced from 1000ms to 500ms for faster detection
+            const maxRetries = 20; // Increased to 20
+            const retryInterval = 300; // Reduced to 300ms for faster detection
             
             const checkCookies = setInterval(() => {
               retryCount++;
+              
+              // Request from extension every 3 retries
+              if (retryCount % 3 === 0) {
+                requestCookiesFromExtension();
+              }
               
               // Check primary key
               let retryCookies = localStorage.getItem(localStorageKey);

@@ -99,7 +99,7 @@ export function Sidebar() {
             <Instagram className="h-5 w-5 text-white" />
           </div>
           <span className="font-semibold text-lg tracking-tight">
-            Bulk<span className="text-accent">DM</span>
+            Social<span className="text-accent">ora</span>
           </span>
         </Link>
       </div>

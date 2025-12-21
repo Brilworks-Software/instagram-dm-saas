@@ -26,6 +26,7 @@ cp popup.js build/
 cp background.js build/
 cp config.js build/
 cp content-script.js build/
+cp inject-cookies.js build/ 2>/dev/null || true  # Optional file
 cp -r icons build/
 
 # Create unified ZIP

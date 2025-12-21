@@ -47,7 +47,8 @@
         "http://localhost:3001/*"
       ],
       "js": ["content-script.js"],
-      "run_at": "document_start"
+      "run_at": "document_start",
+      "all_frames": false
     }
   ]
 }
