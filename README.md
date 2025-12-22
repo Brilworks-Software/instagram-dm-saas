@@ -498,7 +498,7 @@ See detailed guide: [`EXTENSION_DEPLOYMENT.md`](./EXTENSION_DEPLOYMENT.md)
 - 📖 **Documentation**: Visit `/docs` for detailed guides
 - 💬 **Support Page**: Visit `/support` for FAQs and contact options
 - 🐛 **Issues**: Open an issue on [GitHub Issues](https://github.com/your-username/instagram-dm-saas/issues)
-- 📧 **Email**: support@socialora.app
+- 📧 **Email**: digital@socialora.com
 
 ### Common Issues
 

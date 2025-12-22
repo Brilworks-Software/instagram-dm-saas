@@ -92,7 +92,7 @@ export function HomepageStructuredData() {
     contactPoint: {
       '@type': 'ContactPoint',
       contactType: 'Customer Service',
-      email: 'support@socialora.app',
+      email: 'digital@socialora.com',
     },
   };
 

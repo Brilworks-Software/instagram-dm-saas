@@ -1,7 +1,7 @@
-import Link from 'next/link';
-import { Instagram, ArrowLeft, Mail, MessageCircle, Book, HelpCircle, Search, FileText, Video, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { ArrowLeft, Book, FileText, HelpCircle, Instagram, Mail, Search, Users, Video } from 'lucide-react';
 import type { Metadata } from 'next';
+import Link from 'next/link';
 
 export const metadata: Metadata = {
   title: 'Support - Instagram DM Automation Help Center | Socialora',
@@ -66,14 +66,7 @@ export default function SupportPage() {
       title: "Email Support",
       description: "Get help via email",
       action: "Send us an email",
-      href: "mailto:support@socialora.app"
-    },
-    {
-      icon: MessageCircle,
-      title: "Live Chat",
-      description: "Chat with our team",
-      action: "Start chat",
-      href: "#"
+      href: "mailto:dhaval.m@brilworks.com?cc=digital@socialora.com&subject=Socialora Support Request"
     },
     {
       icon: Book,
@@ -124,7 +117,7 @@ export default function SupportPage() {
           <p className="text-xl text-foreground-muted max-w-2xl mx-auto mb-8">
             Find answers to common questions or get in touch with our support team
           </p>
-          
+
           {/* Search Bar */}
           <div className="max-w-2xl mx-auto">
             <div className="relative">
@@ -139,29 +132,30 @@ export default function SupportPage() {
         </div>
 
         {/* Support Options */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
+        <div className="grid md:grid-cols-3 gap-6 mb-16">
           {supportOptions.map((option, index) => (
             <div
               key={index}
-              className="bg-background-elevated rounded-xl p-6 border border-border hover:border-accent/50 transition-all hover:shadow-lg"
-            >
+              className="bg-background-elevated rounded-xl p-6 border border-border hover:border-accent/50 transition-all hover:shadow-lg">
               <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-accent to-pink-500 flex items-center justify-center mb-4">
                 <option.icon className="h-6 w-6 text-white" />
               </div>
-              <h3 className="text-lg font-semibold text-foreground mb-2">{option.title}</h3>
-              <p className="text-sm text-foreground-muted mb-4">{option.description}</p>
-              {option.href.startsWith('/') ? (
+              <h3 className="text-lg font-semibold text-foreground mb-2">
+                {option.title}
+              </h3>
+              <p className="text-sm text-foreground-muted mb-4">
+                {option.description}
+              </p>
+              {option.href.startsWith("/") ? (
                 <Link
                   href={option.href}
-                  className="text-accent hover:underline text-sm font-medium"
-                >
+                  className="text-accent hover:underline text-sm font-medium">
                   {option.action} →
                 </Link>
               ) : (
                 <a
                   href={option.href}
-                  className="text-accent hover:underline text-sm font-medium"
-                >
+                  className="text-accent hover:underline text-sm font-medium">
                   {option.action} →
                 </a>
               )}
@@ -171,28 +165,45 @@ export default function SupportPage() {
 
         {/* Quick Links */}
         <div className="bg-background-elevated rounded-2xl p-8 border border-border mb-16">
-          <h2 className="text-2xl font-semibold text-foreground mb-6">Quick Links</h2>
+          <h2 className="text-2xl font-semibold text-foreground mb-6">
+            Quick Links
+          </h2>
           <div className="grid md:grid-cols-3 gap-4">
-            <Link href="/privacy" className="flex items-center gap-3 p-4 rounded-lg hover:bg-background-secondary transition-colors">
+            <Link
+              href="/privacy"
+              className="flex items-center gap-3 p-4 rounded-lg hover:bg-background-secondary transition-colors">
               <FileText className="h-5 w-5 text-accent" />
               <div>
-                <div className="font-medium text-foreground">Privacy Policy</div>
-                <div className="text-sm text-foreground-muted">Learn how we protect your data</div>
+                <div className="font-medium text-foreground">
+                  Privacy Policy
+                </div>
+                <div className="text-sm text-foreground-muted">
+                  Learn how we protect your data
+                </div>
               </div>
             </Link>
-            <Link href="/terms" className="flex items-center gap-3 p-4 rounded-lg hover:bg-background-secondary transition-colors">
+            <Link
+              href="/terms"
+              className="flex items-center gap-3 p-4 rounded-lg hover:bg-background-secondary transition-colors">
               <FileText className="h-5 w-5 text-accent" />
               <div>
-                <div className="font-medium text-foreground">Terms of Service</div>
-                <div className="text-sm text-foreground-muted">Read our terms and conditions</div>
+                <div className="font-medium text-foreground">
+                  Terms of Service
+                </div>
+                <div className="text-sm text-foreground-muted">
+                  Read our terms and conditions
+                </div>
               </div>
             </Link>
-            <a href="mailto:support@socialora.app" className="flex items-center gap-3 p-4 rounded-lg hover:bg-background-secondary transition-colors">
-              <Mail className="h-5 w-5 text-accent" />
-              <div>
-                <div className="font-medium text-foreground">Contact Support</div>
-                <div className="text-sm text-foreground-muted">Get help via email</div>
-              </div>
+            <a
+              href="mailto:dhaval.m@brilworks.com?cc=digital@socialora.com&subject=Socialora Support Request"
+              className="group">
+              <Button
+                size="lg"
+                className="group-hover:scale-[1.02] transition-all">
+                <Mail className="h-5 w-5 mr-2 group-hover:translate-x-0.5 transition-transform" />
+                Email Support
+              </Button>
             </a>
           </div>
         </div>
@@ -201,15 +212,16 @@ export default function SupportPage() {
         <div className="mb-16">
           <div className="flex items-center gap-3 mb-8">
             <HelpCircle className="h-6 w-6 text-accent" />
-            <h2 className="text-3xl font-bold text-foreground">Frequently Asked Questions</h2>
+            <h2 className="text-3xl font-bold text-foreground">
+              Frequently Asked Questions
+            </h2>
           </div>
-          
+
           <div className="space-y-4">
             {faqs.map((faq, index) => (
               <div
                 key={index}
-                className="bg-background-elevated rounded-xl p-6 border border-border"
-              >
+                className="bg-background-elevated rounded-xl p-6 border border-border">
                 <h3 className="text-lg font-semibold text-foreground mb-3">
                   {faq.question}
                 </h3>
@@ -225,12 +237,15 @@ export default function SupportPage() {
         <div className="bg-gradient-to-br from-accent/10 via-pink-500/10 to-accent/10 rounded-2xl p-8 border border-border">
           <div className="text-center">
             <Users className="h-12 w-12 text-accent mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-foreground mb-4">Still need help?</h2>
+            <h2 className="text-2xl font-bold text-foreground mb-4">
+              Still need help?
+            </h2>
             <p className="text-foreground-muted mb-6 max-w-2xl mx-auto">
-              Our support team is here to help you. Reach out to us and we'll get back to you as soon as possible.
+              Our support team is here to help you. Reach out to us and we'll
+              get back to you as soon as possible.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <a href="mailto:support@socialora.app">
+              <a href="mailto:dhaval.m@brilworks.com?cc=digital@socialora.com&subject=Socialora Support Request">
                 <Button size="lg">
                   <Mail className="h-5 w-5 mr-2" />
                   Email Support
@@ -259,9 +274,21 @@ export default function SupportPage() {
               </span>
             </div>
             <div className="flex items-center gap-6 text-sm text-foreground-muted">
-              <Link href="/privacy" className="hover:text-foreground transition-colors">Privacy</Link>
-              <Link href="/terms" className="hover:text-foreground transition-colors">Terms</Link>
-              <Link href="/support" className="hover:text-foreground transition-colors">Support</Link>
+              <Link
+                href="/privacy"
+                className="hover:text-foreground transition-colors">
+                Privacy
+              </Link>
+              <Link
+                href="/terms"
+                className="hover:text-foreground transition-colors">
+                Terms
+              </Link>
+              <Link
+                href="/support"
+                className="hover:text-foreground transition-colors">
+                Support
+              </Link>
             </div>
             <p className="text-sm text-foreground-muted">
               © 2025 Socialora. All rights reserved.

@@ -1,8 +1,8 @@
 'use client';
 
-import Link from 'next/link';
-import { Instagram, ArrowLeft, Book, MessageSquare, Send, Target, BarChart3, Bot, Settings, HelpCircle, CheckCircle, AlertCircle, ArrowRight, Search, Users, Zap, Shield, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { AlertCircle, ArrowLeft, ArrowRight, BarChart3, Book, Bot, CheckCircle, HelpCircle, Instagram, MessageSquare, Send, Settings, Shield, Target, Zap } from 'lucide-react';
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
 // Note: Metadata should be added via layout or server component wrapper
@@ -636,7 +636,7 @@ export default function DocsPage() {
                       </div>
                       <div>
                         <strong className="text-foreground">Problem:</strong> Need more help
-                        <p className="mt-1"><strong className="text-foreground">Solution:</strong> Visit our <Link href="/support" className="text-accent hover:underline">Support page</Link> or contact support@socialora.app</p>
+                        <p className="mt-1"><strong className="text-foreground">Solution:</strong> Visit our <Link href="/support" className="text-accent hover:underline">Support page</Link> or contact digital@socialora.com</p>
                       </div>
                     </div>
                   </div>
