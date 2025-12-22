@@ -1,40 +1,36 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import {
-  Instagram,
-  Sparkles,
-  Send,
-  BarChart3,
-  Zap,
-  Shield,
-  Users,
-  MessageSquare,
-  ArrowRight,
-  Check,
-  Star,
-  TrendingUp,
-  Clock,
-  Target,
-  Bot,
-  Globe,
-  Lock,
-  Rocket,
-  Heart,
-  Bell,
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { createClient } from '@/lib/supabase/client';
 import { HomepageStructuredData } from '@/components/seo/structured-data';
+import { Button } from '@/components/ui/button';
 import { WaitingListForm } from '@/components/waiting-list-form';
+import { createClient } from '@/lib/supabase/client';
+import {
+  ArrowRight,
+  BarChart3,
+  Bot,
+  Heart,
+  Instagram,
+  Menu,
+  MessageSquare,
+  Rocket,
+  Send,
+  Shield,
+  Sparkles,
+  Star,
+  Target,
+  Users,
+  X
+} from 'lucide-react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 
 export default function HomePage() {
   const router = useRouter();
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [mounted, setMounted] = useState(false);
   const [isWaitingListOpen, setIsWaitingListOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -172,12 +168,17 @@ export default function HomePage() {
                 Social<span className="text-accent">ora</span>
               </span>
             </div>
-            <div className="flex items-center gap-4">
+
+            {/* Desktop Navigation */}
+            <div className="hidden md:flex items-center gap-4">
               <Link href="/blog">
                 <Button variant="ghost" size="sm">Blog</Button>
               </Link>
               <Link href="/docs">
                 <Button variant="ghost" size="sm">Docs</Button>
+              </Link>
+              <Link href="/support">
+                <Button variant="ghost" size="sm">Support</Button>
               </Link>
               <Button
                 size="sm"
@@ -187,8 +188,52 @@ export default function HomePage() {
                 <ArrowRight className="h-4 w-4 ml-2" />
               </Button>
             </div>
+
+            {/* Mobile Menu Button */}
+            <div className="md:hidden">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              >
+                {isMobileMenuOpen ? (
+                  <X className="h-6 w-6" />
+                ) : (
+                  <Menu className="h-6 w-6" />
+                )}
+              </Button>
+            </div>
           </div>
         </div>
+
+        {/* Mobile Menu */}
+        {isMobileMenuOpen && (
+          <div className="md:hidden border-t border-border bg-background">
+            <div className="px-4 pt-2 pb-4 space-y-1">
+              <Link href="/blog" className="block">
+                <Button variant="ghost" className="w-full justify-start">Blog</Button>
+              </Link>
+              <Link href="/docs" className="block">
+                <Button variant="ghost" className="w-full justify-start">Docs</Button>
+              </Link>
+              <Link href="/support" className="block">
+                <Button variant="ghost" className="w-full justify-start">Support</Button>
+              </Link>
+              <div className="pt-2">
+                <Button
+                  className="w-full"
+                  onClick={() => {
+                    setIsWaitingListOpen(true);
+                    setIsMobileMenuOpen(false);
+                  }}
+                >
+                  Join Waiting List
+                  <ArrowRight className="h-4 w-4 ml-2" />
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </nav>
 
       {/* Hero Section */}

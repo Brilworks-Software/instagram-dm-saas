@@ -1,7 +1,8 @@
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Book, FileText, HelpCircle, Instagram, Mail, Search, Users, Video } from 'lucide-react';
+import { Book, FileText, HelpCircle, Instagram, Mail, Search, Users, Video } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { SupportHeader } from './support-header';
 
 export const metadata: Metadata = {
   title: 'Support - Instagram DM Automation Help Center | Socialora',
@@ -86,27 +87,7 @@ export default function SupportPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b border-border bg-background/80 backdrop-blur-lg sticky top-0 z-50">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <Link href="/" className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-accent to-pink-500 flex items-center justify-center">
-                <Instagram className="h-4 w-4 text-white" />
-              </div>
-              <span className="font-bold text-lg">
-                Social<span className="text-accent">ora</span>
-              </span>
-            </Link>
-            <Link href="/">
-              <Button variant="ghost" size="sm">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Home
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </header>
+      <SupportHeader />
 
       {/* Hero Section */}
       <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16">

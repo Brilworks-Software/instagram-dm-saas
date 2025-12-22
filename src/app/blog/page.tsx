@@ -2,6 +2,7 @@ import { Button } from '@/components/ui/button';
 import { ArrowRight, Calendar, Clock, Instagram } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { BlogHeader } from './blog-header';
 
 export const metadata: Metadata = {
   title: 'Blog - Instagram DM Automation & Cold DM Strategies | Socialora',
@@ -35,35 +36,7 @@ export default function BlogPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b border-border bg-background/80 backdrop-blur-lg sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <Link href="/" className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-accent to-pink-500 flex items-center justify-center">
-                <Instagram className="h-4 w-4 text-white" />
-              </div>
-              <span className="font-bold text-lg">
-                Social<span className="text-accent">ora</span>
-              </span>
-            </Link>
-            <div className="flex items-center gap-4">
-              <Link href="/blog">
-                <Button variant="ghost" size="sm">Blog</Button>
-              </Link>
-              <Link href="/docs">
-                <Button variant="ghost" size="sm">Docs</Button>
-              </Link>
-            <Link href="/support">
-                <Button variant="ghost" size="sm">Support</Button>
-              </Link>
-              <Link href="/">
-                <Button size="sm">Join Waiting List</Button>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </header>
+      <BlogHeader />
 
       {/* Hero Section */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">

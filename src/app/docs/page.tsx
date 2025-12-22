@@ -1,7 +1,7 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { AlertCircle, ArrowLeft, ArrowRight, BarChart3, Book, Bot, CheckCircle, HelpCircle, Instagram, MessageSquare, Send, Settings, Shield, Target, Zap } from 'lucide-react';
+import { AlertCircle, ArrowLeft, ArrowRight, BarChart3, Book, Bot, CheckCircle, HelpCircle, Instagram, Menu, MessageSquare, Send, Settings, Shield, Target, X, Zap } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
@@ -10,6 +10,7 @@ import { useEffect, useState } from 'react';
 
 export default function DocsPage() {
   const [activeSection, setActiveSection] = useState('getting-started');
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const quickLinks = [
     { icon: MessageSquare, title: 'Getting Started', href: '#getting-started', id: 'getting-started' },
@@ -56,7 +57,9 @@ export default function DocsPage() {
                 Social<span className="text-accent">ora</span>
               </span>
             </Link>
-            <div className="flex items-center gap-4">
+
+            {/* Desktop Navigation */}
+            <div className="hidden md:flex items-center gap-4">
               <Link href="/support">
                 <Button variant="ghost" size="sm">
                   <HelpCircle className="h-4 w-4 mr-2" />
@@ -70,8 +73,43 @@ export default function DocsPage() {
                 </Button>
               </Link>
             </div>
+
+            {/* Mobile Menu Button */}
+            <div className="md:hidden">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              >
+                {isMobileMenuOpen ? (
+                  <X className="h-6 w-6" />
+                ) : (
+                  <Menu className="h-6 w-6" />
+                )}
+              </Button>
+            </div>
           </div>
         </div>
+
+        {/* Mobile Menu */}
+        {isMobileMenuOpen && (
+          <div className="md:hidden border-t border-border bg-background">
+            <div className="px-4 pt-2 pb-4 space-y-1">
+              <Link href="/support" className="block">
+                <Button variant="ghost" className="w-full justify-start">
+                  <HelpCircle className="h-4 w-4 mr-2" />
+                  Support
+                </Button>
+              </Link>
+              <Link href="/" className="block">
+                <Button variant="ghost" className="w-full justify-start">
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Back to Home
+                </Button>
+              </Link>
+            </div>
+          </div>
+        )}
       </header>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
