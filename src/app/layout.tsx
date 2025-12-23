@@ -1,7 +1,7 @@
+import { Providers } from "@/components/providers";
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
-import { Providers } from "@/components/providers";
 
 const inter = Inter({
   variable: "--font-geist-sans",
@@ -98,14 +98,6 @@ export const metadata: Metadata = {
     canonical: "/",
   },
   category: "technology",
-  icons: {
-    icon: [
-      { url: '/icon', type: 'image/png' },
-    ],
-    apple: [
-      { url: '/icon', type: 'image/png' },
-    ],
-  },
 };
 
 export default function RootLayout({

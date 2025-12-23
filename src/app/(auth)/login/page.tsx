@@ -2,15 +2,16 @@
 
 export const dynamic = 'force-dynamic';
 
-import { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { Instagram, Mail, Lock, ArrowRight, Sparkles, AlertCircle, CheckCircle, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { cn } from '@/lib/utils';
-import { createClient } from '@/lib/supabase/client';
 import { usePostHog } from '@/hooks/use-posthog';
+import { createClient } from '@/lib/supabase/client';
+import { cn } from '@/lib/utils';
+import { AlertCircle, ArrowRight, CheckCircle, Eye, EyeOff, Lock, Mail, Sparkles } from 'lucide-react';
+import Image from 'next/image';
+import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useEffect, useState } from 'react';
 
 export default function LoginPage() {
   const { capture, identify } = usePostHog();
@@ -219,9 +220,15 @@ export default function LoginPage() {
         {/* Content */}
         <div className="relative z-10 flex flex-col justify-between p-12 w-full">
           {/* Logo */}
-          <div className="flex items-center gap-3">
-            <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-accent to-pink-500 flex items-center justify-center shadow-xl shadow-accent/30">
-              <Instagram className="h-6 w-6 text-white" />
+          <div className="flex items-center">
+            <div className="h-20 w-20 flex items-center justify-center overflow-hidden">
+              <Image 
+                src="/images/logo.png" 
+                alt="Socialora" 
+                width={80} 
+                height={80} 
+                className="h-full w-full object-contain" 
+              />
             </div>
             <span className="font-bold text-2xl tracking-tight">
               Social<span className="text-accent">ora</span>
@@ -276,9 +283,15 @@ export default function LoginPage() {
       <div className="flex-1 flex items-center justify-center p-8 bg-background">
         <div className="w-full max-w-md">
           {/* Mobile Logo */}
-          <div className="lg:hidden flex items-center gap-3 mb-8 justify-center">
-            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-accent to-pink-500 flex items-center justify-center">
-              <Instagram className="h-5 w-5 text-white" />
+          <div className="lg:hidden flex items-center mb-8 justify-center">
+            <div className="h-14 w-14 flex items-center justify-center overflow-hidden">
+              <Image 
+                src="/images/logo.png" 
+                alt="Socialora" 
+                width={56} 
+                height={56} 
+                className="h-full w-full object-contain" 
+              />
             </div>
             <span className="font-bold text-xl">
               Social<span className="text-accent">ora</span>

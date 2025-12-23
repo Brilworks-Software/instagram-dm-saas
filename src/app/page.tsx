@@ -21,6 +21,7 @@ import {
   Users,
   X
 } from 'lucide-react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from 'react';
@@ -191,9 +192,15 @@ export default function HomePage() {
       <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-2">
-              <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-accent to-pink-500 flex items-center justify-center">
-                <Instagram className="h-5 w-5 text-white" />
+            <div className="flex items-center">
+              <div className="h-14 w-14 flex items-center justify-center overflow-hidden">
+                <Image 
+                  src="/images/logo.png" 
+                  alt="Socialora" 
+                  width={56} 
+                  height={56} 
+                  className="h-full w-full object-contain" 
+                />
               </div>
               <span className="font-bold text-xl">
                 Social<span className="text-accent">ora</span>
@@ -493,9 +500,15 @@ export default function HomePage() {
       <footer className="py-12 px-4 sm:px-6 lg:px-8 border-t border-border bg-background-secondary">
         <div className="max-w-7xl mx-auto">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-accent to-pink-500 flex items-center justify-center">
-                <Instagram className="h-4 w-4 text-white" />
+            <div className="flex items-center">
+              <div className="h-11 w-11 flex items-center justify-center overflow-hidden">
+                <Image 
+                  src="/images/logo.png" 
+                  alt="Socialora" 
+                  width={44} 
+                  height={44} 
+                  className="h-full w-full object-contain" 
+                />
               </div>
               <span className="font-bold text-lg">
                 Social<span className="text-accent">ora</span>

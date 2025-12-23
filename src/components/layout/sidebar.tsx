@@ -1,24 +1,25 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
-import {
-  Inbox,
-  Send,
-  BarChart3,
-  Settings,
-  Instagram,
-  Sparkles,
-  ChevronRight,
-  LogOut,
-  ChevronDown,
-  Target,
-} from 'lucide-react';
-import { cn } from '@/lib/utils';
 import { Avatar } from '@/components/ui/avatar';
 import { createClient } from '@/lib/supabase/client';
+import { cn } from '@/lib/utils';
 import type { User } from '@supabase/supabase-js';
+import {
+    BarChart3,
+    ChevronDown,
+    ChevronRight,
+    Inbox,
+    Instagram,
+    LogOut,
+    Send,
+    Settings,
+    Sparkles,
+    Target,
+} from 'lucide-react';
+import Image from 'next/image';
+import Link from 'next/link';
+import { usePathname, useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 
 const navigation = [
   { name: 'Inbox', href: '/inbox', icon: Inbox },
@@ -94,10 +95,16 @@ export function Sidebar() {
     <aside className="fixed left-0 top-0 z-40 h-screen w-64 border-r border-border bg-background-secondary flex flex-col">
       {/* Logo */}
       <div className="h-16 flex items-center px-6 border-b border-border">
-        <Link href="/" className="flex items-center gap-3 group">
-          <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-accent to-pink-500 flex items-center justify-center shadow-lg shadow-accent/20">
-            <Instagram className="h-5 w-5 text-white" />
-          </div>
+        <Link href="/" className="flex items-center group">
+            <div className="h-11 w-11 flex items-center justify-center overflow-hidden">
+              <Image 
+                src="/images/logo.png" 
+                alt="Socialora" 
+                width={44} 
+                height={44} 
+                className="h-full w-full object-contain" 
+              />
+            </div>
           <span className="font-semibold text-lg tracking-tight">
             Social<span className="text-accent">ora</span>
           </span>
