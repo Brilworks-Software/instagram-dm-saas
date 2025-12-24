@@ -10,11 +10,11 @@ export async function POST(request: NextRequest) {
 
     if (!cookies || !cookies.sessionId || !cookies.dsUserId) {
       const headers = new Headers();
-      headers.set('Access-Control-Allow-Origin', '*');
+      headers.set("Access-Control-Allow-Origin", "*");
       return NextResponse.json(
         {
           success: false,
-          error: 'Invalid cookies. Missing sessionId or dsUserId.',
+          error: "Invalid cookies. Missing sessionId or dsUserId.",
         },
         { status: 400, headers }
       );
@@ -35,11 +35,12 @@ export async function POST(request: NextRequest) {
 
     if (!instagramAccount) {
       const headers = new Headers();
-      headers.set('Access-Control-Allow-Origin', '*');
+      headers.set("Access-Control-Allow-Origin", "*");
       return NextResponse.json(
         {
           success: false,
-          error: 'Instagram account not found in database. Please connect your account first.',
+          error:
+            "Instagram account not found in database. Please connect your account first.",
         },
         { status: 404, headers }
       );
@@ -47,23 +48,70 @@ export async function POST(request: NextRequest) {
 
     const workspaceId = instagramAccount.workspaceId;
 
-    // Get messages today: Sum of dms_sent_today from all accounts in workspace
-    const accounts = await prisma.instagramAccount.findMany({
+    // Calculate start of today in UTC
+    const now = new Date();
+    const todayStart = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
+    );
+
+    // Count actual messages sent today (more accurate than using dms_sent_today counter)
+    const messagesToday = await prisma.message.count({
       where: {
-        workspaceId,
-      },
-      select: {
-        dmsSentToday: true,
+        direction: "OUTBOUND",
+        createdAt: {
+          gte: todayStart,
+        },
+        conversation: {
+          instagramAccount: {
+            workspaceId,
+          },
+        },
       },
     });
 
-    const messagesToday = accounts.reduce((sum, account) => sum + account.dmsSentToday, 0);
+    // Also reset stale dms_sent_today counters in the background (don't block)
+    prisma.instagramAccount
+      .findMany({
+        where: {
+          workspaceId,
+        },
+        select: {
+          id: true,
+          dmsSentToday: true,
+          dmLimitResetAt: true,
+        },
+      })
+      .then((accounts) => {
+        const resetPromises = accounts
+          .filter((account) => {
+            const resetAt = account.dmLimitResetAt;
+            return (
+              (!resetAt || resetAt < todayStart) && account.dmsSentToday > 0
+            );
+          })
+          .map((account) =>
+            prisma.instagramAccount.update({
+              where: { id: account.id },
+              data: {
+                dmsSentToday: 0,
+                dmLimitResetAt: new Date(
+                  todayStart.getTime() + 24 * 60 * 60 * 1000
+                ),
+              },
+            })
+          );
+
+        return Promise.allSettled(resetPromises);
+      })
+      .catch((error) => {
+        console.error("Error resetting stale DM counters:", error);
+      });
 
     // Get total messages: Count of all OUTBOUND messages in workspace
     // Messages are linked through conversations -> instagramAccount -> workspace
     const totalMessages = await prisma.message.count({
       where: {
-        direction: 'OUTBOUND',
+        direction: "OUTBOUND",
         conversation: {
           instagramAccount: {
             workspaceId,
@@ -73,7 +121,7 @@ export async function POST(request: NextRequest) {
     });
 
     const headers = new Headers();
-    headers.set('Access-Control-Allow-Origin', '*');
+    headers.set("Access-Control-Allow-Origin", "*");
     return NextResponse.json(
       {
         success: true,
