@@ -22,17 +22,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Save tool usage to database
-    await prisma.toolUsage.create({
-      data: {
-        toolType: 'brand-matcher',
-        instaId: instagramHandle.replace(/^@+/, '').trim(),
-        niche: contentNiche || null,
-        formData: { instagramHandle, contentNiche } as any,
-        ipAddress: clientIp,
-        location: ipInfo as any,
-      },
-    });
+    // Save tool usage to database (best-effort)
+    try {
+      await prisma.toolUsage.create({
+        data: {
+          toolType: 'brand-matcher',
+          instaId: instagramHandle.replace(/^@+/, '').trim(),
+          niche: contentNiche || null,
+          formData: { instagramHandle, contentNiche } as any,
+          ipAddress: clientIp,
+          location: ipInfo as any,
+        },
+      });
+      console.log('[DB] Tool usage saved successfully');
+    } catch (dbError) {
+      console.error('[DB] Failed to save tool usage:', dbError);
+      // Continue execution - don't fail the request due to DB issues
+    }
 
     const dataSendInSlack = formatToolUsageSlackMessage({
       toolType: 'brand-matcher',
