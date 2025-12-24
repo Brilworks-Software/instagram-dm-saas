@@ -206,9 +206,10 @@ export default function HomePage() {
                 Social<span className="text-accent">Ora</span>
               </span>
             </div>
-
-            {/* Desktop Navigation */}
-            <div className="hidden md:flex items-center gap-4">
+            <div className="flex items-center gap-4">
+              <Link href="/tools">
+                <Button variant="ghost" size="sm">Tools</Button>
+              </Link>
               <Link href="/blog">
                 <Button variant="ghost" size="sm">
                   Blog
@@ -549,31 +550,12 @@ export default function HomePage() {
               </span>
             </div>
             <div className="flex items-center gap-6 text-sm text-foreground-muted">
-              <Link
-                href="/blog"
-                className="hover:text-foreground transition-colors">
-                Blog
-              </Link>
-              <Link
-                href="/privacy"
-                className="hover:text-foreground transition-colors">
-                Privacy
-              </Link>
-              <Link
-                href="/terms"
-                className="hover:text-foreground transition-colors">
-                Terms
-              </Link>
-              <Link
-                href="/support"
-                className="hover:text-foreground transition-colors">
-                Support
-              </Link>
-              <Link
-                href="/docs"
-                className="hover:text-foreground transition-colors">
-                Docs
-              </Link>
+              <Link href="/tools" className="hover:text-foreground transition-colors">Tools</Link>
+              <Link href="/blog" className="hover:text-foreground transition-colors">Blog</Link>
+              <Link href="/privacy" className="hover:text-foreground transition-colors">Privacy</Link>
+              <Link href="/terms" className="hover:text-foreground transition-colors">Terms</Link>
+              <Link href="/support" className="hover:text-foreground transition-colors">Support</Link>
+              <Link href="/docs" className="hover:text-foreground transition-colors">Docs</Link>
             </div>
             <p className="text-sm text-foreground-muted">
               © 2025 SocialOra. All rights reserved.

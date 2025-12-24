@@ -89,6 +89,9 @@ export default function BlogPostPage({ params }: { params: { slug: string } }) {
               </div>
             </Link>
             <div className="flex items-center gap-4">
+              <Link href="/tools">
+                <Button variant="ghost" size="sm">Tools</Button>
+              </Link>
               <Link href="/blog">
                 <Button variant="ghost" size="sm">Blog</Button>
               </Link>
@@ -226,6 +229,7 @@ export default function BlogPostPage({ params }: { params: { slug: string } }) {
               </div>
             </div>
             <div className="flex items-center gap-6 text-sm text-foreground-muted">
+              <Link href="/tools" className="hover:text-foreground transition-colors">Tools</Link>
               <Link href="/blog" className="hover:text-foreground transition-colors">Blog</Link>
               <Link href="/privacy" className="hover:text-foreground transition-colors">Privacy</Link>
               <Link href="/terms" className="hover:text-foreground transition-colors">Terms</Link>

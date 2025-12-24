@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Calendar, Clock } from 'lucide-react';
+import { ArrowRight, Calendar, Clock, Instagram } from 'lucide-react';
 import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -37,7 +37,38 @@ export default function BlogPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <BlogHeader />
+      {/* Header */}
+      <header className="border-b border-border bg-background/80 backdrop-blur-lg sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex items-center justify-between">
+            <Link href="/" className="flex items-center gap-2">
+              <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-accent to-pink-500 flex items-center justify-center">
+                <Instagram className="h-4 w-4 text-white" />
+              </div>
+              <span className="font-bold text-lg">
+                Social<span className="text-accent">ora</span>
+              </span>
+            </Link>
+            <div className="flex items-center gap-4">
+              <Link href="/tools">
+                <Button variant="ghost" size="sm">Tools</Button>
+              </Link>
+              <Link href="/blog">
+                <Button variant="ghost" size="sm">Blog</Button>
+              </Link>
+              <Link href="/docs">
+                <Button variant="ghost" size="sm">Docs</Button>
+              </Link>
+              <Link href="/support">
+                <Button variant="ghost" size="sm">Support</Button>
+              </Link>
+              <Link href="/signup">
+                <Button size="sm">Get Started</Button>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </header>
 
       {/* Hero Section */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
@@ -171,6 +202,7 @@ export default function BlogPage() {
               </div>
             </div>
             <div className="flex items-center gap-6 text-sm text-foreground-muted">
+              <Link href="/tools" className="hover:text-foreground transition-colors">Tools</Link>
               <Link href="/blog" className="hover:text-foreground transition-colors">Blog</Link>
               <Link href="/privacy" className="hover:text-foreground transition-colors">Privacy</Link>
               <Link href="/terms" className="hover:text-foreground transition-colors">Terms</Link>
