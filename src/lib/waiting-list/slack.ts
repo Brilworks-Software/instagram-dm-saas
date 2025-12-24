@@ -17,9 +17,9 @@ export interface SlackNotificationData {
  * Send notification to Slack channel
  */
 export async function sendSlackNotification(data: SlackNotificationData): Promise<void> {
-  const slackUrl = process.env.NEXT_PUBLIC_SLACK_URL;
-  const slackToken = process.env.NEXT_PUBLIC_SLACK_TOKEN;
-  const slackChannelId = process.env.NEXT_PUBLIC_SLACK_CHANNEL_ID;
+  const slackUrl = process.env.SLACK_URL;
+  const slackToken = process.env.SLACK_TOKEN;
+  const slackChannelId = process.env.SLACK_CHANNEL_ID;
 
   if (!slackUrl || !slackToken || !slackChannelId) {
     console.warn('Slack configuration missing, skipping notification');
