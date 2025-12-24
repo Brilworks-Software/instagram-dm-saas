@@ -82,6 +82,8 @@ const userUsername = document.getElementById('user-username');
 const instructions = document.getElementById("instructions");
 const messagesTodayEl = document.getElementById("messages-today");
 const totalMessagesEl = document.getElementById("total-messages");
+const messagesTodaySkeleton = document.getElementById("messages-today-skeleton");
+const totalMessagesSkeleton = document.getElementById("total-messages-skeleton");
 
 const statusNotInstagram = document.getElementById("status-not-instagram");
 const statusNotLoggedIn = document.getElementById("status-not-logged-in");
@@ -344,6 +346,9 @@ if (openAppBtn) {
 // ---------------------------------------------------------------------------
 
 async function fetchStatistics() {
+  // Show skeleton loading state
+  showStatisticsSkeleton(true);
+  
   try {
     // Get connected Instagram account cookies
     const storageData = await new Promise((resolve) => {
@@ -412,7 +417,41 @@ async function fetchStatistics() {
   }
 }
 
+function showStatisticsSkeleton(show) {
+  if (messagesTodaySkeleton) {
+    if (show) {
+      messagesTodaySkeleton.classList.remove("hidden");
+    } else {
+      messagesTodaySkeleton.classList.add("hidden");
+    }
+  }
+  if (totalMessagesSkeleton) {
+    if (show) {
+      totalMessagesSkeleton.classList.remove("hidden");
+    } else {
+      totalMessagesSkeleton.classList.add("hidden");
+    }
+  }
+  if (messagesTodayEl) {
+    if (show) {
+      messagesTodayEl.classList.add("hidden");
+    } else {
+      messagesTodayEl.classList.remove("hidden");
+    }
+  }
+  if (totalMessagesEl) {
+    if (show) {
+      totalMessagesEl.classList.add("hidden");
+    } else {
+      totalMessagesEl.classList.remove("hidden");
+    }
+  }
+}
+
 function updateStatisticsDisplay(messagesToday, totalMessages) {
+  // Hide skeleton and show actual values
+  showStatisticsSkeleton(false);
+  
   if (messagesTodayEl) {
     messagesTodayEl.textContent = messagesToday.toString();
   }

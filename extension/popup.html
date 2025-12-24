@@ -384,6 +384,38 @@
       background-clip: text;
     }
     
+    .stat-skeleton {
+      width: 60px;
+      height: 34px;
+      background: linear-gradient(
+        90deg,
+        #27272a 0%,
+        #3f3f46 50%,
+        #27272a 100%
+      );
+      background-size: 200% 100%;
+      border-radius: 6px;
+      margin: 0 auto;
+      animation: skeleton-loading 1.5s ease-in-out infinite;
+    }
+    
+    @keyframes skeleton-loading {
+      0% {
+        background-position: 200% 0;
+      }
+      100% {
+        background-position: -200% 0;
+      }
+    }
+    
+    .stat-value.hidden {
+      display: none;
+    }
+    
+    .stat-skeleton.hidden {
+      display: none;
+    }
+    
     .main-content {
       flex: 1;
       padding: 20px;
@@ -440,11 +472,13 @@
   <div class="stats-container">
     <div class="stat-card">
       <div class="stat-label">Messages today</div>
-      <div class="stat-value" id="messages-today">0</div>
+      <div class="stat-skeleton" id="messages-today-skeleton"></div>
+      <div class="stat-value hidden" id="messages-today">0</div>
     </div>
     <div class="stat-card">
       <div class="stat-label">Total messages</div>
-      <div class="stat-value" id="total-messages">0</div>
+      <div class="stat-skeleton" id="total-messages-skeleton"></div>
+      <div class="stat-value hidden" id="total-messages">0</div>
     </div>
   </div>
 

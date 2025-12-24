@@ -98,6 +98,11 @@ export default function InstagramSettingsPage() {
     null
   );
 
+  // Reconnect modal state
+  const [showReconnectModal, setShowReconnectModal] = useState(false);
+  const [accountToReconnect, setAccountToReconnect] =
+    useState<InstagramAccount | null>(null);
+
   // Track which accounts have been saved in this session to prevent duplicate saves
   const savedAccountsRef = useRef<Set<string>>(new Set());
   // Track which accounts are currently being processed to prevent concurrent saves
@@ -617,7 +622,7 @@ export default function InstagramSettingsPage() {
                   )
                 );
                 setErrorMessage(
-                  'Cookies not found. Please try connecting again using the extension. Make sure you clicked "Grab Instagram Session" in the extension popup.'
+                  'Cookies not found. Please try connecting again using the extension. Make sure you clicked "PRESS TO START" in the extension popup.'
                 );
               }
             }, retryInterval);
@@ -770,12 +775,9 @@ export default function InstagramSettingsPage() {
   };
 
   const handleReconnect = (account: InstagramAccount) => {
-    // Open Instagram in a new tab and show instructions to use the extension
-    window.open("https://www.instagram.com/", "_blank");
-    toast.info("Reconnect Instructions", {
-      description: `To reconnect @${account.igUsername}:\n\n1. Make sure you're logged in to @${account.igUsername} on Instagram\n2. Click the SocialOra extension icon\n3. Click "Grab Instagram Session"\n\nYour cookies will be updated automatically.`,
-      duration: 8000,
-    });
+    // Set account and open reconnect modal
+    setAccountToReconnect(account);
+    setShowReconnectModal(true);
   };
 
   const copyToClipboard = (text: string, key: string) => {
@@ -1400,7 +1402,7 @@ export default function InstagramSettingsPage() {
             {[
               "Install our Chrome extension (one-time setup)",
               "Go to Instagram and login to your account",
-              'Click the extension icon → "Grab Session"',
+              'Click the extension icon → "PRESS TO START"',
               "Done! Start sending DMs instantly 🚀",
             ].map((step, i) => (
               <div key={i} className="flex items-center gap-3 text-sm">
@@ -1886,12 +1888,12 @@ export default function InstagramSettingsPage() {
                 </div>
                 <div className="flex-1">
                   <h3 className="font-medium text-foreground mb-1">
-                    Click Extension → Grab Session
+                    Click Extension → PRESS TO START
                   </h3>
                   <p className="text-sm text-foreground-muted">
-                    While on Instagram, click the SocialOra extension icon and
-                    hit &quot;Grab Instagram Session&quot;. Your account
-                    connects automatically! 🎉
+                    While on Instagram, click the Socialora extension icon and
+                    hit &quot;PRESS TO START&quot;. Your account connects
+                    automatically! 🎉
                   </p>
                 </div>
               </div>
@@ -1933,6 +1935,125 @@ export default function InstagramSettingsPage() {
                   Or paste cookies manually instead
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reconnect Modal */}
+      {showReconnectModal && accountToReconnect && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <div className="bg-background-secondary rounded-2xl border border-border max-w-md w-full my-8">
+            <div className="flex items-center justify-between p-6 border-b border-border">
+              <div className="flex items-center gap-3">
+                <Avatar
+                  src={accountToReconnect.profilePictureUrl}
+                  name={accountToReconnect.igUsername}
+                  size="lg"
+                />
+                <div>
+                  <h2 className="text-lg font-semibold text-foreground">
+                    Reconnect @{accountToReconnect.igUsername}
+                  </h2>
+                  <p className="text-xs text-foreground-muted">
+                    Update session cookies
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  setShowReconnectModal(false);
+                  setAccountToReconnect(null);
+                }}
+                className="p-2 rounded-lg hover:bg-background-elevated text-foreground-muted hover:text-foreground transition-colors">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              {/* Key Requirement - Prominent */}
+              <div className="bg-accent/10 border border-accent/20 rounded-xl p-4">
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="h-5 w-5 text-accent flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium text-foreground mb-1">
+                      Make sure you&apos;re logged in as{" "}
+                      <strong className="text-accent">
+                        @{accountToReconnect.igUsername}
+                      </strong>
+                    </p>
+                    <p className="text-xs text-foreground-muted">
+                      The extension will automatically detect your cookies once
+                      you&apos;re logged in.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Quick Steps - Condensed */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-3 text-sm">
+                  <div className="h-6 w-6 rounded-full bg-accent/20 text-accent flex items-center justify-center flex-shrink-0 text-xs font-semibold">
+                    1
+                  </div>
+                  <span className="text-foreground-muted">
+                    Open Instagram and login as{" "}
+                    <strong className="text-foreground">
+                      @{accountToReconnect.igUsername}
+                    </strong>
+                  </span>
+                </div>
+                <div className="flex items-center gap-3 text-sm">
+                  <div className="h-6 w-6 rounded-full bg-accent/20 text-accent flex items-center justify-center flex-shrink-0 text-xs font-semibold">
+                    2
+                  </div>
+                  <span className="text-foreground-muted">
+                    Click extension icon →{" "}
+                    <strong className="text-foreground">PRESS TO START</strong>
+                  </span>
+                </div>
+                <div className="flex items-center gap-3 text-sm">
+                  <div className="h-6 w-6 rounded-full bg-success/20 text-success flex items-center justify-center flex-shrink-0 text-xs font-semibold">
+                    ✓
+                  </div>
+                  <span className="text-foreground-muted">
+                    Connection completes automatically
+                  </span>
+                </div>
+              </div>
+
+              {/* Primary Action */}
+              <div className="pt-2">
+                <Button
+                  onClick={() => {
+                    window.open("https://www.instagram.com/", "_blank");
+                    setShowReconnectModal(false);
+                    toast.success("Reconnect Started", {
+                      description: `Logged in as @${accountToReconnect.igUsername}? Click the extension icon and press "PRESS TO START".`,
+                      duration: 5000,
+                    });
+                    capture("instagram_reconnect_initiated", {
+                      username: accountToReconnect.igUsername,
+                      accountId: accountToReconnect.id,
+                    });
+                    setAccountToReconnect(null);
+                  }}
+                  className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600">
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  Open Instagram & Start
+                </Button>
+              </div>
+
+              {/* Secondary Action */}
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setShowReconnectModal(false);
+                  setAccountToReconnect(null);
+                }}
+                className="w-full text-sm">
+                Cancel
+              </Button>
             </div>
           </div>
         </div>
