@@ -25,10 +25,10 @@ export function LocalInfluencerSearch() {
       toolName="Local Influencer Search"
       fields={fields}
       usageCount={892}
+      heroTitle="Local Influencer Search"
+      heroDescription="Find influencers by location for local campaigns and partnerships."
       heroGradient="from-emerald-50 via-teal-50 to-cyan-50 dark:from-emerald-950/20 dark:via-teal-950/20 dark:to-cyan-950/20"
       heroBorder="border-emerald-200 dark:border-emerald-800"
-      heroIcon={<MapPin className="h-8 w-8 text-emerald-500" />}
-      heroDescription="Find influencers by location for local campaigns and partnerships."
       seoKeywords={[
         'local influencer search',
         'find local influencers',

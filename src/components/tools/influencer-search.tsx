@@ -30,12 +30,10 @@ export function InfluencerSearch() {
       toolName="Influencer Search Tool"
       fields={fields}
       usageCount={2098}
-      heroConfig={{
-        title: 'Influencer Search Tool',
-        description: 'Discover influencers by niche, audience size, and keywords.',
-        gradient: 'from-blue-50 via-cyan-50 to-sky-50 dark:from-blue-950/20 dark:via-cyan-950/20 dark:to-sky-950/20',
-        borderColor: 'border-blue-200 dark:border-blue-800',
-      }}
+      heroTitle="Influencer Search Tool"
+      heroDescription="Discover influencers by niche, audience size, and keywords."
+      heroGradient="from-blue-50 via-cyan-50 to-sky-50 dark:from-blue-950/20 dark:via-cyan-950/20 dark:to-sky-950/20"
+      heroBorder="border-blue-200 dark:border-blue-800"
       seoKeywords={[
         'influencer search tool',
         'find influencers',

@@ -24,12 +24,10 @@ export function TrendingHashtags() {
       toolName="Trending Instagram Hashtags by Country"
       fields={fields}
       usageCount={1543}
-      heroConfig={{
-        title: 'Trending Instagram Hashtags by Country',
-        description: 'Find popular hashtags by location to improve discovery.',
-        gradient: 'from-green-50 via-emerald-50 to-teal-50 dark:from-green-950/20 dark:via-emerald-950/20 dark:to-teal-950/20',
-        borderColor: 'border-green-200 dark:border-green-800',
-      }}
+      heroTitle="Trending Instagram Hashtags by Country"
+      heroDescription="Find popular hashtags by location to improve discovery."
+      heroGradient="from-green-50 via-emerald-50 to-teal-50 dark:from-green-950/20 dark:via-emerald-950/20 dark:to-teal-950/20"
+      heroBorder="border-green-200 dark:border-green-800"
       seoKeywords={[
         'trending hashtags',
         'instagram trending hashtags',

@@ -18,12 +18,10 @@ export function LikesFollowersRatio() {
       toolName="Likes-to-Followers Ratio Calculator"
       fields={fields}
       usageCount={1765}
-      heroConfig={{
-        title: 'Likes-to-Followers Ratio Calculator',
-        description: 'Measure engagement quality relative to follower count.',
-        gradient: 'from-rose-50 via-pink-50 to-fuchsia-50 dark:from-rose-950/20 dark:via-pink-950/20 dark:to-fuchsia-950/20',
-        borderColor: 'border-rose-200 dark:border-rose-800',
-      }}
+      heroTitle="Likes-to-Followers Ratio Calculator"
+      heroDescription="Measure engagement quality relative to follower count."
+      heroGradient="from-rose-50 via-pink-50 to-fuchsia-50 dark:from-rose-950/20 dark:via-pink-950/20 dark:to-fuchsia-950/20"
+      heroBorder="border-rose-200 dark:border-rose-800"
       seoKeywords={[
         'likes to followers ratio',
         'instagram ratio calculator',

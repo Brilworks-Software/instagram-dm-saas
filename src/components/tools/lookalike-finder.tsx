@@ -24,12 +24,10 @@ export function LookalikeFinder() {
       toolName="Instagram Lookalike Finder"
       fields={fields}
       usageCount={945}
-      heroConfig={{
-        title: 'Instagram Lookalike Finder',
-        description: 'Find creators similar to your top performers for scaling partnerships.',
-        gradient: 'from-indigo-50 via-blue-50 to-cyan-50 dark:from-indigo-950/20 dark:via-blue-950/20 dark:to-cyan-950/20',
-        borderColor: 'border-indigo-200 dark:border-indigo-800',
-      }}
+      heroTitle="Instagram Lookalike Finder"
+      heroDescription="Find creators similar to your top performers for scaling partnerships."
+      heroGradient="from-indigo-50 via-blue-50 to-cyan-50 dark:from-indigo-950/20 dark:via-blue-950/20 dark:to-cyan-950/20"
+      heroBorder="border-indigo-200 dark:border-indigo-800"
       seoKeywords={[
         'instagram lookalike finder',
         'find similar influencers',

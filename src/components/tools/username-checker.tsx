@@ -19,10 +19,10 @@ export function UsernameChecker() {
       toolName="Instagram Username Checker"
       fields={fields}
       usageCount={4523}
+      heroTitle="Instagram Username Checker"
+      heroDescription="Check username availability and brainstorm handle ideas."
       heroGradient="from-amber-50 via-orange-50 to-red-50 dark:from-amber-950/20 dark:via-orange-950/20 dark:to-red-950/20"
       heroBorder="border-amber-200 dark:border-amber-800"
-      heroIcon={<CheckCircle className="h-8 w-8 text-amber-500" />}
-      heroDescription="Check username availability and brainstorm handle ideas."
       seoKeywords={[
         'instagram username checker',
         'check username availability',

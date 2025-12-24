@@ -19,10 +19,10 @@ export function InstagramReelsDownloader() {
       toolName="Instagram Reels Downloader"
       fields={fields}
       usageCount={2987}
+      heroTitle="Instagram Reels Downloader"
+      heroDescription="Download Reels from public profiles (where permitted)."
       heroGradient="from-rose-50 via-pink-50 to-fuchsia-50 dark:from-rose-950/20 dark:via-pink-950/20 dark:to-fuchsia-950/20"
       heroBorder="border-rose-200 dark:border-rose-800"
-      heroIcon={<Video className="h-8 w-8 text-rose-500" />}
-      heroDescription="Download Reels from public profiles (where permitted)."
       seoKeywords={[
         'instagram reels downloader',
         'download instagram reels',

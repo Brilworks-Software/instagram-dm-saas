@@ -18,12 +18,10 @@ export function AnonymousHighlightViewer() {
       toolName="Anonymous Instagram Highlight Viewer"
       fields={fields}
       usageCount={3421}
-      heroConfig={{
-        title: 'Anonymous Instagram Highlight Viewer',
-        description: 'View public highlights anonymously (privacy-first viewing).',
-        gradient: 'from-purple-50 via-pink-50 to-rose-50 dark:from-purple-950/20 dark:via-pink-950/20 dark:to-rose-950/20',
-        borderColor: 'border-purple-200 dark:border-purple-800',
-      }}
+      heroTitle="Anonymous Instagram Highlight Viewer"
+      heroDescription="View public highlights anonymously (privacy-first viewing)."
+      heroGradient="from-purple-50 via-pink-50 to-rose-50 dark:from-purple-950/20 dark:via-pink-950/20 dark:to-rose-950/20"
+      heroBorder="border-purple-200 dark:border-purple-800"
       seoKeywords={[
         'anonymous instagram viewer',
         'instagram highlights viewer',

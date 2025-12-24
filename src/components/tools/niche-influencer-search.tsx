@@ -25,10 +25,10 @@ export function NicheInfluencerSearch() {
       toolName="Niche Influencer Search"
       fields={fields}
       usageCount={1245}
+      heroTitle="Niche Influencer Search"
+      heroDescription="Find influencers by niche keywords in bio or content for targeted partnerships."
       heroGradient="from-indigo-50 via-purple-50 to-pink-50 dark:from-indigo-950/20 dark:via-purple-950/20 dark:to-pink-950/20"
       heroBorder="border-indigo-200 dark:border-indigo-800"
-      heroIcon={<Target className="h-8 w-8 text-indigo-500" />}
-      heroDescription="Find influencers by niche keywords in bio or content for targeted partnerships."
       seoKeywords={[
         'niche influencer search',
         'find niche influencers',

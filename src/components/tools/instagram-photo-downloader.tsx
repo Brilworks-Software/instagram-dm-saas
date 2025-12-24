@@ -19,10 +19,10 @@ export function InstagramPhotoDownloader() {
       toolName="Instagram Photo Downloader"
       fields={fields}
       usageCount={3421}
+      heroTitle="Instagram Photo Downloader"
+      heroDescription="Save photos from public posts and carousels (where permitted)."
       heroGradient="from-cyan-50 via-sky-50 to-blue-50 dark:from-cyan-950/20 dark:via-sky-950/20 dark:to-blue-950/20"
       heroBorder="border-cyan-200 dark:border-cyan-800"
-      heroIcon={<Download className="h-8 w-8 text-cyan-500" />}
-      heroDescription="Save photos from public posts and carousels (where permitted)."
       seoKeywords={[
         'instagram photo downloader',
         'download instagram photos',

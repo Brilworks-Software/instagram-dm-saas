@@ -24,12 +24,10 @@ export function InfluencerPricingCalculator() {
       toolName="Influencer Pricing Calculator"
       fields={fields}
       usageCount={1234}
-      heroConfig={{
-        title: 'Influencer Pricing Calculator',
-        description: 'Estimate pricing for sponsored posts based on account size and engagement.',
-        gradient: 'from-violet-50 via-purple-50 to-fuchsia-50 dark:from-violet-950/20 dark:via-purple-950/20 dark:to-fuchsia-950/20',
-        borderColor: 'border-violet-200 dark:border-violet-800',
-      }}
+      heroTitle="Influencer Pricing Calculator"
+      heroDescription="Estimate pricing for sponsored posts based on account size and engagement."
+      heroGradient="from-violet-50 via-purple-50 to-fuchsia-50 dark:from-violet-950/20 dark:via-purple-950/20 dark:to-fuchsia-950/20"
+      heroBorder="border-violet-200 dark:border-violet-800"
       seoKeywords={[
         'influencer pricing calculator',
         'instagram post pricing',

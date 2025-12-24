@@ -33,10 +33,10 @@ export function InstagramMoneyCalculator() {
       toolName="Instagram Money Calculator"
       fields={fields}
       usageCount={2156}
+      heroTitle="Instagram Money Calculator"
+      heroDescription="Estimate potential earnings from sponsored content based on your performance and audience size."
       heroGradient="from-green-50 via-emerald-50 to-teal-50 dark:from-green-950/20 dark:via-emerald-950/20 dark:to-teal-950/20"
       heroBorder="border-green-200 dark:border-green-800"
-      heroIcon={<DollarSign className="h-8 w-8 text-green-500" />}
-      heroDescription="Estimate potential earnings from sponsored content based on your performance and audience size."
       seoKeywords={[
         'instagram money calculator',
         'instagram earnings calculator',

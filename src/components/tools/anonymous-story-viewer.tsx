@@ -19,10 +19,10 @@ export function AnonymousStoryViewer() {
       toolName="Anonymous Instagram Story Viewer"
       fields={fields}
       usageCount={1876}
+      heroTitle="Anonymous Instagram Story Viewer"
+      heroDescription="View public stories anonymously (privacy-first viewing)."
       heroGradient="from-violet-50 via-purple-50 to-fuchsia-50 dark:from-violet-950/20 dark:via-purple-950/20 dark:to-fuchsia-950/20"
       heroBorder="border-violet-200 dark:border-violet-800"
-      heroIcon={<Eye className="h-8 w-8 text-violet-500" />}
-      heroDescription="View public stories anonymously (privacy-first viewing)."
       seoKeywords={[
         'anonymous story viewer',
         'instagram story viewer',

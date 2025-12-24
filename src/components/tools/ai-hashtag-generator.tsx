@@ -24,12 +24,10 @@ export function AiHashtagGenerator() {
       toolName="AI Hashtag Generator"
       fields={fields}
       usageCount={2156}
-      heroConfig={{
-        title: 'AI Hashtag Generator',
-        description: 'Generate relevant hashtags for posts and Reels based on topic and category.',
-        gradient: 'from-cyan-50 via-blue-50 to-indigo-50 dark:from-cyan-950/20 dark:via-blue-950/20 dark:to-indigo-950/20',
-        borderColor: 'border-cyan-200 dark:border-cyan-800',
-      }}
+      heroTitle="AI Hashtag Generator"
+      heroDescription="Generate relevant hashtags for posts and Reels based on topic and category."
+      heroGradient="from-cyan-50 via-blue-50 to-indigo-50 dark:from-cyan-950/20 dark:via-blue-950/20 dark:to-indigo-950/20"
+      heroBorder="border-cyan-200 dark:border-cyan-800"
       seoKeywords={[
         'instagram hashtag generator',
         'ai hashtag generator',

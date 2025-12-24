@@ -24,12 +24,10 @@ export function InfluencerComparison() {
       toolName="Influencer Comparison Tool"
       fields={fields}
       usageCount={876}
-      heroConfig={{
-        title: 'Influencer Comparison Tool',
-        description: 'Compare influencers side-by-side using key performance signals.',
-        gradient: 'from-orange-50 via-amber-50 to-yellow-50 dark:from-orange-950/20 dark:via-amber-950/20 dark:to-yellow-950/20',
-        borderColor: 'border-orange-200 dark:border-orange-800',
-      }}
+      heroTitle="Influencer Comparison Tool"
+      heroDescription="Compare influencers side-by-side using key performance signals."
+      heroGradient="from-orange-50 via-amber-50 to-yellow-50 dark:from-orange-950/20 dark:via-amber-950/20 dark:to-yellow-950/20"
+      heroBorder="border-orange-200 dark:border-orange-800"
       seoKeywords={[
         'influencer comparison tool',
         'compare influencers',

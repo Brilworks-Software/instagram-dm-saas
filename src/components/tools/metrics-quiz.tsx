@@ -31,12 +31,10 @@ export function MetricsQuiz() {
       toolName="Instagram Metrics Knowledge Quiz"
       fields={fields}
       usageCount={1432}
-      heroConfig={{
-        title: 'Instagram Metrics Knowledge Quiz',
-        description: 'Test your understanding of Instagram metrics and best practices.',
-        gradient: 'from-emerald-50 via-green-50 to-lime-50 dark:from-emerald-950/20 dark:via-green-950/20 dark:to-lime-950/20',
-        borderColor: 'border-emerald-200 dark:border-emerald-800',
-      }}
+      heroTitle="Instagram Metrics Knowledge Quiz"
+      heroDescription="Test your understanding of Instagram metrics and best practices."
+      heroGradient="from-emerald-50 via-green-50 to-lime-50 dark:from-emerald-950/20 dark:via-green-950/20 dark:to-lime-950/20"
+      heroBorder="border-emerald-200 dark:border-emerald-800"
       seoKeywords={[
         'instagram metrics quiz',
         'instagram knowledge test',
