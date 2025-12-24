@@ -494,3 +494,22 @@ model LeadListMember {
   @@index([leadId])
   @@map("lead_list_members")
 }
+
+// ============================================================================
+// Tool Usage Tracking
+// ============================================================================
+
+model ToolUsage {
+  id        String   @id @default(uuid())
+  toolType  String   @map("tool_type") // e.g., "brand-matcher", "username-checker", etc.
+  instaId   String?  @map("insta_id") // Instagram handle (when applicable)
+  niche     String?  // Content niche (if applicable)
+  formData  Json?    @map("form_data") // All form field data as JSON
+  ipAddress String?  @map("ip_address") // Client IP address
+  location  Json?    // IP geolocation data (city, region, country)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([toolType])
+  @@index([createdAt])
+  @@map("tool_usage")
+}

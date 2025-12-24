@@ -42,6 +42,10 @@ ENCRYPTION_KEY=your-generated-key-32-characters
 NEXT_PUBLIC_POSTHOG_KEY=
 NEXT_PUBLIC_POSTHOG_HOST=https://us.i.posthog.com
 
+# Optional: Slack notifications (incoming webhook URL)
+# Create one in Slack → Apps → Incoming Webhooks
+SLACK_WEBHOOK_URL=
+
 # ============================================
 # HOW TO GET VALUES:
 # ============================================
