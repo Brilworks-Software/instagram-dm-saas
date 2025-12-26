@@ -269,7 +269,13 @@ export default function LoginPage() {
               &ldquo;SocialOra helped us 10x our influencer outreach. We went from 50 to 500+ conversations per week without hiring anyone.&rdquo;
             </p>
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-full bg-gradient-to-br from-accent to-pink-500" />
+              <Image
+                src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=80&h=80&fit=crop&crop=faces"
+                alt="Sarah Chen"
+                width={40}
+                height={40}
+                className="h-10 w-10 rounded-full object-cover"
+              />
               <div>
                 <p className="text-sm font-medium text-foreground">Sarah Chen</p>
                 <p className="text-xs text-foreground-muted">Head of Growth, StyleCo</p>

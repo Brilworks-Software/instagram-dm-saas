@@ -27,6 +27,7 @@ const nextConfig = {
       'instagram.fgnm1-1.fna.fbcdn.net',
       'fbcdn.net',
       'fbcdn.com',
+      'images.unsplash.com',
     ],
     remotePatterns: [
       {

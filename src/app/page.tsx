@@ -155,7 +155,7 @@ export default function HomePage() {
     {
       name: "Sarah Chen",
       role: "E-commerce Founder",
-      image: "👩‍💼",
+      image: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=96&h=96&fit=crop&crop=faces",
       content:
         "SocialOra transformed how I manage customer inquiries. Response time dropped by 80% and customer satisfaction skyrocketed!",
       rating: 5,
@@ -163,7 +163,7 @@ export default function HomePage() {
     {
       name: "Marcus Johnson",
       role: "Content Creator",
-      image: "👨‍🎨",
+      image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=96&h=96&fit=crop&crop=faces",
       content:
         "The AI assistant is incredibly smart. It understands context and maintains my brand voice perfectly.",
       rating: 5,
@@ -171,7 +171,7 @@ export default function HomePage() {
     {
       name: "Emily Rodriguez",
       role: "Marketing Director",
-      image: "👩‍💻",
+      image: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=96&h=96&fit=crop&crop=faces",
       content:
         "Managing multiple Instagram accounts was a nightmare. SocialOra made it effortless with its unified inbox.",
       rating: 5,
@@ -485,9 +485,13 @@ export default function HomePage() {
                   "{testimonial.content}"
                 </p>
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-accent to-pink-500 flex items-center justify-center text-2xl">
-                    {testimonial.image}
-                  </div>
+                  <Image
+                    src={testimonial.image}
+                    alt={testimonial.name}
+                    width={48}
+                    height={48}
+                    className="w-12 h-12 rounded-full object-cover"
+                  />
                   <div>
                     <div className="font-semibold text-foreground">
                       {testimonial.name}
