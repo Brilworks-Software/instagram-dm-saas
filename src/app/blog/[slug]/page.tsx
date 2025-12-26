@@ -1,26 +1,26 @@
 import { Button } from '@/components/ui/button';
+import { ArticleStructuredData } from '@/components/blog/article-structured-data';
+import { FAQSection } from '@/components/blog/faq-section';
+import { CitationsSection } from '@/components/blog/citations-section';
 import { ArrowLeft, Calendar, Clock, Facebook, Linkedin, Twitter, User } from 'lucide-react';
 import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-
-interface BlogPost {
-  slug: string;
-  title: string;
-  description: string;
-  date: string;
-  readTime: string;
-  category: string;
-  keywords: string[];
-  content: string;
-  author?: string;
-  metaTitle?: string;
-  metaDescription?: string;
-}
+import { MDXRemote } from 'next-mdx-remote/rsc';
+import remarkGfm from 'remark-gfm';
+import rehypeSlug from 'rehype-slug';
+import rehypeAutolinkHeadings from 'rehype-autolink-headings';
+import rehypeHighlight from 'rehype-highlight';
+import { useMDXComponents } from '@/components/blog/mdx-components';
 
 // Import blog posts data
-import { getAllBlogSlugs, getBlogPost } from '@/lib/blog-posts';
+import { getAllBlogSlugs, getBlogPost, getRelatedPosts } from '@/lib/blog-loader';
+import { DEFAULT_AUTHOR, DEFAULT_AUTHOR_ROLE } from '@/lib/blog-posts';
+
+// Force static generation for all blog posts
+export const dynamicParams = false;
+export const revalidate = 3600; // Revalidate every hour
 
 export async function generateStaticParams() {
   const slugs = getAllBlogSlugs();
@@ -30,7 +30,10 @@ export async function generateStaticParams() {
 }
 
 export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
-  const post = getBlogPost(params.slug);
+  const post = await getBlogPost(params.slug);
+  const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://www.socialora.app';
+  const cleanBaseUrl = baseUrl.replace(/\/$/, '');
+  const postUrl = `${cleanBaseUrl}/blog/${post?.slug || ''}`;
   
   if (!post) {
     return {
@@ -38,36 +41,95 @@ export async function generateMetadata({ params }: { params: { slug: string } })
     };
   }
 
+  const title = post.metaTitle || post.title;
+  const description = post.metaDescription || post.description;
+  const publishedTime = new Date(post.date).toISOString();
+
   return {
-    title: post.metaTitle || post.title,
-    description: post.metaDescription || post.description,
+    title,
+    description,
     keywords: post.keywords,
+    authors: [{ name: post.author || DEFAULT_AUTHOR }],
+    creator: post.author || DEFAULT_AUTHOR,
+    publisher: 'SocialOra',
     openGraph: {
-      title: post.metaTitle || post.title,
-      description: post.metaDescription || post.description,
+      title,
+      description,
       type: 'article',
-      publishedTime: post.date,
+      url: postUrl,
+      publishedTime,
+      modifiedTime: publishedTime,
+      authors: [post.author || DEFAULT_AUTHOR],
+      section: post.category,
+      tags: post.keywords,
+      siteName: 'SocialOra Blog',
+      images: [
+        {
+          url: `${cleanBaseUrl}/images/logo.png`,
+          width: 1200,
+          height: 630,
+          alt: title,
+        },
+      ],
     },
     twitter: {
       card: 'summary_large_image',
-      title: post.metaTitle || post.title,
-      description: post.metaDescription || post.description,
+      title,
+      description,
+      images: [`${cleanBaseUrl}/images/logo.png`],
+      creator: '@SocialOra',
+    },
+    alternates: {
+      canonical: postUrl,
+    },
+    robots: {
+      index: true,
+      follow: true,
+      googleBot: {
+        index: true,
+        follow: true,
+        'max-video-preview': -1,
+        'max-image-preview': 'large',
+        'max-snippet': -1,
+      },
+    },
+    other: {
+      'article:published_time': publishedTime,
+      'article:modified_time': publishedTime,
+      'article:author': post.author || DEFAULT_AUTHOR,
+      'article:section': post.category,
+      'article:tag': post.keywords.join(', '),
     },
   };
 }
 
-export default function BlogPostPage({ params }: { params: { slug: string } }) {
-  const post = getBlogPost(params.slug);
+export default async function BlogPostPage({ params }: { params: { slug: string } }) {
+  const post = await getBlogPost(params.slug);
 
   if (!post) {
     notFound();
   }
 
-  // Use client-side URL for sharing
-  const shareUrl = `https://www.socialora.app/blog/${post.slug}`;
+  const components = useMDXComponents({});
+  const relatedPosts = getRelatedPosts(post.slug, 3);
+  const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://www.socialora.app';
+  const shareUrl = `${baseUrl}/blog/${post.slug}`;
+  
+  // MDX options for RSC
+  const mdxOptions: any = {
+    mdxOptions: {
+      remarkPlugins: [remarkGfm],
+      rehypePlugins: [
+        rehypeSlug,
+        [rehypeAutolinkHeadings, { behavior: 'wrap' }],
+        rehypeHighlight,
+      ] as any,
+    },
+  };
 
   return (
     <div className="min-h-screen bg-background">
+      <ArticleStructuredData post={post} />
       {/* Header */}
       <header className="border-b border-border bg-background/80 backdrop-blur-lg sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
@@ -114,30 +176,33 @@ export default function BlogPostPage({ params }: { params: { slug: string } }) {
         </Link>
 
         {/* Header */}
-        <header className="mb-8">
+        <header className="mb-8" itemScope itemType="https://schema.org/BlogPosting">
           <div className="flex items-center gap-2 mb-4">
-            <span className="px-3 py-1 rounded-full bg-accent/10 text-accent text-sm font-medium">
+            <span className="px-3 py-1 rounded-full bg-accent/10 text-accent text-sm font-medium" itemProp="articleSection">
               {post.category}
             </span>
           </div>
-          <h1 className="text-4xl sm:text-5xl font-bold text-foreground mb-6 leading-tight">
+          <h1 className="text-4xl sm:text-5xl font-bold text-foreground mb-6 leading-tight" itemProp="headline">
             {post.title}
           </h1>
           <div className="flex flex-wrap items-center gap-6 text-sm text-foreground-muted mb-6">
             <div className="flex items-center gap-2">
               <Calendar className="h-4 w-4" />
-              <span>{new Date(post.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+              <time dateTime={new Date(post.date).toISOString()} itemProp="datePublished">
+                {new Date(post.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+              </time>
             </div>
             <div className="flex items-center gap-2">
               <Clock className="h-4 w-4" />
               <span>{post.readTime} read</span>
             </div>
-            {post.author && (
-              <div className="flex items-center gap-2">
-                <User className="h-4 w-4" />
-                <span>{post.author}</span>
-              </div>
-            )}
+            <div className="flex items-center gap-2" itemProp="author" itemScope itemType="https://schema.org/Person">
+              <User className="h-4 w-4" />
+              <span itemProp="name">{post.author || DEFAULT_AUTHOR}</span>
+              {post.authorRole && (
+                <span className="text-xs text-foreground-muted">({post.authorRole})</span>
+              )}
+            </div>
           </div>
           
           {/* Share Buttons */}
@@ -175,11 +240,38 @@ export default function BlogPostPage({ params }: { params: { slug: string } }) {
           </div>
         </header>
 
+        {/* Breadcrumbs for SEO */}
+        <nav aria-label="Breadcrumb" className="mb-8">
+          <ol className="flex items-center space-x-2 text-sm text-foreground-muted">
+            <li><Link href="/" className="hover:text-foreground">Home</Link></li>
+            <li>/</li>
+            <li><Link href="/blog" className="hover:text-foreground">Blog</Link></li>
+            <li>/</li>
+            <li className="text-foreground">{post.title}</li>
+          </ol>
+        </nav>
+
         {/* Content */}
         <div 
           className="prose prose-invert prose-lg max-w-none blog-content"
-          dangerouslySetInnerHTML={{ __html: post.content }}
-        />
+          itemProp="articleBody"
+        >
+          <MDXRemote 
+            source={post.content} 
+            options={mdxOptions}
+            components={components} 
+          />
+        </div>
+
+        {/* FAQs */}
+        {post.faqs && post.faqs.length > 0 && (
+          <FAQSection faqs={post.faqs} />
+        )}
+
+        {/* Citations */}
+        {post.citations && post.citations.length > 0 && (
+          <CitationsSection citations={post.citations} />
+        )}
 
         {/* CTA Section */}
         <div className="mt-16 bg-gradient-to-br from-accent/10 via-pink-500/10 to-accent/10 rounded-2xl p-8 border border-border">
@@ -196,16 +288,28 @@ export default function BlogPostPage({ params }: { params: { slug: string } }) {
           </Link>
         </div>
 
-        {/* Related Posts */}
-        <div className="mt-16 pt-16 border-t border-border">
-          <h2 className="text-2xl font-bold text-foreground mb-6">Related Articles</h2>
-          <div className="grid md:grid-cols-2 gap-6">
-            {/* Related posts will be added here */}
-            <Link href="/blog" className="text-accent hover:underline">
-              View all blog posts →
-            </Link>
-          </div>
-        </div>
+        {/* Related Posts for Internal Linking */}
+        {relatedPosts.length > 0 && (
+          <section className="mt-16 pt-16 border-t border-border">
+            <h2 className="text-2xl font-bold text-foreground mb-6">Related Articles</h2>
+            <div className="grid md:grid-cols-3 gap-6">
+              {relatedPosts.map((related) => (
+                <Link
+                  key={related.slug}
+                  href={`/blog/${related.slug}`}
+                  className="group bg-background-elevated rounded-xl p-6 border border-border hover:border-accent/50 transition-all"
+                >
+                  <h3 className="text-lg font-bold text-foreground mb-2 group-hover:text-pink-400 transition-colors duration-200">
+                    {related.title}
+                  </h3>
+                  <p className="text-sm text-foreground-muted line-clamp-2">
+                    {related.description}
+                  </p>
+                </Link>
+              ))}
+            </div>
+          </section>
+        )}
       </article>
 
       {/* Footer */}

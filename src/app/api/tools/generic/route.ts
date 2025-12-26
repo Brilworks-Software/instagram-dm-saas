@@ -2,7 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { formatToolUsageSlackMessage, postToSlack } from '@/lib/slack';
 
-const prisma = new PrismaClient();
+const globalForPrisma = globalThis as unknown as {
+  prisma: PrismaClient | undefined;
+};
+
+const prisma = globalForPrisma.prisma ?? new PrismaClient();
+
+if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
 
 export async function POST(request: NextRequest) {
   try {
@@ -38,17 +44,23 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Save tool usage to database
-    await prisma.toolUsage.create({
-      data: {
-        toolType: toolSlug,
-        instaId: instagramHandle,
-        niche: niche,
-        formData: formData as any,
-        ipAddress: clientIp,
-        location: ipInfo as any,
-      },
-    });
+    // Save tool usage to database (best-effort)
+    try {
+      await prisma.toolUsage.create({
+        data: {
+          toolType: toolSlug,
+          instaId: instagramHandle,
+          niche: niche,
+          formData: formData as any,
+          ipAddress: clientIp,
+          location: ipInfo as any,
+        },
+      });
+      console.log('[DB] Tool usage saved successfully');
+    } catch (dbError) {
+      console.error('[DB] Failed to save tool usage:', dbError);
+      // Continue execution - don't fail the request due to DB issues
+    }
 
     // Build form data lines for Slack
     const formLines: string[] = [];
