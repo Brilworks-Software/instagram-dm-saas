@@ -1,19 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { createClient } from '@/lib/supabase/server';
 import { formatToolUsageSlackMessage, postToSlack } from '@/lib/slack';
-
-const globalForPrisma = globalThis as unknown as {
-  prisma: PrismaClient | undefined;
-};
-
-const prisma = globalForPrisma.prisma ?? new PrismaClient();
-
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { toolSlug, formData, clientIp, ipInfo } = body;
+
+    console.log('[Tool API] Request received:', {
+      toolSlug,
+      formData,
+      clientIp,
+      ipInfo,
+    });
 
     if (!toolSlug || !formData) {
       return NextResponse.json(
@@ -44,29 +43,44 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Save tool usage to database (best-effort)
+    // Save tool usage to Supabase (best-effort)
+    const supabase = await createClient();
     try {
-      await prisma.toolUsage.create({
-        data: {
-          toolType: toolSlug,
-          instaId: instagramHandle,
+      console.log('[DB] Attempting to save tool usage to Supabase...');
+      
+      const { data: savedData, error: dbError } = await supabase
+        .from('tool_usage')
+        .insert({
+          tool_type: toolSlug,
+          insta_id: instagramHandle,
           niche: niche,
-          formData: formData as any,
-          ipAddress: clientIp,
-          location: ipInfo as any,
-        },
-      });
-      console.log('[DB] Tool usage saved successfully');
+          form_data: formData,
+          ip_address: clientIp,
+          location: ipInfo,
+        })
+        .select()
+        .single();
+
+      if (dbError) {
+        console.error('[DB] ❌ Supabase insert error:', {
+          error: dbError,
+          code: dbError.code,
+          message: dbError.message,
+          details: dbError.details,
+          hint: dbError.hint,
+        });
+      } else {
+        console.log('[DB] ✅ Tool usage saved successfully to Supabase!', savedData);
+      }
     } catch (dbError) {
-      console.error('[DB] Failed to save tool usage:', dbError);
-      // Continue execution - don't fail the request due to DB issues
+      console.error('[DB] ❌ Exception saving to Supabase:', dbError);
     }
 
     // Build form data lines for Slack
     const formLines: string[] = [];
     Object.entries(formData).forEach(([key, value]) => {
       const label = key.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-      formLines.push(`📝 ${label}: ${value}`);
+      formLines.push(` ${label}: ${value}`);
     });
 
     const dataSendInSlack = formatToolUsageSlackMessage({
