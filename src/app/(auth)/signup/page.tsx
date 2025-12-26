@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { usePostHog } from '@/hooks/use-posthog';
 import { createClient } from '@/lib/supabase/client';
+import { CountUpNumber } from '@/components/count-up-number';
 import { AlertCircle, ArrowRight, CheckCircle, Eye, EyeOff, Lock, Mail, User } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -162,7 +163,13 @@ export default function SignupPage() {
                 { value: '98%', label: 'Satisfaction' },
               ].map((stat, i) => (
                 <div key={i} className="text-center">
-                  <p className="text-2xl font-bold text-accent">{stat.value}</p>
+                  <p className="text-2xl font-bold text-accent">
+                    <CountUpNumber 
+                      value={stat.value} 
+                      duration={2500}
+                      delay={i * 100}
+                    />
+                  </p>
                   <p className="text-sm text-foreground-muted">{stat.label}</p>
                 </div>
               ))}

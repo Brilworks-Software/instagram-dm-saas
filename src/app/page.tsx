@@ -4,6 +4,7 @@ import { HomepageStructuredData } from '@/components/seo/structured-data';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { Button } from '@/components/ui/button';
 import { WaitingListForm } from '@/components/waiting-list-form';
+import { CountUpNumber } from '@/components/count-up-number';
 import { createClient } from '@/lib/supabase/client';
 import {
   ArrowRight,
@@ -537,19 +538,21 @@ export default function HomePage() {
             {/* Enhanced Stats with animation */}
             <div ref={statsRef} className="grid grid-cols-2 sm:grid-cols-4 gap-6 max-w-5xl mx-auto animate-fade-in delay-500">
               {[
-                { value: counters.users, label: 'Active Users', icon: Users, suffix: '+', format: (v: number) => (v / 1000).toFixed(1) + 'K' },
-                { value: counters.messages, label: 'Messages Sent', icon: Send, suffix: '+', format: (v: number) => (v / 1000000).toFixed(1) + 'M' },
-                { value: counters.satisfaction, label: 'Satisfaction Rate', icon: Heart, suffix: '%', format: (v: number) => v.toString() },
-                { value: 24, label: 'AI Support', icon: Bot, suffix: '/7', format: (v: number) => v.toString() },
+                { value: '10K+', label: 'Active Users', icon: Users },
+                { value: '2M+', label: 'Messages Sent', icon: Send },
+                { value: '98%', label: 'Satisfaction Rate', icon: Heart },
+                { value: '24/7', label: 'AI Support', icon: Bot },
               ].map((stat, index) => (
                 <div
                   key={index}
-                  className="group relative bg-gradient-to-br from-background-elevated to-background-elevated/50 rounded-2xl p-6 border border-border hover:border-accent/50 transition-all duration-300 hover:scale-105 hover:-translate-y-1 backdrop-blur-sm">
-                  <div className="absolute inset-0 bg-gradient-to-br from-accent/0 to-accent/0 group-hover:from-accent/5 group-hover:to-pink-500/5 rounded-2xl transition-all duration-300"></div>
-                  <stat.icon className="h-6 w-6 text-accent mb-2 mx-auto group-hover:scale-110 transition-transform duration-300" />
-                  <div className="text-3xl font-bold text-foreground mb-1 relative">
-                    {index < 3 ? stat.format(stat.value) : stat.value}
-                    <span className="text-xl">{stat.suffix}</span>
+                  className="bg-background-elevated rounded-xl p-6 border border-border hover:border-accent/50 transition-all hover:scale-105">
+                  <stat.icon className="h-6 w-6 text-accent mb-2 mx-auto" />
+                  <div className="text-3xl font-bold text-foreground mb-1">
+                    <CountUpNumber 
+                      value={stat.value} 
+                      duration={2500}
+                      delay={index * 100}
+                    />
                   </div>
                   <div className="text-sm text-foreground-muted">
                     {stat.label}
@@ -630,13 +633,19 @@ export default function HomePage() {
               </div>
               <div className="space-y-3">
                 {[
-                  { name: 'Alex M.', action: 'just converted a lead', time: '2 min ago', avatar: '👨‍💼' },
-                  { name: 'Jessica R.', action: 'sent 50 automated messages', time: '5 min ago', avatar: '👩‍💻' },
-                  { name: 'Michael T.', action: 'joined SocialOra', time: '8 min ago', avatar: '👨‍🎨' },
+                  { name: 'Alex M.', action: 'just converted a lead', time: '2 min ago', image: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=96&h=96&fit=crop&crop=faces' },
+                  { name: 'Jessica R.', action: 'sent 50 automated messages', time: '5 min ago', image: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=96&h=96&fit=crop&crop=faces' },
+                  { name: 'Michael T.', action: 'joined SocialOra', time: '8 min ago', image: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=96&h=96&fit=crop&crop=faces' },
                 ].map((activity, index) => (
                   <div key={index} className="flex items-center gap-3 text-sm animate-slide-in" style={{ animationDelay: `${index * 0.1}s` }}>
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-accent to-pink-500 flex items-center justify-center text-lg flex-shrink-0">
-                      {activity.avatar}
+                    <div className="w-10 h-10 rounded-full overflow-hidden ring-2 ring-accent/30 flex-shrink-0">
+                      <Image
+                        src={activity.image}
+                        alt={activity.name}
+                        width={40}
+                        height={40}
+                        className="w-full h-full object-cover"
+                      />
                     </div>
                     <div className="flex-1">
                       <span className="text-foreground font-medium">{activity.name}</span>
@@ -681,8 +690,14 @@ export default function HomePage() {
                   {/* Author */}
                   <div className="flex items-center gap-4">
                     <div className="relative">
-                      <div className="w-14 h-14 rounded-full bg-gradient-to-br from-accent to-pink-500 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform duration-300">
-                        {testimonial.image}
+                      <div className="w-14 h-14 rounded-full overflow-hidden ring-2 ring-accent/20 group-hover:ring-accent/40 transition-all duration-300 group-hover:scale-110">
+                        <Image
+                          src={testimonial.image}
+                          alt={testimonial.name}
+                          width={56}
+                          height={56}
+                          className="w-full h-full object-cover"
+                        />
                       </div>
                       <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 rounded-full border-2 border-background-elevated"></div>
                     </div>
@@ -704,9 +719,20 @@ export default function HomePage() {
           <div className="mt-20 flex flex-wrap items-center justify-center gap-8 text-foreground-muted">
             <div className="flex items-center gap-2">
               <div className="flex -space-x-2">
-                {['👨‍💼', '👩‍💻', '👨‍🎨', '👩‍💼'].map((emoji, i) => (
-                  <div key={i} className="w-8 h-8 rounded-full bg-gradient-to-br from-accent to-pink-500 flex items-center justify-center border-2 border-background">
-                    <span className="text-sm">{emoji}</span>
+                {[
+                  'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=96&h=96&fit=crop&crop=faces',
+                  'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=96&h=96&fit=crop&crop=faces',
+                  'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=96&h=96&fit=crop&crop=faces',
+                  'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=96&h=96&fit=crop&crop=faces',
+                ].map((img, i) => (
+                  <div key={i} className="w-8 h-8 rounded-full overflow-hidden ring-2 ring-background">
+                    <Image
+                      src={img}
+                      alt={`User ${i + 1}`}
+                      width={32}
+                      height={32}
+                      className="w-full h-full object-cover"
+                    />
                   </div>
                 ))}
               </div>
@@ -812,9 +838,21 @@ export default function HomePage() {
               {/* Social proof */}
               <div className="flex items-center justify-center gap-3 pt-8 border-t border-border/50">
                 <div className="flex -space-x-3">
-                  {['👨‍💼', '👩‍💻', '👨‍🎨', '👩‍💼', '👨‍🔬'].map((emoji, i) => (
-                    <div key={i} className="w-10 h-10 rounded-full bg-gradient-to-br from-accent to-pink-500 flex items-center justify-center border-2 border-background-elevated shadow-lg">
-                      <span className="text-sm">{emoji}</span>
+                  {[
+                    'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=96&h=96&fit=crop&crop=faces',
+                    'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=96&h=96&fit=crop&crop=faces',
+                    'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=96&h=96&fit=crop&crop=faces',
+                    'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=96&h=96&fit=crop&crop=faces',
+                    'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=96&h=96&fit=crop&crop=faces',
+                  ].map((img, i) => (
+                    <div key={i} className="w-10 h-10 rounded-full overflow-hidden ring-2 ring-background-elevated shadow-lg">
+                      <Image
+                        src={img}
+                        alt={`User ${i + 1}`}
+                        width={40}
+                        height={40}
+                        className="w-full h-full object-cover"
+                      />
                     </div>
                   ))}
                 </div>
@@ -825,7 +863,9 @@ export default function HomePage() {
                     ))}
                   </div>
                   <p className="text-xs text-foreground-muted">
-                    <span className="font-semibold text-foreground">1,247</span> people joined this week
+                    <span className="font-semibold text-foreground">
+                      <CountUpNumber value="1247" duration={2000} delay={500} />
+                    </span> people joined this week
                   </p>
                 </div>
               </div>
