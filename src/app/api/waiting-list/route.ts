@@ -94,16 +94,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Send Slack notification independently from location lookup
-    // This ensures notification is always sent, even if location lookup fails
-    // Also store notification status in Supabase
-    (async () => {
-      const waitingListId = data?.id;
-      if (!waitingListId) {
-        console.error("No waiting list ID available to track notification");
-        return;
-      }
-
+    // Send Slack notification and store status
+    // Must await this to ensure it completes before serverless function terminates
+    const waitingListId = data?.id;
+    if (waitingListId) {
       try {
         // Start location lookup (non-blocking) - only if not localhost
         let location = null;
@@ -149,7 +143,7 @@ export async function POST(request: NextRequest) {
             : notificationResult.error || null, // Store error on failure
         };
 
-        const { error: updateError, data: updateDataResult } = await supabase
+        const { error: updateError } = await supabase
           .from("waiting_list")
           .update(updateData)
           .eq("id", waitingListId)
@@ -195,7 +189,9 @@ export async function POST(request: NextRequest) {
           console.error("Error updating notification status:", dbError);
         }
       }
-    })();
+    } else {
+      console.error("No waiting list ID available to track notification");
+    }
 
     return NextResponse.json({
       success: true,
