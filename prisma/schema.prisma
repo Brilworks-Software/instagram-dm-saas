@@ -100,6 +100,9 @@ model InstagramAccount {
   campaigns     Campaign[]
   automations   Automation[]
   leads         Lead[]
+  campaignAccounts CampaignAccount[]
+  assignedRecipients CampaignRecipient[]
+  dailyMessageCounts AccountDailyMessageCount[]
 
   @@unique([igUserId, workspaceId])
   @@index([workspaceId])
@@ -237,17 +240,22 @@ model Campaign {
   sentCount       Int            @default(0) @map("sent_count")
   failedCount     Int            @default(0) @map("failed_count")
   replyCount      Int            @default(0) @map("reply_count")
+  sendStartTime   String?        @map("send_start_time") // TIME type
+  sendEndTime     String?        @map("send_end_time") // TIME type
+  timezone        String?        @default("America/New_York")
+  messagesPerDay  Int            @default(10) @map("messages_per_day")
   createdAt       DateTime       @default(now()) @map("created_at")
   updatedAt       DateTime       @updatedAt @map("updated_at")
 
   workspaceId String    @map("workspace_id")
   workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
-  instagramAccountId String           @map("instagram_account_id")
-  instagramAccount   InstagramAccount @relation(fields: [instagramAccountId], references: [id], onDelete: Cascade)
+  instagramAccountId String?          @map("instagram_account_id") // Nullable for backward compatibility
+  instagramAccount   InstagramAccount? @relation(fields: [instagramAccountId], references: [id], onDelete: Cascade)
 
-  steps      CampaignStep[]
-  recipients CampaignRecipient[]
+  steps           CampaignStep[]
+  recipients      CampaignRecipient[]
+  campaignAccounts CampaignAccount[]
 
   @@index([workspaceId])
   @@index([instagramAccountId])
@@ -290,6 +298,7 @@ model CampaignRecipient {
   lastProcessedAt  DateTime?               @map("last_processed_at")
   nextProcessAt    DateTime?               @map("next_process_at")
   errorMessage     String?                 @map("error_message")
+  assignedAccountId String?                @map("assigned_account_id")
   createdAt        DateTime                @default(now()) @map("created_at")
   updatedAt        DateTime                @updatedAt @map("updated_at")
 
@@ -299,11 +308,14 @@ model CampaignRecipient {
   contactId String  @map("contact_id")
   contact   Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
 
+  assignedAccount InstagramAccount? @relation(fields: [assignedAccountId], references: [id], onDelete: SetNull)
+
   @@unique([campaignId, contactId])
   @@index([campaignId])
   @@index([contactId])
   @@index([status])
   @@index([nextProcessAt])
+  @@index([assignedAccountId])
   @@map("campaign_recipients")
 }
 
@@ -314,6 +326,36 @@ enum CampaignRecipientStatus {
   REPLIED
   FAILED
   UNSUBSCRIBED
+}
+
+model CampaignAccount {
+  campaignId         String   @map("campaign_id")
+  instagramAccountId String   @map("instagram_account_id")
+  createdAt          DateTime @default(now()) @map("created_at")
+
+  campaign         Campaign         @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  instagramAccount InstagramAccount @relation(fields: [instagramAccountId], references: [id], onDelete: Cascade)
+
+  @@id([campaignId, instagramAccountId])
+  @@index([campaignId])
+  @@index([instagramAccountId])
+  @@map("campaign_accounts")
+}
+
+model AccountDailyMessageCount {
+  id                 String   @id @default(uuid())
+  instagramAccountId String   @map("instagram_account_id")
+  date               DateTime @db.Date
+  messageCount       Int      @default(0) @map("message_count")
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  instagramAccount InstagramAccount @relation(fields: [instagramAccountId], references: [id], onDelete: Cascade)
+
+  @@unique([instagramAccountId, date], name: "instagramAccountId_date")
+  @@index([instagramAccountId])
+  @@index([date])
+  @@map("account_daily_message_count")
 }
 
 // ============================================================================

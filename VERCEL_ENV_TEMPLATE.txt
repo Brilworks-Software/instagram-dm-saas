@@ -46,6 +46,25 @@ NEXT_PUBLIC_POSTHOG_HOST=https://us.i.posthog.com
 # Create one in Slack → Apps → Incoming Webhooks
 SLACK_WEBHOOK_URL=
 
+# Redis (Required for BullMQ background jobs)
+# ⚠️ Free options:
+#   1. Upstash (Recommended): https://upstash.com
+#      - Free tier: 10,000 commands/day, 256MB storage
+#      - Perfect for serverless/Vercel
+#      - Get URL from: Upstash Dashboard → Your Database → REST API → Redis URL
+#   2. Redis Cloud: https://redis.com/try-free/
+#      - Free tier: 30MB storage
+#   3. Railway: https://railway.app
+#      - Free tier: $5 credit/month
+#
+# Format: redis://default:password@host:port
+# Or: rediss://default:password@host:port (for TLS)
+#
+# Example (Upstash):
+#   REDIS_URL=redis://default:abc123@usw1-xxx.upstash.io:6379
+#
+REDIS_URL=redis://default:password@host:port
+
 # ============================================
 # HOW TO GET VALUES:
 # ============================================
@@ -66,6 +85,20 @@ SLACK_WEBHOOK_URL=
 # NEXT_PUBLIC_BACKEND_URL:
 #   - Set after first deployment
 #   - Use your Vercel project URL
+#
+# REDIS_URL:
+#   - Upstash (Recommended): 
+#     1. Sign up at https://upstash.com (free)
+#     2. Create a Redis database
+#     3. Copy the "REST API" URL (or "Redis URL" from connection details)
+#     4. Format: redis://default:PASSWORD@HOST:PORT
+#   - Redis Cloud:
+#     1. Sign up at https://redis.com/try-free/
+#     2. Create a free database
+#     3. Copy the connection string
+#   - Railway:
+#     1. Create a new Redis service
+#     2. Copy the REDIS_URL from variables
 #
 # ============================================
 

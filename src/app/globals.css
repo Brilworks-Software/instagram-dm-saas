@@ -94,6 +94,30 @@ a{
   background: var(--border-hover);
 }
 
+/* Horizontal scrollbar for variants */
+.overflow-x-auto {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+.overflow-x-auto::-webkit-scrollbar {
+  height: 8px;
+}
+
+.overflow-x-auto::-webkit-scrollbar-track {
+  background: var(--background-elevated);
+  border-radius: 4px;
+}
+
+.overflow-x-auto::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+
+.overflow-x-auto::-webkit-scrollbar-thumb:hover {
+  background: var(--border-hover);
+}
+
 /* Focus styles */
 *:focus-visible {
   outline: 2px solid var(--accent-color);
@@ -243,4 +267,173 @@ a{
 
 .animate-pulse-subtle {
   animation: pulseSubtle 2s ease-in-out infinite;
+}
+
+/* Range Slider Styles */
+input[type="range"].slider {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 8px;
+  border-radius: 4px;
+  outline: none;
+}
+
+input[type="range"].slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--accent-color);
+  border: 2px solid var(--background);
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  transition: all 0.2s ease;
+}
+
+input[type="range"].slider::-webkit-slider-thumb:hover {
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(236, 72, 153, 0.4);
+}
+
+input[type="range"].slider::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--accent-color);
+  border: 2px solid var(--background);
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  transition: all 0.2s ease;
+}
+
+input[type="range"].slider::-moz-range-thumb:hover {
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(236, 72, 153, 0.4);
+}
+
+input[type="range"].slider::-webkit-slider-runnable-track {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--background-elevated);
+  border: 1px solid var(--border);
+}
+
+input[type="range"].slider::-moz-range-track {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--background-elevated);
+  border: 1px solid var(--border);
+}
+
+/* Dual Range Slider Styles */
+input[type="range"].slider-input {
+  pointer-events: none;
+}
+
+input[type="range"].slider-input::-webkit-slider-thumb {
+  pointer-events: all;
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--accent-color);
+  border: 2px solid var(--background);
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  transition: all 0.2s ease;
+  position: relative;
+  z-index: 3;
+}
+
+input[type="range"].slider-input::-webkit-slider-thumb:hover {
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(236, 72, 153, 0.4);
+}
+
+input[type="range"].slider-input::-moz-range-thumb {
+  pointer-events: all;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--accent-color);
+  border: 2px solid var(--background);
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  transition: all 0.2s ease;
+  position: relative;
+  z-index: 3;
+}
+
+input[type="range"].slider-input::-moz-range-thumb:hover {
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(236, 72, 153, 0.4);
+}
+
+input[type="range"].slider-input::-webkit-slider-runnable-track {
+  background: transparent;
+}
+
+input[type="range"].slider-input::-moz-range-track {
+  background: transparent;
+}
+
+/* React Slider Styles */
+.horizontal-slider {
+  width: 100%;
+  height: 12px;
+  position: relative;
+}
+
+.horizontal-slider .slider-track {
+  top: 0;
+  height: 12px;
+  background: var(--background-elevated);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+/* For single range slider - active track from start to thumb */
+.horizontal-slider .slider-track.slider-track-0 {
+  background: var(--accent-color);
+  border-radius: 6px;
+}
+
+/* For dual range slider - track-0 should be background (before first thumb) */
+.dual-range-slider .slider-track.slider-track-0 {
+  background: var(--background-elevated);
+}
+
+.horizontal-slider .slider-thumb {
+  width: 20px;
+  height: 20px;
+  background: var(--accent-color);
+  border: 2px solid var(--background);
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  transition: all 0.2s ease;
+  top: -4px;
+}
+
+.horizontal-slider .slider-thumb:hover {
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(236, 72, 153, 0.4);
+}
+
+.horizontal-slider .slider-thumb:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(236, 72, 153, 0.2);
+}
+
+/* For dual range slider - active track between thumbs (this is the selected range) */
+.horizontal-slider .slider-track.slider-track-1 {
+  background: var(--accent-color);
+  border-radius: 6px;
+}
+
+/* For dual range slider - inactive track after second thumb */
+.horizontal-slider .slider-track.slider-track-2 {
+  background: var(--background-elevated);
 }
