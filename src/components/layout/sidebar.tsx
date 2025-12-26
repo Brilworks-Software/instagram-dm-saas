@@ -19,7 +19,7 @@ import {
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from "react";
 
 const navigation = [
   { name: 'Inbox', href: '/inbox', icon: Inbox },
@@ -45,14 +45,16 @@ export function Sidebar() {
 
   useEffect(() => {
     const supabase = createClient();
-    
+
     // Get initial user
     supabase.auth.getUser().then(({ data: { user } }) => {
       setUser(user);
     });
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
     });
 
@@ -64,12 +66,15 @@ export function Sidebar() {
     const fetchUnreadCount = async () => {
       const supabase = createClient();
       const { data } = await supabase
-        .from('conversations')
-        .select('unread_count')
-        .gt('unread_count', 0);
-      
+        .from("conversations")
+        .select("unread_count")
+        .gt("unread_count", 0);
+
       if (data) {
-        const total = data.reduce((sum, conv) => sum + (conv.unread_count || 0), 0);
+        const total = data.reduce(
+          (sum, conv) => sum + (conv.unread_count || 0),
+          0
+        );
         setUnreadCount(total);
       }
     };
@@ -84,17 +89,20 @@ export function Sidebar() {
   // Close user menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+      if (
+        userMenuRef.current &&
+        !userMenuRef.current.contains(event.target as Node)
+      ) {
         setShowUserMenu(false);
       }
     };
 
     if (showUserMenu) {
-      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener("mousedown", handleClickOutside);
     }
 
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [showUserMenu]);
 
@@ -102,32 +110,33 @@ export function Sidebar() {
     setIsLoggingOut(true);
     const supabase = createClient();
     await supabase.auth.signOut();
-    router.push('/login');
+    router.push("/login");
     router.refresh();
   };
 
-  const userName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User';
-  const userEmail = user?.email || '';
+  const userName =
+    user?.user_metadata?.full_name || user?.email?.split("@")[0] || "User";
+  const userEmail = user?.email || "";
 
   return (
     <aside className="fixed left-0 top-0 z-40 h-screen w-64 border-r border-border bg-background-secondary flex flex-col">
       {/* Logo */}
       <div className="h-16 flex items-center px-6 border-b border-border">
         <Link href="/" className="flex items-center group">
-            <div className="flex items-center">
-              <div className="h-14 w-14 flex items-center justify-center overflow-hidden">
-                <Image 
-                  src="/images/logo.png" 
-                  alt="SocialOra" 
-                  width={56} 
-                  height={56} 
-                  className="h-full w-full object-contain" 
-                />
-              </div>
-              <span className="font-bold text-xl">
-                Social<span className="text-accent">Ora</span>
-              </span>
+          <div className="flex items-center">
+            <div className="h-14 w-14 flex items-center justify-center overflow-hidden">
+              <Image
+                src="/images/logo.png"
+                alt="SocialOra"
+                width={56}
+                height={56}
+                className="h-full w-full object-contain"
+              />
             </div>
+            <span className="font-bold text-xl">
+              Social<span className="text-accent">Ora</span>
+            </span>
+          </div>
         </Link>
       </div>
 
@@ -139,32 +148,40 @@ export function Sidebar() {
           </span>
         </div>
         {navigation.map((item) => {
-          const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
-          const showBadge = item.name === 'Inbox' && unreadCount > 0;
+          const isActive =
+            pathname === item.href || pathname.startsWith(item.href + "/");
+          const showBadge = item.name === "Inbox" && unreadCount > 0;
           return (
             <Link
               key={item.name}
               href={item.href}
               className={cn(
-                'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 group',
+                "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 group",
                 isActive
-                  ? 'bg-accent/10 text-accent'
-                  : 'text-foreground-muted hover:text-foreground hover:bg-background-elevated'
-              )}
-            >
-              <item.icon className={cn('h-5 w-5', isActive ? 'text-accent' : 'text-foreground-subtle group-hover:text-foreground')} />
+                  ? "bg-accent/10 text-accent"
+                  : "text-foreground-muted hover:text-foreground hover:bg-background-elevated"
+              )}>
+              <item.icon
+                className={cn(
+                  "h-5 w-5",
+                  isActive
+                    ? "text-accent"
+                    : "text-foreground-subtle group-hover:text-foreground"
+                )}
+              />
               <span className="flex-1">{item.name}</span>
               {showBadge && (
-                <span className={cn(
-                  'px-2 py-0.5 rounded-full text-xs font-medium',
-                  isActive ? 'bg-accent text-white' : 'bg-accent/10 text-accent'
-                )}>
+                <span
+                  className={cn(
+                    "px-2 py-0.5 rounded-full text-xs font-medium",
+                    isActive
+                      ? "bg-accent text-white"
+                      : "bg-accent/10 text-accent"
+                  )}>
                   {unreadCount}
                 </span>
               )}
-              {isActive && (
-                <ChevronRight className="h-4 w-4 text-accent" />
-              )}
+              {isActive && <ChevronRight className="h-4 w-4 text-accent" />}
             </Link>
           );
         })}
@@ -181,13 +198,19 @@ export function Sidebar() {
               key={item.name}
               href={item.href}
               className={cn(
-                'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 group',
+                "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 group",
                 isActive
-                  ? 'bg-accent/10 text-accent'
-                  : 'text-foreground-muted hover:text-foreground hover:bg-background-elevated'
-              )}
-            >
-              <item.icon className={cn('h-5 w-5', isActive ? 'text-accent' : 'text-foreground-subtle group-hover:text-foreground')} />
+                  ? "bg-accent/10 text-accent"
+                  : "text-foreground-muted hover:text-foreground hover:bg-background-elevated"
+              )}>
+              <item.icon
+                className={cn(
+                  "h-5 w-5",
+                  isActive
+                    ? "text-accent"
+                    : "text-foreground-subtle group-hover:text-foreground"
+                )}
+              />
               <span>{item.name}</span>
             </Link>
           );
@@ -198,42 +221,49 @@ export function Sidebar() {
       <div className="p-3 border-t border-border relative" ref={userMenuRef}>
         <button
           onClick={() => setShowUserMenu(!showUserMenu)}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-background-elevated transition-colors"
-        >
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-background-elevated transition-colors">
           <Avatar name={userName} size="sm" />
           <div className="flex-1 min-w-0 text-left">
-            <p className="text-sm font-medium text-foreground truncate">{userName}</p>
-            <p className="text-xs text-foreground-subtle truncate">{userEmail || 'Pro Plan'}</p>
+            <p className="text-sm font-medium text-foreground truncate">
+              {userName}
+            </p>
+            <p className="text-xs text-foreground-subtle truncate">
+              {userEmail || "Pro Plan"}
+            </p>
           </div>
-          <ChevronDown className={cn(
-            "h-4 w-4 text-foreground-subtle transition-transform",
-            showUserMenu && "rotate-180"
-          )} />
+          <ChevronDown
+            className={cn(
+              "h-4 w-4 text-foreground-subtle transition-transform",
+              showUserMenu && "rotate-180"
+            )}
+          />
         </button>
 
         {/* User Menu Dropdown */}
         {showUserMenu && (
-          <div className="absolute bottom-full left-3 right-3 mb-2 bg-background-elevated border border-border rounded-lg shadow-lg overflow-hidden">
+          <div className="absolute bottom-full left-3 right-3 mb-2 bg-background-elevated border border-border rounded-lg shadow-lg overflow-hidden z-50">
             <div className="p-3 border-b border-border">
-              <p className="text-sm font-medium text-foreground truncate">{userName}</p>
-              <p className="text-xs text-foreground-muted truncate">{userEmail}</p>
+              <p className="text-sm font-medium text-foreground truncate">
+                {userName}
+              </p>
+              <p className="text-xs text-foreground-muted truncate">
+                {userEmail}
+              </p>
             </div>
             <div className="p-1">
               <Link
                 href="/settings/profile"
                 className="flex items-center gap-2 px-3 py-2 text-sm text-foreground-muted hover:text-foreground hover:bg-background-secondary rounded-md transition-colors"
-                onClick={() => setShowUserMenu(false)}
-              >
+                onClick={() => setShowUserMenu(false)}>
                 <Settings className="h-4 w-4" />
                 Account Settings
               </Link>
               <button
                 onClick={handleLogout}
                 disabled={isLoggingOut}
-                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-error hover:bg-error/10 rounded-md transition-colors"
-              >
+                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-error hover:bg-error/10 rounded-md transition-colors">
                 <LogOut className="h-4 w-4" />
-                {isLoggingOut ? 'Logging out...' : 'Log out'}
+                {isLoggingOut ? "Logging out..." : "Log out"}
               </button>
             </div>
           </div>

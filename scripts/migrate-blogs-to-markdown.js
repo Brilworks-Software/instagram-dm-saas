@@ -1,0 +1,441 @@
+const fs = require('fs');
+const path = require('path');
+
+// Simple HTML to Markdown converter
+function htmlToMarkdown(html) {
+  if (!html) return '';
+  
+  let markdown = html
+    // Remove script and style tags
+    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+    // Headings
+    .replace(/<h1[^>]*>(.*?)<\/h1>/gi, '# $1\n\n')
+    .replace(/<h2[^>]*>(.*?)<\/h2>/gi, '## $1\n\n')
+    .replace(/<h3[^>]*>(.*?)<\/h3>/gi, '### $1\n\n')
+    .replace(/<h4[^>]*>(.*?)<\/h4>/gi, '#### $1\n\n')
+    // Links
+    .replace(/<a[^>]*href=["']([^"']+)["'][^>]*>(.*?)<\/a>/gi, '[$2]($1)')
+    // Bold
+    .replace(/<strong[^>]*>(.*?)<\/strong>/gi, '**$1**')
+    .replace(/<b[^>]*>(.*?)<\/b>/gi, '**$1**')
+    // Italic
+    .replace(/<em[^>]*>(.*?)<\/em>/gi, '*$1*')
+    .replace(/<i[^>]*>(.*?)<\/i>/gi, '*$1*')
+    // Code
+    .replace(/<code[^>]*>(.*?)<\/code>/gi, '`$1`')
+    // Blockquotes
+    .replace(/<blockquote[^>]*>(.*?)<\/blockquote>/gi, '> $1\n\n')
+    // Lists
+    .replace(/<ul[^>]*>/gi, '\n')
+    .replace(/<\/ul>/gi, '\n\n')
+    .replace(/<ol[^>]*>/gi, '\n')
+    .replace(/<\/ol>/gi, '\n\n')
+    .replace(/<li[^>]*>(.*?)<\/li>/gi, '- $1\n')
+    // Paragraphs
+    .replace(/<p[^>]*>(.*?)<\/p>/gi, '$1\n\n')
+    // Line breaks
+    .replace(/<br[^>]*>/gi, '\n')
+    // Remove remaining HTML tags
+    .replace(/<[^>]+>/g, '')
+    // Clean up whitespace
+    .replace(/\n{3,}/g, '\n\n')
+    .replace(/^\s+|\s+$/g, '')
+    .trim();
+
+  return markdown;
+}
+
+// Blog posts data (extracted from blog-posts.ts)
+const blogPosts = [
+  {
+    slug: 'how-to-do-instagram-outreach-that-actually-gets-replies',
+    title: 'How to Do Instagram Outreach That Actually Gets Replies: Complete Guide 2025',
+    description: 'Master Instagram outreach with proven strategies that get real replies. Learn how to use Instagram outreach tools, craft effective messages, and build genuine connections that convert.',
+    date: '2025-01-20',
+    readTime: '18 min',
+    category: 'Instagram Outreach',
+    keywords: [
+      'Instagram outreach tool',
+      'instagram dm tool',
+      'instagram dm automation',
+      'lead management tool',
+      'Instagram outreach',
+      'Instagram lead generation',
+      'social media outreach',
+      'Instagram messaging strategy',
+    ],
+    metaTitle: 'How to Do Instagram Outreach That Actually Gets Replies | Complete Guide 2025',
+    metaDescription: 'Master Instagram outreach with proven strategies. Learn how to use Instagram outreach tools, craft effective messages, and get real replies that convert. Complete guide with templates and best practices.',
+    featured: true,
+    pillar: true,
+    funnelStage: 'tofu',
+    author: 'Dhaval Trivedi',
+    authorRole: 'COO, SocialOra',
+    faqs: [
+      {
+        question: 'What is the best Instagram outreach tool?',
+        answer: 'The best Instagram outreach tool depends on your needs. SocialOra offers AI-powered automation with advanced personalization, lead management, and comprehensive analytics. It combines Instagram DM automation with intelligent targeting and follow-up sequences to maximize reply rates.',
+      },
+      {
+        question: 'How do I get more replies on Instagram DMs?',
+        answer: 'To get more replies, personalize every message, provide value first, use the right timing (Tuesday-Thursday, 9-11 AM or 5-7 PM), target the right audience, and follow up strategically. Tools like SocialOra help automate personalization at scale while maintaining authenticity.',
+      },
+      {
+        question: 'Is Instagram outreach automation safe?',
+        answer: 'Yes, when done responsibly. Use tools with built-in rate limiting, respect Instagram\'s guidelines (50-100 DMs/day), personalize messages, and space out sends. SocialOra includes safety features to protect your account while scaling outreach.',
+      },
+      {
+        question: 'What should I say in Instagram outreach messages?',
+        answer: 'Start with value, reference their content specifically, ask thoughtful questions, and keep it under 100 words. Avoid immediate sales pitches. Instead, offer resources, insights, or genuine compliments. See our guide on "What to Say in Instagram DMs" for proven templates.',
+      },
+      {
+        question: 'How many Instagram DMs should I send per day?',
+        answer: 'Start with 20-30 DMs/day for new accounts, gradually increasing to 50-100 DMs/day for established accounts. Never exceed 10 DMs per hour. Quality over quantity—better to send 50 personalized messages than 200 generic ones.',
+      },
+    ],
+    citations: [
+      {
+        title: 'Instagram Business Statistics 2025',
+        url: 'https://www.statista.com/topics/1882/instagram/',
+        source: 'Statista',
+        date: '2025',
+        description: 'Latest Instagram user and business statistics',
+      },
+      {
+        title: 'Social Media Marketing Benchmarks',
+        url: 'https://blog.hootsuite.com/social-media-statistics-for-social-media-managers/',
+        source: 'Hootsuite',
+        date: '2024',
+        description: 'Industry benchmarks for social media engagement rates',
+      },
+    ],
+    content: `# How to Do Instagram Outreach That Actually Gets Replies: The Complete Guide
+
+Instagram outreach can be a game-changer for your business—if you do it right. While most people get ignored or blocked, successful outreach gets 15-25% reply rates and converts leads into customers. This comprehensive guide shows you exactly how to do Instagram outreach that actually gets replies.
+
+## Why Most Instagram Outreach Fails (And How to Succeed)
+
+Before diving into what works, let's understand why 98% of Instagram outreach fails:
+
+- **Generic Messages:** Copy-paste templates that scream "automated spam"
+- **Wrong Timing:** Sending when people aren't active or checking DMs
+- **Poor Targeting:** Messaging people who have zero interest in your offer
+- **No Value:** Asking for something without offering anything first
+- **Too Salesy:** Immediate pitch without building rapport
+- **No Follow-up:** Giving up after one message
+
+The good news? These are all fixable. With the right [Instagram outreach strategies](/blog/instagram-outreach-strategies-dont-feel-spammy) and tools, you can achieve reply rates of 15-25% or higher.
+
+## What is Instagram Outreach?
+
+Instagram outreach is the process of proactively reaching out to potential customers, partners, or collaborators on Instagram through direct messages. Unlike traditional advertising, outreach is personal, targeted, and relationship-focused.
+
+There are two main types:
+
+### 1. Cold Outreach
+
+Messaging people who haven't interacted with your account. This requires more strategy but can reach a much larger audience. Learn more in our guide on [how to find the right people to message](/blog/how-to-find-right-people-message-instagram).
+
+### 2. Warm Outreach
+
+Messaging people who have engaged with your content, followed you, or shown interest. These have higher reply rates but reach fewer people.
+
+## The Psychology of Effective Instagram Outreach
+
+Understanding human psychology is crucial for effective outreach:
+
+### Reciprocity Principle
+
+People feel obligated to respond when you give value first. Offer something helpful before asking for anything.
+
+### Curiosity Gap
+
+Create intrigue without being clickbait. Questions and incomplete thoughts make people want to know more.
+
+### Social Proof
+
+Mention mutual connections, similar companies you've helped, or results you've achieved.
+
+### Specificity
+
+Generic messages get ignored. Specific references to their content, bio, or posts show you actually researched them.
+
+## Essential Instagram Outreach Tools
+
+While you can do outreach manually, the right **Instagram outreach tool** helps you scale without sacrificing personalization. Here's what to look for:
+
+### Must-Have Features
+
+- **Personalization:** Dynamic fields to insert names, locations, and custom details
+- **Targeting:** Find prospects by hashtags, locations, competitor followers, or custom criteria
+- **Automation:** Schedule sends, follow-up sequences, and auto-responses
+- **Lead Management:** Track conversations, score leads, and manage pipelines
+- **Analytics:** Monitor open rates, reply rates, and conversions
+- **Safety:** Rate limiting and account protection
+
+**SocialOra** combines all these features with AI-powered personalization, making it one of the best [Instagram DM automation tools](/blog/best-instagram-dm-automation-tools-2025) available. It helps you send personalized messages at scale while maintaining authenticity.
+
+## Step-by-Step: How to Do Instagram Outreach That Gets Replies
+
+### Step 1: Define Your Target Audience
+
+Before sending any messages, clearly define who you want to reach:
+
+- Demographics (age, location, interests)
+- Pain points they're experiencing
+- Where they hang out online (hashtags, accounts they follow)
+- What they're looking for (solutions, resources, connections)
+
+Use tools like SocialOra to find prospects based on hashtags, competitor followers, or custom filters. Learn more in our guide on [how to find the right people to message on Instagram](/blog/how-to-find-right-people-message-instagram).
+
+### Step 2: Research Each Prospect
+
+Don't send generic messages. Spend 2-3 minutes researching each person:
+
+- Read their bio carefully
+- Check their recent posts
+- Look at their stories
+- Note specific details you can reference
+- Identify pain points or interests
+
+### Step 3: Craft Personalized Messages
+
+Your message should feel like it was written specifically for them. Here's the structure:
+
+#### Opening Line (Hook)
+
+Grab attention with:
+
+- A specific observation about their content
+- A thoughtful question
+- A genuine compliment
+- A mutual connection or shared interest
+
+#### Value Proposition
+
+Offer something valuable before asking:
+
+- Free resource or tool
+- Relevant insight or tip
+- Introduction to someone helpful
+- Case study or example
+
+#### Soft Ask
+
+End with a low-pressure question or invitation:
+
+- "Want me to send it over?"
+- "Worth a quick chat?"
+- "Interested in learning more?"
+
+For proven templates, see our guide on [what to say in Instagram DMs to start real conversations](/blog/what-to-say-instagram-dms-start-conversations).
+
+### Step 4: Time Your Messages Right
+
+When you send matters as much as what you send:
+
+#### Best Times to Send
+
+- **Tuesday-Thursday:** Highest engagement days
+- **9-11 AM:** People checking social media
+- **1-3 PM:** Lunch break scrolling
+- **5-7 PM:** After work hours
+
+#### Times to Avoid
+
+- Early morning (before 8 AM)
+- Late night (after 10 PM)
+- Weekends (lower response rates)
+- Holidays
+
+### Step 5: Follow Up Strategically
+
+Most people need multiple touchpoints. Here's an effective sequence:
+
+1. **Initial DM:** Value-first message (Day 1)
+2. **Follow-up 1:** Add more value or context (Day 3-4)
+3. **Follow-up 2:** Soft reminder with new angle (Day 7)
+4. **Final Follow-up:** Clear CTA or close (Day 10-14)
+
+Tools like SocialOra automate follow-up sequences so you never miss an opportunity.
+
+## Common Instagram Outreach Mistakes to Avoid
+
+Learn from others' mistakes. Here's what kills reply rates:
+
+### 1. Sending Too Many Messages Too Fast
+
+Instagram flags accounts that send 10+ DMs in an hour. Space messages 2-5 minutes apart and never exceed 50-100 DMs per day. Use an **Instagram outreach tool** with built-in rate limiting.
+
+### 2. Using Identical Messages
+
+Copy-paste messages are obvious and get ignored. Always personalize, even when using automation. Tools like SocialOra use AI to generate unique variations while maintaining your core message.
+
+### 3. Targeting the Wrong People
+
+Messaging random people wastes time and hurts your account. Use precise targeting based on interests, hashtags, or competitor followers. Quality over quantity always wins.
+
+### 4. Being Too Salesy
+
+Don't pitch immediately. Build rapport first, offer value, then gently introduce your solution. See our guide on [Instagram outreach strategies that don't feel spammy](/blog/instagram-outreach-strategies-dont-feel-spammy).
+
+### 5. Not Following Up
+
+Most people need 2-4 touchpoints before responding. Set up automated follow-up sequences so you never miss an opportunity.
+
+## Measuring Instagram Outreach Success
+
+Track these metrics to improve your outreach:
+
+### Key Metrics
+
+- **Open Rate:** Target 60%+ (message was seen)
+- **Reply Rate:** Target 15-25% (they responded)
+- **Conversion Rate:** Target 2-5% (achieved your goal)
+- **Response Time:** Reply within 1-2 hours
+- **Template Performance:** A/B test different messages
+
+A good **lead management tool** like SocialOra tracks all these metrics automatically, helping you optimize your outreach over time.
+
+## Advanced Instagram Outreach Strategies
+
+### 1. The Value Ladder Approach
+
+Start with free value, then gradually increase:
+
+1. Free resource or tip
+2. Free consultation or audit
+3. Low-cost offer or trial
+4. Main product or service
+
+### 2. Social Proof Integration
+
+Mention results you've achieved or similar companies you've helped:
+
+> "We've helped 50+ [similar companies] achieve [specific result]. Thought you might want to know how."
+
+### 3. Multi-Channel Approach
+
+Combine Instagram outreach with email, LinkedIn, or other channels for better results. Coordinate touchpoints across platforms.
+
+## Why Most Instagram Outreach Fails (And How to Fix It)
+
+Understanding failure points helps you avoid them. Common reasons outreach fails:
+
+- **No Clear Goal:** You don't know what you want from the conversation
+- **Poor Targeting:** Messaging people who don't need your solution
+- **Weak Value Proposition:** Not offering something compelling
+- **Bad Timing:** Sending when people aren't active
+- **No Follow-up:** Giving up after one message
+
+For a deep dive, see our guide on [why most Instagram outreach fails and how to fix it](/blog/why-most-instagram-outreach-fails-how-to-fix).
+
+## Using Instagram for Lead Generation Without Ads
+
+Organic Instagram outreach can generate high-quality leads without spending on ads:
+
+### Strategies
+
+- Target competitor followers who are already interested in your niche
+- Use relevant hashtags to find people discussing your topic
+- Engage with people commenting on industry posts
+- Build relationships before asking for anything
+
+Learn more in our guide on [how to use Instagram for lead generation without ads](/blog/how-to-use-instagram-lead-generation-without-ads).
+
+## Managing Instagram Conversations at Scale
+
+When doing outreach at scale, you need a **lead management tool** to:
+
+- Track all conversations in one place
+- Score leads based on engagement and fit
+- Set reminders for follow-ups
+- Automate responses to common questions
+- Integrate with your CRM
+
+SocialOra's unified inbox and lead management features help you handle hundreds of conversations without missing opportunities. See our guide on [how to manage Instagram conversations when doing outreach at scale](/blog/how-to-manage-instagram-conversations-scale).
+
+## Conclusion: Start Getting Replies Today
+
+Instagram outreach that gets replies isn't about sending the most messages—it's about sending the right messages to the right people at the right time. By following this guide, you can:
+
+- Achieve 15-25% reply rates (vs. 2% industry average)
+- Build genuine relationships that convert
+- Scale your outreach without sacrificing personalization
+- Generate high-quality leads without ads
+
+The key is combining strategy with the right tools. **SocialOra** helps you automate personalization, manage conversations, and track results—all while maintaining the authenticity that gets replies.
+
+**Ready to transform your Instagram outreach?** [Start your free trial of SocialOra](/signup) and see how AI-powered outreach can get you real replies that convert.
+
+## Related Guides
+
+- [Instagram Outreach Strategies That Don't Feel Spammy](/blog/instagram-outreach-strategies-dont-feel-spammy)
+- [How to Find the Right People to Message on Instagram](/blog/how-to-find-right-people-message-instagram)
+- [What to Say in Instagram DMs to Start Real Conversations](/blog/what-to-say-instagram-dms-start-conversations)
+- [Why Most Instagram Outreach Fails (And How to Fix It)](/blog/why-most-instagram-outreach-fails-how-to-fix)
+- [How to Use Instagram for Lead Generation Without Ads](/blog/how-to-use-instagram-lead-generation-without-ads)
+- [How to Manage Instagram Conversations When Doing Outreach at Scale](/blog/how-to-manage-instagram-conversations-scale)`,
+    relatedPosts: [
+      'instagram-outreach-strategies-dont-feel-spammy',
+      'how-to-find-right-people-message-instagram',
+      'what-to-say-instagram-dms-start-conversations',
+      'why-most-instagram-outreach-fails-how-to-fix',
+      'how-to-use-instagram-lead-generation-without-ads',
+      'how-to-manage-instagram-conversations-scale',
+    ],
+  },
+];
+
+// Function to create markdown file
+function createMarkdownFile(post) {
+  const blogDir = path.join(process.cwd(), 'content', 'blog');
+  
+  // Ensure directory exists
+  if (!fs.existsSync(blogDir)) {
+    fs.mkdirSync(blogDir, { recursive: true });
+  }
+
+  // Create frontmatter
+  const frontmatter = `---
+title: "${post.title}"
+description: "${post.description}"
+date: "${post.date}"
+readTime: "${post.readTime}"
+category: "${post.category}"
+keywords:
+${post.keywords.map(k => `  - "${k}"`).join('\n')}
+author: "${post.author || 'Dhaval Trivedi'}"
+authorRole: "${post.authorRole || 'COO, SocialOra'}"
+metaTitle: "${post.metaTitle || post.title}"
+metaDescription: "${post.metaDescription || post.description}"
+featured: ${post.featured || false}
+pillar: ${post.pillar || false}
+${post.clusterOf ? `clusterOf: "${post.clusterOf}"` : ''}
+funnelStage: "${post.funnelStage || 'mofu'}"
+${post.relatedPosts && post.relatedPosts.length > 0 ? `relatedPosts:\n${post.relatedPosts.map(rp => `  - "${rp}"`).join('\n')}` : ''}
+${post.faqs && post.faqs.length > 0 ? `faqs:\n${post.faqs.map(faq => `  - question: "${faq.question.replace(/"/g, '\\"')}"\n    answer: "${faq.answer.replace(/"/g, '\\"')}"`).join('\n')}` : ''}
+${post.citations && post.citations.length > 0 ? `citations:\n${post.citations.map(cit => `  - title: "${cit.title.replace(/"/g, '\\"')}"\n    url: "${cit.url}"\n    source: "${cit.source}"\n    date: "${cit.date || ''}"\n    description: "${(cit.description || '').replace(/"/g, '\\"')}"`).join('\n')}` : ''}
+---
+
+`;
+
+  // Combine frontmatter and content
+  const content = frontmatter + post.content;
+
+  // Write file
+  const filePath = path.join(blogDir, `${post.slug}.mdx`);
+  fs.writeFileSync(filePath, content, 'utf8');
+  console.log(`✅ Created: ${filePath}`);
+}
+
+// Run migration
+console.log('🚀 Starting blog migration to markdown...\n');
+
+blogPosts.forEach(post => {
+  createMarkdownFile(post);
+});
+
+console.log(`\n✅ Migration complete! Created ${blogPosts.length} blog post(s).`);
+

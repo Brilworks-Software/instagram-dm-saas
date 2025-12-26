@@ -1,8 +1,7 @@
 import { MetadataRoute } from 'next';
-import { getAllBlogSlugs } from '@/lib/blog-posts';
 import { instagramTools } from '@/app/tools/_data/tools';
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://www.socialora.app';
   
   // Remove trailing slash and ensure proper URL format
@@ -22,6 +21,24 @@ export default function sitemap(): MetadataRoute.Sitemap {
       lastModified: new Date(),
       changeFrequency: 'daily' as const,
       priority: 0.9, // High priority - content marketing
+    },
+    {
+      url: `${cleanBaseUrl}/blog/rss.xml`,
+      lastModified: new Date(),
+      changeFrequency: 'daily' as const,
+      priority: 0.7, // Medium priority - RSS feed
+    },
+    {
+      url: `${cleanBaseUrl}/ebook/increase-instagram-followers-reach-engagement`,
+      lastModified: new Date(),
+      changeFrequency: 'monthly' as const,
+      priority: 0.85, // High priority - lead magnet
+    },
+    {
+      url: `${cleanBaseUrl}/blog/free-ebook-increase-instagram-followers-reach-engagement`,
+      lastModified: new Date(),
+      changeFrequency: 'monthly' as const,
+      priority: 0.8, // High priority - SEO content
     },
     {
       url: `${cleanBaseUrl}/tools`,
@@ -61,14 +78,35 @@ export default function sitemap(): MetadataRoute.Sitemap {
     },
   ];
 
-  // Dynamic blog post pages
-  const blogSlugs = getAllBlogSlugs();
-  const blogPages = blogSlugs.map((slug) => ({
-    url: `${cleanBaseUrl}/blog/${slug}`,
-    lastModified: new Date(),
-    changeFrequency: 'weekly' as const,
-    priority: 0.8,
-  }));
+  // Dynamic blog post pages with smart prioritization
+  const { getAllBlogPosts } = await import('@/lib/blog-loader');
+  const blogPosts = getAllBlogPosts();
+  const blogPages = blogPosts.map((post) => {
+    // Higher priority for pillar and featured posts
+    let priority = 0.8;
+    if (post.pillar) priority = 0.95;
+    else if (post.featured) priority = 0.90;
+    
+    // Boost priority for new 2025 content
+    const is2025Content = post.slug?.includes('2025');
+    if (is2025Content) priority = Math.min(0.95, priority + 0.05);
+
+    // Determine change frequency based on recency
+    const daysSincePublished = Math.floor(
+      (Date.now() - new Date(post.date).getTime()) / (1000 * 60 * 60 * 24)
+    );
+    let changeFrequency: 'always' | 'hourly' | 'daily' | 'weekly' | 'monthly' | 'yearly' | 'never' = 'monthly';
+    if (daysSincePublished < 3) changeFrequency = 'hourly'; // Very recent content
+    else if (daysSincePublished < 7) changeFrequency = 'daily';
+    else if (daysSincePublished < 30) changeFrequency = 'weekly';
+
+    return {
+      url: `${cleanBaseUrl}/blog/${post.slug}`,
+      lastModified: new Date(post.date),
+      changeFrequency,
+      priority,
+    };
+  });
 
   const toolPages = instagramTools.map((tool) => ({
     url: `${cleanBaseUrl}/tools/${tool.slug}`,

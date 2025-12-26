@@ -17,6 +17,9 @@ const nextConfig = {
   // Vercel doesn't need standalone output
   // Image optimization
   images: {
+    formats: ['image/avif', 'image/webp'],
+    deviceSizes: [640, 750, 828, 1080, 1200, 1920],
+    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
     domains: [
       'instagram.com', 
       'cdninstagram.com', 
@@ -53,6 +56,29 @@ const nextConfig = {
       },
     ],
     unoptimized: false,
+  },
+  // Headers for caching and SEO
+  async headers() {
+    return [
+      {
+        source: '/blog/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, s-maxage=3600, stale-while-revalidate=86400',
+          },
+        ],
+      },
+      {
+        source: '/blog/rss.xml',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, s-maxage=3600, stale-while-revalidate=86400',
+          },
+        ],
+      },
+    ];
   },
   // Disable ESLint during builds for now
   eslint: {

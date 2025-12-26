@@ -1,0 +1,49 @@
+# robots.txt for SocialOra - Optimized for fast crawling
+# Updated: December 2024
+
+User-agent: *
+Allow: /
+
+# High-priority pages for crawling
+Allow: /blog/
+Allow: /tools/
+Allow: /ebook/
+
+# Disallow admin and API routes
+Disallow: /api/
+Disallow: /admin/
+Disallow: /_next/
+Disallow: /dashboard/
+
+# Disallow auth pages
+Disallow: /login
+Disallow: /signup
+Disallow: /reset-password
+Disallow: /forgot-password
+
+# Sitemap location
+Sitemap: https://www.socialora.app/sitemap.xml
+
+# Crawl-delay for major search engines (0 = crawl as fast as possible)
+User-agent: Googlebot
+Crawl-delay: 0
+Allow: /blog/
+Allow: /tools/
+Allow: /ebook/
+
+User-agent: Bingbot
+Crawl-delay: 0
+Allow: /blog/
+Allow: /tools/
+Allow: /ebook/
+
+# Encourage frequent crawling of blog and new content
+User-agent: Googlebot
+Allow: /blog/*2025*
+Allow: /blog/instagram-growth-strategy-2025
+Allow: /blog/how-to-start-instagram-business-2025
+Allow: /blog/instagram-trends-2025-what-to-expect
+
+User-agent: Bingbot
+Allow: /blog/*2025*
+

@@ -69,3 +69,33 @@ export function formatToolUsageSlackMessage(params: {
 
   return lines.join('\n');
 }
+
+export function formatEbookDownloadSlackMessage(params: {
+  email?: string | null;
+  instagramUsername?: string | null;
+  ip?: string | null;
+  ipInfo?: Record<string, unknown> | null;
+}) {
+  const ipInfo = params.ipInfo || {};
+  const city = (ipInfo['city'] as string | undefined) || '';
+  const region = (ipInfo['region'] as string | undefined) || '';
+  const countryName = (ipInfo['country_name'] as string | undefined) || '';
+  const org = (ipInfo['org'] as string | undefined) || '';
+  const timezone = (ipInfo['timezone'] as string | undefined) || '';
+
+  const lines = [
+    `📚 New eBook Download: Instagram Followers & Engagement Guide`,
+  ];
+
+  if (params.email) lines.push(`📧 Email: ${params.email}`);
+  if (params.instagramUsername) lines.push(`📱 Instagram: @${params.instagramUsername}`);
+  
+  if (params.ip) lines.push(`\n🌐 IP: ${params.ip}`);
+  if (city) lines.push(`📍 City: ${city}`);
+  if (region) lines.push(`🗺️ Region: ${region}`);
+  if (countryName) lines.push(`🌍 Country: ${countryName}`);
+  if (timezone) lines.push(`⏰ Timezone: ${timezone}`);
+  if (org) lines.push(`🏢 Org: ${org}`);
+
+  return lines.join('\n');
+}

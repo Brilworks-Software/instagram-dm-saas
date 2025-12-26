@@ -1,26 +1,60 @@
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Calendar, Clock, Instagram } from 'lucide-react';
+import { ArrowRight, Calendar, Clock, Instagram, Rss } from 'lucide-react';
 import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
+import Script from 'next/script';
 import { BlogHeader } from './blog-header';
 
 export const metadata: Metadata = {
   title: 'Blog - Instagram DM Automation & Cold DM Strategies | SocialOra',
   description: 'Learn about Instagram DM automation, cold DM strategies, Instagram automation tools, and how to scale your outreach. Expert guides on Instagram marketing automation.',
-  keywords: ['Instagram DM automation', 'cold DM automation', 'Instagram automation', 'DM automation tools', 'Instagram marketing automation', 'automated Instagram messages', 'Instagram outreach automation'],
+  keywords: [
+    'Instagram DM automation',
+    'cold DM automation',
+    'Instagram automation',
+    'DM automation tools',
+    'Instagram marketing automation',
+    'automated Instagram messages',
+    'Instagram outreach automation',
+    'Instagram automation blog',
+    'Instagram marketing tips',
+    'social media automation',
+  ],
   openGraph: {
     title: 'Blog - Instagram DM Automation & Cold DM Strategies | SocialOra',
     description: 'Expert guides on Instagram DM automation, cold DM strategies, and Instagram marketing automation.',
     type: 'website',
+    url: '/blog',
+    siteName: 'SocialOra Blog',
+    images: [
+      {
+        url: '/images/logo.png',
+        width: 1200,
+        height: 630,
+        alt: 'SocialOra Blog',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Blog - Instagram DM Automation & Cold DM Strategies | SocialOra',
+    description: 'Expert guides on Instagram DM automation, cold DM strategies, and Instagram marketing automation.',
+    images: ['/images/logo.png'],
+  },
+  alternates: {
+    canonical: '/blog',
+    types: {
+      'application/rss+xml': '/blog/rss.xml',
+    },
   },
 };
 
 // Import blog posts from lib
-import { blogPosts } from '@/lib/blog-posts';
+import { getAllBlogPosts } from '@/lib/blog-loader';
 
-// Use the blog posts from the centralized data source
-const allBlogPosts = blogPosts.map(post => ({
+// Get all blog posts
+const allBlogPosts = getAllBlogPosts().map(post => ({
   slug: post.slug,
   title: post.title,
   description: post.description,
@@ -31,12 +65,48 @@ const allBlogPosts = blogPosts.map(post => ({
   featured: post.featured || false,
 }));
 
+// Blog listing structured data
+function BlogListingStructuredData() {
+  const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://www.socialora.app';
+  const cleanBaseUrl = baseUrl.replace(/\/$/, '');
+
+  const itemListSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    name: 'SocialOra Blog Posts',
+    description: 'Expert guides on Instagram DM automation, cold DM strategies, and Instagram marketing automation.',
+    url: `${cleanBaseUrl}/blog`,
+    numberOfItems: allBlogPosts.length,
+    itemListElement: allBlogPosts.map((post, index) => ({
+      '@type': 'ListItem',
+      position: index + 1,
+      item: {
+        '@type': 'BlogPosting',
+        '@id': `${cleanBaseUrl}/blog/${post.slug}`,
+        name: post.title,
+        description: post.description,
+        url: `${cleanBaseUrl}/blog/${post.slug}`,
+        datePublished: new Date(post.date).toISOString(),
+      },
+    })),
+  };
+
+  return (
+    <Script
+      id="structured-data-blog-listing"
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListSchema) }}
+    />
+  );
+}
+
 export default function BlogPage() {
   const featuredPosts = allBlogPosts.filter(post => post.featured);
   const regularPosts = allBlogPosts.filter(post => !post.featured);
 
   return (
     <div className="min-h-screen bg-background">
+      <BlogListingStructuredData />
       {/* Header */}
       <header className="border-b border-border bg-background/80 backdrop-blur-lg sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
@@ -76,9 +146,19 @@ export default function BlogPage() {
           <h1 className="text-4xl sm:text-5xl font-bold text-foreground mb-4">
             Instagram DM Automation Blog
           </h1>
-          <p className="text-xl text-foreground-muted max-w-3xl mx-auto">
+          <p className="text-xl text-foreground-muted max-w-3xl mx-auto mb-6">
             Expert guides on Instagram automation, cold DM strategies, and how to scale your outreach with AI-powered tools
           </p>
+          <div className="flex items-center justify-center gap-4">
+            <Link
+              href="/blog/rss.xml"
+              className="flex items-center gap-2 text-foreground-muted hover:text-foreground transition-colors text-sm"
+              aria-label="Subscribe to RSS feed"
+            >
+              <Rss className="h-4 w-4" />
+              <span>RSS Feed</span>
+            </Link>
+          </div>
         </div>
 
         {/* Featured Posts */}

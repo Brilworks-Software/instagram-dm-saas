@@ -70,6 +70,10 @@ body {
   color: var(--foreground);
   font-family: var(--font-geist-sans), system-ui, sans-serif;
 }
+a{
+  text-decoration: none;  
+  color: var(--accent-color);
+}
 
 /* Custom scrollbar */
 ::-webkit-scrollbar {
@@ -154,13 +158,12 @@ body {
 }
 
 .blog-content a {
-  color: #a855f7;
-  text-decoration: underline;
+  color: var(--accent-color);
   transition: color 0.2s;
 }
 
 .blog-content a:hover {
-  color: #c084fc;
+  color: var(--accent-hover);
 }
 
 .blog-content blockquote {
