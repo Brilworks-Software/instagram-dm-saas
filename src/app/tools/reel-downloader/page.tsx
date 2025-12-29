@@ -39,10 +39,18 @@ export default function ReelDownloaderPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <Link href="/" className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-accent to-pink-500 flex items-center justify-center">
-                <Instagram className="h-4 w-4 text-white" />
+              <div className="h-8 w-8 rounded-lg from-accent to-pink-500 flex items-center justify-center">
+                <img
+                src="/images/logo.png"
+                alt="SocialOra"
+                width={56}
+                height={56}
+                className="h-full w-full object-contain"
+              />
               </div>
-              <span className="font-bold text-lg text-foreground">InstaDM</span>
+              <span className="font-bold text-lg">
+                Social<span className="text-accent">ora</span>
+              </span>
             </Link>
             <Link href="/tools">
               <Button variant="ghost" size="sm">
@@ -64,7 +72,7 @@ export default function ReelDownloaderPage() {
           
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-foreground mb-6">
             Download Instagram Reels
-            <span className="block text-transparent bg-clip-text bg-gradient-to-r from-accent to-pink-500 mt-2">
+            <span className="block text-transparent bg-clip-text bg-gradient-to-r from-accent to-pink-500 mt-2 pb-2">
               in High Quality
             </span>
           </h1>

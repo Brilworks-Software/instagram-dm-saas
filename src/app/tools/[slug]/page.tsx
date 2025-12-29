@@ -395,8 +395,14 @@ export default function ToolPage({ params }: { params: { slug: string } }) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <Link href="/" className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-accent to-pink-500 flex items-center justify-center">
-                <Instagram className="h-4 w-4 text-white" />
+             <div className="h-8 w-8 rounded-lg from-accent to-pink-500 flex items-center justify-center">
+                <img
+                src="/images/logo.png"
+                alt="SocialOra"
+                width={56}
+                height={56}
+                className="h-full w-full object-contain"
+              />
               </div>
               <span className="font-bold text-lg">
                 Social<span className="text-accent">ora</span>

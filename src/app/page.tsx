@@ -499,7 +499,7 @@ export default function HomePage() {
           <div className="text-center">
             {/* Enhanced Main Heading with better gradient */}
             <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-bold mb-4 sm:mb-6 animate-slide-up leading-tight px-4">
-              <span className="inline-block bg-gradient-to-r from-accent via-pink-500 to-purple-500 bg-clip-text text-transparent animate-gradient">
+              <span className="inline-block bg-gradient-to-r from-accent via-pink-500 to-purple-500 bg-clip-text text-transparent animate-gradient pb-2">
                 Transform Instagram
               </span>
               <br />
