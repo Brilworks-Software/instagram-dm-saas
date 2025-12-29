@@ -131,37 +131,48 @@ export default function CampaignsPage() {
         );
       }
 
-      // Fetch campaigns with account info
-      const { data, error } = await supabase
-        .from("campaigns")
-        .select(
+      // Fetch campaigns via API (uses Prisma, consistent with campaign creation)
+      const response = await fetch("/api/campaigns");
+      if (!response.ok) {
+        throw new Error("Failed to fetch campaigns");
+      }
+      const result = await response.json();
+
+      if (result.success && result.campaigns) {
+        setCampaigns(result.campaigns);
+      } else {
+        // Fallback to Supabase if API fails
+        const { data, error } = await supabase
+          .from("campaigns")
+          .select(
+            `
+            *,
+            instagram_account:instagram_accounts(ig_username)
           `
-          *,
-          instagram_account:instagram_accounts(ig_username)
-        `
-        )
-        .order("created_at", { ascending: false });
+          )
+          .order("created_at", { ascending: false });
 
-      if (error) throw error;
+        if (error) throw error;
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const transformedCampaigns: Campaign[] = (data || []).map((c: any) => ({
-        id: c.id,
-        name: c.name,
-        description: c.description,
-        status: c.status,
-        scheduledAt: c.scheduled_at,
-        startedAt: c.started_at,
-        completedAt: c.completed_at,
-        totalRecipients: c.total_recipients,
-        sentCount: c.sent_count,
-        failedCount: c.failed_count,
-        replyCount: c.reply_count,
-        createdAt: c.created_at,
-        instagramUsername: c.instagram_account?.ig_username,
-      }));
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const transformedCampaigns: Campaign[] = (data || []).map((c: any) => ({
+          id: c.id,
+          name: c.name,
+          description: c.description,
+          status: c.status,
+          scheduledAt: c.scheduled_at,
+          startedAt: c.started_at,
+          completedAt: c.completed_at,
+          totalRecipients: c.total_recipients,
+          sentCount: c.sent_count,
+          failedCount: c.failed_count,
+          replyCount: c.reply_count,
+          createdAt: c.created_at,
+          instagramUsername: c.instagram_account?.ig_username,
+        }));
 
-      setCampaigns(transformedCampaigns);
+        setCampaigns(transformedCampaigns);
+      }
     } catch (error) {
       console.error("Error fetching campaigns:", error);
     } finally {

@@ -240,8 +240,8 @@ model Campaign {
   sentCount       Int            @default(0) @map("sent_count")
   failedCount     Int            @default(0) @map("failed_count")
   replyCount      Int            @default(0) @map("reply_count")
-  sendStartTime   String?        @map("send_start_time") // TIME type
-  sendEndTime     String?        @map("send_end_time") // TIME type
+  sendStartTime   DateTime?      @map("send_start_time") @db.Time
+  sendEndTime     DateTime?      @map("send_end_time") @db.Time
   timezone        String?        @default("America/New_York")
   messagesPerDay  Int            @default(10) @map("messages_per_day")
   createdAt       DateTime       @default(now()) @map("created_at")

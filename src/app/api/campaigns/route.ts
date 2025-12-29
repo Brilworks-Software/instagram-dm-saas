@@ -3,6 +3,47 @@ import { requireAuth } from '@/lib/server/auth';
 import { prisma } from '@/lib/server/prisma/client';
 import { campaignService } from '@/lib/server/campaigns/campaign-service';
 
+/**
+ * Validates and normalizes a time string to PostgreSQL TIME format (HH:mm:ss)
+ * PostgreSQL TIME type accepts values from 00:00:00 to 23:59:59.999999
+ * This function ensures the time is in the exact format PostgreSQL expects
+ */
+function normalizeTime(time: string | null | undefined): string | null {
+  // Handle null/undefined/empty
+  if (!time || typeof time !== 'string') return null;
+  
+  // Remove any whitespace
+  const trimmed = time.trim();
+  if (!trimmed || trimmed === '') return null;
+
+  // Parse time string - accepts HH:mm or HH:mm:ss format
+  // Also handle cases with milliseconds (HH:mm:ss.sss)
+  const timeMatch = trimmed.match(/^(\d{1,2}):(\d{2})(?::(\d{1,2})(?:\.\d+)?)?$/);
+  if (!timeMatch) {
+    throw new Error(`Invalid time format: "${time}". Expected HH:mm or HH:mm:ss`);
+  }
+
+  const hours = parseInt(timeMatch[1], 10);
+  const minutes = parseInt(timeMatch[2], 10);
+  const seconds = parseInt(timeMatch[3] || '0', 10);
+
+  // Validate ranges - PostgreSQL TIME accepts 00:00:00 to 23:59:59.999999
+  if (isNaN(hours) || hours < 0 || hours > 23) {
+    throw new Error(`Invalid hour: ${hours}. Must be between 0 and 23`);
+  }
+  if (isNaN(minutes) || minutes < 0 || minutes > 59) {
+    throw new Error(`Invalid minutes: ${minutes}. Must be between 0 and 59`);
+  }
+  if (isNaN(seconds) || seconds < 0 || seconds > 59) {
+    throw new Error(`Invalid seconds: ${seconds}. Must be between 0 and 59`);
+  }
+
+  // Format as HH:mm:ss (PostgreSQL TIME format, no milliseconds for simplicity)
+  const formatted = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+  
+  return formatted;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const auth = await requireAuth(request);
@@ -22,31 +63,69 @@ export async function POST(request: NextRequest) {
       steps, // Array of message steps
     } = body;
 
+    // Normalize and validate time values
+    let normalizedStartTime: string | null = null;
+    let normalizedEndTime: string | null = null;
+
+    try {
+      normalizedStartTime = normalizeTime(sendStartTime);
+      normalizedEndTime = normalizeTime(sendEndTime);
+
+      // Ensure we don't send empty strings - convert to null
+      if (normalizedStartTime === "" || normalizedStartTime === null) {
+        normalizedStartTime = null;
+      }
+      if (normalizedEndTime === "" || normalizedEndTime === null) {
+        normalizedEndTime = null;
+      }
+
+      // Log for debugging
+      console.log("Time normalization:", {
+        original: { sendStartTime, sendEndTime },
+        normalized: { normalizedStartTime, normalizedEndTime },
+      });
+    } catch (error: any) {
+      console.error("Time normalization error:", error);
+      return Response.json(
+        { success: false, error: error.message || "Invalid time format" },
+        { status: 400 }
+      );
+    }
+
     // Validation
     if (!name || !name.trim()) {
       return Response.json(
-        { success: false, error: 'Campaign name is required' },
+        { success: false, error: "Campaign name is required" },
         { status: 400 }
       );
     }
 
     if (!accountIds || !Array.isArray(accountIds) || accountIds.length === 0) {
       return Response.json(
-        { success: false, error: 'At least one Instagram account must be selected' },
+        {
+          success: false,
+          error: "At least one Instagram account must be selected",
+        },
         { status: 400 }
       );
     }
 
-    if ((!contactIds || contactIds.length === 0) && (!leadIds || leadIds.length === 0)) {
+    if (
+      (!contactIds || contactIds.length === 0) &&
+      (!leadIds || leadIds.length === 0)
+    ) {
       return Response.json(
-        { success: false, error: 'At least one recipient (contact or lead) must be selected' },
+        {
+          success: false,
+          error: "At least one recipient (contact or lead) must be selected",
+        },
         { status: 400 }
       );
     }
 
     if (!steps || !Array.isArray(steps) || steps.length === 0) {
       return Response.json(
-        { success: false, error: 'At least one message step is required' },
+        { success: false, error: "At least one message step is required" },
         { status: 400 }
       );
     }
@@ -62,14 +141,17 @@ export async function POST(request: NextRequest) {
 
     if (accounts.length !== accountIds.length) {
       return Response.json(
-        { success: false, error: 'One or more selected accounts are invalid or inactive' },
+        {
+          success: false,
+          error: "One or more selected accounts are invalid or inactive",
+        },
         { status: 400 }
       );
     }
 
     // Get or create contacts from leads
     const allContactIds: string[] = [...(contactIds || [])];
-    
+
     if (leadIds && leadIds.length > 0) {
       const leads = await prisma.lead.findMany({
         where: {
@@ -110,16 +192,19 @@ export async function POST(request: NextRequest) {
     const uniqueContactIds = Array.from(new Set(allContactIds));
     const totalRecipients = uniqueContactIds.length;
 
-    // Create campaign
+    // Create campaign - use raw SQL for TIME fields to ensure proper casting
+    // Prisma sometimes has issues with String to TIME conversion, so we'll use a transaction
+    // First create the campaign without time fields, then update with raw SQL
     const campaign = await prisma.campaign.create({
       data: {
         name: name.trim(),
         description: description?.trim() || null,
         workspaceId: auth.workspaceId,
-        status: 'DRAFT',
-        sendStartTime: sendStartTime || null,
-        sendEndTime: sendEndTime || null,
-        timezone: timezone || 'America/New_York',
+        status: "DRAFT",
+        // Set time fields to null initially, update with raw SQL below
+        sendStartTime: null,
+        sendEndTime: null,
+        timezone: timezone || "America/New_York",
         messagesPerDay: messagesPerDay || 10,
         totalRecipients,
         sentCount: 0,
@@ -129,6 +214,39 @@ export async function POST(request: NextRequest) {
         instagramAccountId: accountIds[0] || null,
       },
     });
+
+    // Update time fields with explicit TIME casting using raw SQL
+    // This ensures PostgreSQL properly interprets the time strings
+    if (normalizedStartTime || normalizedEndTime) {
+      if (normalizedStartTime && normalizedEndTime) {
+        await prisma.$executeRaw`
+          UPDATE campaigns 
+          SET 
+            send_start_time = ${normalizedStartTime}::TIME,
+            send_end_time = ${normalizedEndTime}::TIME
+          WHERE id = ${campaign.id}::uuid
+        `;
+      } else if (normalizedStartTime) {
+        await prisma.$executeRaw`
+          UPDATE campaigns 
+          SET send_start_time = ${normalizedStartTime}::TIME
+          WHERE id = ${campaign.id}::uuid
+        `;
+      } else if (normalizedEndTime) {
+        await prisma.$executeRaw`
+          UPDATE campaigns 
+          SET send_end_time = ${normalizedEndTime}::TIME
+          WHERE id = ${campaign.id}::uuid
+        `;
+      }
+
+      // Assign the normalized time values directly since Prisma has issues
+      // reading TIME columns as strings (it tries to convert them to timestamps)
+      // We use type assertion here because these are only for in-memory use
+      // and won't affect the database (which is already updated via raw SQL above)
+      (campaign as any).sendStartTime = normalizedStartTime;
+      (campaign as any).sendEndTime = normalizedEndTime;
+    }
 
     // Create campaign_accounts junction table entries
     await prisma.campaignAccount.createMany({
@@ -203,23 +321,24 @@ export async function POST(request: NextRequest) {
         campaignId: campaign.id,
         contactId,
         assignedAccountId: accountIds[accountIndex],
-        status: 'PENDING' as const,
+        status: "PENDING" as const,
         currentStepOrder: 0,
       };
     });
 
     // Generate random send times for recipients
-    const recipientsWithTimes = await campaignService.assignRecipientsAndSchedule(
-      campaign.id,
-      recipientAssignments,
-      {
-        sendStartTime: sendStartTime || '09:00:00',
-        sendEndTime: sendEndTime || '17:00:00',
-        timezone: timezone || 'America/New_York',
-        messagesPerDay: messagesPerDay || 10,
-        accountIds,
-      }
-    );
+    const recipientsWithTimes =
+      await campaignService.assignRecipientsAndSchedule(
+        campaign.id,
+        recipientAssignments,
+        {
+          sendStartTime: normalizedStartTime || "09:00:00",
+          sendEndTime: normalizedEndTime || "17:00:00",
+          timezone: timezone || "America/New_York",
+          messagesPerDay: messagesPerDay || 10,
+          accountIds,
+        }
+      );
 
     // Create campaign recipients with scheduled times
     await Promise.all(
@@ -255,13 +374,109 @@ export async function POST(request: NextRequest) {
   }
 }
 
+export async function GET(request: NextRequest) {
+  try {
+    const auth = await requireAuth(request);
+    if (auth instanceof Response) return auth; // Error response
+
+    // Fetch campaigns using raw SQL to avoid TIME column type conversion issues
+    // Prisma has issues reading TIME columns as strings
+    const campaigns = await prisma.$queryRaw<
+      Array<{
+        id: string;
+        name: string;
+        description: string | null;
+        status: string;
+        scheduled_at: Date | null;
+        started_at: Date | null;
+        completed_at: Date | null;
+        total_recipients: number;
+        sent_count: number;
+        failed_count: number;
+        reply_count: number;
+        created_at: Date;
+        instagram_account_id: string | null;
+        send_start_time: string | null;
+        send_end_time: string | null;
+      }>
+    >`
+      SELECT 
+        c.id,
+        c.name,
+        c.description,
+        c.status,
+        c.scheduled_at,
+        c.started_at,
+        c.completed_at,
+        c.total_recipients,
+        c.sent_count,
+        c.failed_count,
+        c.reply_count,
+        c.created_at,
+        c.instagram_account_id,
+        c.send_start_time::text as send_start_time,
+        c.send_end_time::text as send_end_time
+      FROM campaigns c
+      WHERE c.workspace_id = ${auth.workspaceId}::uuid
+      ORDER BY c.created_at DESC
+    `;
+
+    // Get account usernames for campaigns
+    const accountIds = campaigns
+      .map((c) => c.instagram_account_id)
+      .filter((id): id is string => id !== null);
+
+    const accounts =
+      accountIds.length > 0
+        ? await prisma.instagramAccount.findMany({
+            where: {
+              id: { in: accountIds },
+            },
+            select: {
+              id: true,
+              igUsername: true,
+            },
+          })
+        : [];
+
+    const accountMap = new Map(accounts.map((a) => [a.id, a.igUsername]));
+
+    // Transform campaigns to match frontend expectations
+    const transformedCampaigns = campaigns.map((campaign) => ({
+      id: campaign.id,
+      name: campaign.name,
+      description: campaign.description,
+      status: campaign.status,
+      scheduledAt: campaign.scheduled_at,
+      startedAt: campaign.started_at,
+      completedAt: campaign.completed_at,
+      totalRecipients: campaign.total_recipients,
+      sentCount: campaign.sent_count,
+      failedCount: campaign.failed_count,
+      replyCount: campaign.reply_count,
+      createdAt: campaign.created_at,
+      instagramUsername: campaign.instagram_account_id
+        ? accountMap.get(campaign.instagram_account_id) || null
+        : null,
+    }));
+
+    return Response.json({ success: true, campaigns: transformedCampaigns });
+  } catch (error: any) {
+    console.error("Failed to fetch campaigns:", error);
+    return Response.json(
+      { success: false, error: error?.message || "Failed to fetch campaigns" },
+      { status: 500 }
+    );
+  }
+}
+
 export async function OPTIONS() {
   return new Response(null, {
     status: 200,
     headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type",
     },
   });
 }
