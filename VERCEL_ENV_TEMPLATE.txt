@@ -38,6 +38,12 @@ NEXT_PUBLIC_BACKEND_URL=https://your-project.vercel.app
 JWT_SECRET=your-generated-secret-min-32-characters
 ENCRYPTION_KEY=your-generated-key-32-characters
 
+# Internal API Secret (Required for automated campaign processing)
+# Used to authenticate Supabase Edge Functions calling Next.js API
+# Generate with: openssl rand -base64 32
+# Must match the value set in Supabase Edge Function secrets
+INTERNAL_API_SECRET=your-generated-secret-min-32-characters
+
 # Optional: Analytics
 NEXT_PUBLIC_POSTHOG_KEY=
 NEXT_PUBLIC_POSTHOG_HOST=https://us.i.posthog.com
@@ -81,6 +87,11 @@ REDIS_URL=redis://default:password@host:port
 # JWT_SECRET & ENCRYPTION_KEY:
 #   - Run: openssl rand -base64 32
 #   - Generate two different values
+#
+# INTERNAL_API_SECRET:
+#   - Run: openssl rand -base64 32
+#   - Generate a unique secret for internal API authentication
+#   - Must be the same value in both Vercel and Supabase Edge Function secrets
 #
 # NEXT_PUBLIC_BACKEND_URL:
 #   - Set after first deployment
