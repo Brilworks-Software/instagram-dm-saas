@@ -317,6 +317,17 @@ a{
   }
 }
 
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
 @keyframes bounce-subtle {
   0%, 100% {
     transform: translateY(0);
@@ -526,6 +537,10 @@ input[type="range"].slider-input::-moz-range-track {
 
 .animate-scale-in {
   animation: scale-in 0.5s ease-out forwards;
+}
+
+.animate-fade-in-scale {
+  animation: fadeInScale 0.3s ease-out forwards;
 }
 
 .animate-bounce-subtle {

@@ -76,6 +76,16 @@ export const instagramTools: InstagramTool[] = [
     seoDescription: 'Generate unlimited Instagram content ideas for posts, stories, and Reels. Never run out of creative ideas with our AI tool.',
   },
   {
+    slug: 'reel-downloader',
+    title: 'Instagram Reel Downloader',
+    description: 'Download Instagram reels in high quality. Fast, secure, and free. No watermarks or login required.',
+    category: 'Content',
+    badges: ['Free'],
+    seoKeywords: ['instagram reel downloader', 'download instagram reels', 'instagram video downloader', 'save instagram reels', 'free reel downloader', 'reel saver'],
+    seoTitle: 'Free Instagram Reel Downloader | Download Reels in HD',
+    seoDescription: 'Download Instagram reels in high quality for free. Fast, secure, and easy to use. No watermarks, no login required.',
+  },
+  {
     slug: 'emv-calculator',
     title: 'Instagram Earned Media Value (EMV) Calculator',
     description: 'Estimate the earned media value for creators or campaigns.',

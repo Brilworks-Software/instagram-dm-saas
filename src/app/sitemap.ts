@@ -87,9 +87,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     if (post.pillar) priority = 0.95;
     else if (post.featured) priority = 0.90;
     
-    // Boost priority for new 2025 content
+    // Boost priority for new 2025 and 2026 content
     const is2025Content = post.slug?.includes('2025');
-    if (is2025Content) priority = Math.min(0.95, priority + 0.05);
+    const is2026Content = post.slug?.includes('2026');
+    if (is2026Content) priority = Math.min(0.98, priority + 0.08);
+    else if (is2025Content) priority = Math.min(0.95, priority + 0.05);
 
     // Determine change frequency based on recency
     const daysSincePublished = Math.floor(

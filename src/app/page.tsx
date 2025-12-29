@@ -11,6 +11,7 @@ import {
   BarChart3,
   Bot,
   CheckCircle2,
+  Gift,
   Heart,
   Instagram,
   Lightbulb,
@@ -111,6 +112,7 @@ export default function HomePage() {
   const [counters, setCounters] = useState({ users: 0, messages: 0, satisfaction: 0 });
   const statsRef = useRef<HTMLDivElement>(null);
   const [hasAnimated, setHasAnimated] = useState(false);
+  const [showTopBanner, setShowTopBanner] = useState(true);
 
   // Check for OAuth code parameter and redirect to callback
   useEffect(() => {
@@ -244,7 +246,7 @@ export default function HomePage() {
       title: "Analytics Dashboard",
       description:
         "Track engagement, response times, and campaign performance with detailed insights.",
-      color: "from-green-500 to-emerald-500",
+      color: "from-accent to-pink-500",
     },
     {
       icon: Target,
@@ -322,17 +324,39 @@ export default function HomePage() {
     <div className="min-h-screen bg-background overflow-hidden relative">
       <FloatingBackground />
       <HomepageStructuredData />
+      
+      {/* Top Announcement Banner - Above Navigation */}
+      {showTopBanner && (
+        <div className="fixed top-0 left-0 right-0 z-[60] bg-gradient-to-r from-accent/20 via-pink-500/20 to-purple-500/20 backdrop-blur-md">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-center gap-3 py-2.5 sm:py-3">
+              <Gift className="h-4 w-4 sm:h-5 sm:w-5 text-accent flex-shrink-0 animate-pulse" />
+              <p className="text-xs sm:text-sm font-semibold text-accent text-center">
+                🎁 <span className="font-bold">Limited Time:</span> Claim Your Free Forever Plan - 1 Account + 40 DMs Daily, No Credit Card Required
+              </p>
+              <button
+                onClick={() => setShowTopBanner(false)}
+                className="ml-auto p-1 rounded-full hover:bg-accent/20 transition-colors"
+                aria-label="Close banner"
+              >
+                <X className="h-4 w-4 text-foreground-muted hover:text-foreground" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Enhanced Navigation */}
-      <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+      <nav className={`fixed ${showTopBanner ? 'top-[42px] sm:top-[44px]' : 'top-0'} left-0 right-0 z-50 transition-all duration-300 ${
         scrollY > 50 
-          ? 'bg-background/95 backdrop-blur-xl border-b border-border shadow-lg' 
-          : 'bg-background/80 backdrop-blur-lg border-b border-border/50'
+          ? 'bg-background/95 backdrop-blur-xl shadow-lg' 
+          : 'bg-background/80 backdrop-blur-lg'
       }`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-20">
+          <div className="flex items-center justify-between h-16 sm:h-20">
             {/* Logo */}
             <Link href="/" className="flex items-center group">
-              <div className="h-12 w-12 flex items-center justify-center overflow-hidden transition-transform duration-300 group-hover:scale-110">
+              <div className="h-10 w-10 sm:h-12 sm:w-12 flex items-center justify-center overflow-hidden transition-transform duration-300 group-hover:scale-110">
                 <Image
                   src="/images/logo.png"
                   alt="SocialOra"
@@ -341,7 +365,7 @@ export default function HomePage() {
                   className="h-full w-full object-contain"
                 />
               </div>
-              <span className="font-bold text-2xl ml-2">
+              <span className="font-bold text-lg sm:text-xl md:text-2xl ml-2">
                 Social<span className="bg-gradient-to-r from-accent to-pink-500 bg-clip-text text-transparent">Ora</span>
               </span>
             </Link>
@@ -379,7 +403,7 @@ export default function HomePage() {
                 size="sm" 
                 className="ml-4 bg-gradient-to-r from-accent to-pink-600 hover:from-accent/90 hover:to-pink-500 text-white font-semibold shadow-lg shadow-accent/30 hover:shadow-accent/50 transition-all duration-300 hover:scale-105"
                 onClick={() => setIsWaitingListOpen(true)}>
-                Join Waiting List
+                Start Free Forever
                 <ArrowRight className="h-4 w-4 ml-2" />
               </Button>
             </div>
@@ -434,12 +458,12 @@ export default function HomePage() {
               
               <div className="pt-2">
                 <Button
-                  className="w-full bg-gradient-to-r from-accent to-pink-600 hover:from-accent/90 hover:to-pink-500 text-white font-semibold shadow-lg shadow-accent/30"
+                  className="w-full bg-gradient-to-r from-accent to-pink-600 hover:from-accent/90 hover:to-pink-500 text-white font-semibold shadow-lg shadow-accent/30 hover:shadow-accent/50 transition-all duration-300"
                   onClick={() => {
                     setIsWaitingListOpen(true);
                     setIsMobileMenuOpen(false);
                   }}>
-                  Join Waiting List
+                  Start Free Forever →
                   <ArrowRight className="h-4 w-4 ml-2" />
                 </Button>
               </div>
@@ -449,7 +473,7 @@ export default function HomePage() {
       </nav>
 
       {/* Hero Section */}
-      <section className="relative pt-32 pb-20 px-4 sm:px-6 lg:px-8 overflow-hidden min-h-screen flex items-center">
+      <section className={`relative ${showTopBanner ? 'pt-24 sm:pt-28 md:pt-32 lg:pt-36' : 'pt-20 sm:pt-24 md:pt-28 lg:pt-32'} pb-12 sm:pb-16 md:pb-20 px-4 sm:px-6 lg:px-8 overflow-hidden min-h-screen flex items-center`}>
         {/* Enhanced Animated Background */}
         <div className="absolute inset-0 overflow-hidden">
           <div 
@@ -473,70 +497,73 @@ export default function HomePage() {
 
         <div className="max-w-7xl mx-auto relative z-10 w-full">
           <div className="text-center">
-            {/* Enhanced Badge with animation */}
-            <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-gradient-to-r from-background-elevated via-background-elevated to-background-elevated border border-accent/30 mb-8 animate-fade-in backdrop-blur-sm shadow-lg shadow-accent/10 hover:scale-105 transition-transform duration-300">
-              <div className="relative">
-                <Sparkles className="h-4 w-4 text-accent animate-pulse" />
-                <div className="absolute inset-0 h-4 w-4 text-accent animate-ping opacity-20"></div>
-              </div>
-              <span className="text-sm font-medium bg-gradient-to-r from-foreground to-foreground-muted bg-clip-text">
-                AI-Powered Instagram DM Management
-              </span>
-              <Zap className="h-3 w-3 text-yellow-400" />
-            </div>
-
             {/* Enhanced Main Heading with better gradient */}
-            <h1 className="text-5xl sm:text-6xl lg:text-7xl xl:text-8xl font-bold mb-6 animate-slide-up leading-tight">
+            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-bold mb-4 sm:mb-6 animate-slide-up leading-tight px-4">
               <span className="inline-block bg-gradient-to-r from-accent via-pink-500 to-purple-500 bg-clip-text text-transparent animate-gradient">
                 Transform Instagram
               </span>
               <br />
               <span className="inline-block text-foreground mt-2">
-                Into Your{' '}
-                <span className="relative inline-block">
+                Into Your{' '}  
+                <span className="relative inline-block pb-4">
                   <span className="bg-gradient-to-r from-accent to-pink-500 bg-clip-text text-transparent">
                     Revenue Engine
                   </span>
-                  <svg className="absolute -bottom-2 left-0 right-0 h-3" viewBox="0 0 100 10" preserveAspectRatio="none">
+                  <svg className="absolute bottom-0 left-0 right-0 h-3" viewBox="0 0 100 10" preserveAspectRatio="none">
                     <path d="M0 8 Q 50 0, 100 8" stroke="currentColor" strokeWidth="2" fill="none" className="text-accent" />
                   </svg>
                 </span>
               </span>
             </h1>
 
-            <p className="text-xl sm:text-2xl text-foreground-muted max-w-3xl mx-auto mb-10 animate-slide-up delay-200 leading-relaxed">
+            <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-foreground-muted max-w-3xl mx-auto mb-6 sm:mb-8 md:mb-10 animate-slide-up delay-200 leading-relaxed px-4">
               Automate conversations, nurture leads, and close deals—all while you sleep. 
               <span className="text-foreground font-semibold"> Convert 3x more leads</span> with intelligent automation.
             </p>
 
+            {/* Demo Video in Hero Section */}
+            <div className="mb-8 sm:mb-10 md:mb-12 animate-slide-up delay-300 px-4">
+              <HeroVideo videoId="qfZBnw7G2Tw" isInHero={true} />
+            </div>
+
             {/* Enhanced CTA Buttons */}
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16 animate-slide-up delay-300">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 mb-12 sm:mb-14 md:mb-16 animate-slide-up delay-400 px-4">
               <Button
                 size="lg"
-                className="group relative overflow-hidden bg-gradient-to-r from-accent to-pink-600 hover:from-accent/90 hover:to-pink-500 text-white font-semibold px-8 py-6 text-lg shadow-2xl shadow-accent/30 hover:shadow-accent/50 transition-all duration-300"
+                className="group relative overflow-hidden bg-gradient-to-r from-accent to-pink-600 hover:from-accent/90 hover:to-pink-500 text-white font-semibold w-full sm:w-auto px-6 sm:px-8 md:px-10 py-5 sm:py-6 md:py-7 text-base sm:text-lg md:text-xl shadow-2xl shadow-accent/40 hover:shadow-accent/60 transition-all duration-300 transform hover:scale-105"
                 onClick={() => setIsWaitingListOpen(true)}>
-                <span className="relative z-10 flex items-center">
-                  Join Waiting List
-                  <ArrowRight className="h-5 w-5 ml-2 group-hover:translate-x-1 transition-transform" />
+                <span className="relative z-10 flex items-center justify-center gap-2">
+                  Claim Your Free Forever Plan →
+                  <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5 group-hover:translate-x-1 transition-transform" />
                 </span>
                 <div className="absolute inset-0 bg-gradient-to-r from-pink-600 to-purple-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
               </Button>
               <Button
                 variant="secondary"
                 size="lg"
-                className="group border-2 border-border hover:border-accent/50 bg-background-elevated/50 backdrop-blur-sm px-8 py-6 text-lg font-semibold hover:bg-background-elevated transition-all duration-300"
+                className="group border-2 border-border hover:border-accent/50 bg-background-elevated/50 backdrop-blur-sm w-full sm:w-auto px-6 sm:px-8 py-5 sm:py-6 text-base sm:text-lg font-semibold hover:bg-background-elevated transition-all duration-300"
                 onClick={() => {
                   document.getElementById('demo-video-section')?.scrollIntoView({ behavior: 'smooth' });
                 }}>
-                <span className="flex items-center">
-                  Watch Demo
-                  <div className="ml-2 w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+                <span className="flex items-center justify-center">
+                  See How It Works
+                  <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5 ml-2 group-hover:translate-x-1 transition-transform" />
                 </span>
               </Button>
             </div>
+            
+            {/* Trust Banner */}
+            <div className="max-w-2xl mx-auto mb-6 sm:mb-8 animate-slide-up delay-500 px-4">
+              <div className="inline-flex items-center gap-2 sm:gap-3 px-4 sm:px-6 py-2 sm:py-3 rounded-full bg-background-elevated/50 border border-border/50 backdrop-blur-sm">
+                <CheckCircle2 className="h-3 w-3 sm:h-4 sm:w-4 text-accent flex-shrink-0" />
+                <span className="text-xs sm:text-sm text-foreground-muted text-center">
+                  Free forever plan • No credit card required • Cancel anytime
+                </span>
+              </div>
+            </div>
 
             {/* Enhanced Stats with animation */}
-            <div ref={statsRef} className="grid grid-cols-2 sm:grid-cols-4 gap-6 max-w-5xl mx-auto animate-fade-in delay-500">
+            <div ref={statsRef} className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 max-w-5xl mx-auto animate-fade-in delay-500 px-4">
               {[
                 { value: '10K+', label: 'Active Users', icon: Users },
                 { value: '2M+', label: 'Messages Sent', icon: Send },
@@ -545,59 +572,57 @@ export default function HomePage() {
               ].map((stat, index) => (
                 <div
                   key={index}
-                  className="bg-background-elevated rounded-xl p-6 border border-border hover:border-accent/50 transition-all hover:scale-105">
-                  <stat.icon className="h-6 w-6 text-accent mb-2 mx-auto" />
-                  <div className="text-3xl font-bold text-foreground mb-1">
+                  className="bg-background-elevated rounded-xl p-4 sm:p-6 border border-border hover:border-accent/50 transition-all hover:scale-105">
+                  <stat.icon className="h-5 w-5 sm:h-6 sm:w-6 text-accent mb-2 mx-auto" />
+                  <div className="text-2xl sm:text-3xl font-bold text-foreground mb-1">
                     <CountUpNumber 
                       value={stat.value} 
                       duration={2500}
                       delay={index * 100}
                     />
                   </div>
-                  <div className="text-sm text-foreground-muted">
+                  <div className="text-xs sm:text-sm text-foreground-muted">
                     {stat.label}
                   </div>
                 </div>
               ))}
             </div>
 
-            <div className="mt-12 flex items-center justify-center gap-8 text-sm text-foreground-muted animate-fade-in delay-700">
+            <div className="mt-8 sm:mt-10 md:mt-12 flex flex-wrap items-center justify-center gap-4 sm:gap-6 md:gap-8 text-xs sm:text-sm text-foreground-muted animate-fade-in delay-700 px-4">
               <div className="flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-green-500" />
+                <CheckCircle2 className="h-3 w-3 sm:h-4 sm:w-4 text-accent flex-shrink-0" />
+                <span>Free forever plan</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="h-3 w-3 sm:h-4 sm:w-4 text-accent flex-shrink-0" />
                 <span>No credit card required</span>
               </div>
               <div className="flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-green-500" />
-                <span>14-day free trial</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-green-500" />
+                <CheckCircle2 className="h-3 w-3 sm:h-4 sm:w-4 text-accent flex-shrink-0" />
                 <span>Cancel anytime</span>
               </div>
             </div>
-            <HeroVideo />
             <LogoCloud />
           </div>
         </div>
       </section>
 
-      {/* Interactive Simulation Section */}
-      <InteractiveSimulation />
-
-      {/* Results Section */}
+      {/* Results Section - Moved up for early social proof */}
       <ResultsSection />
 
-      {/* Features Bento Section */}
+      {/* Interactive Simulation Section - Visual proof of AI magic */}
+      <InteractiveSimulation />
+
+      {/* Features Bento Section - What you get */}
       <FeaturesBento />
 
-      {/* Comparison Section */}
+      {/* Comparison Section - Why switch to SocialOra */}
       <ComparisonSection />
 
-      {/* Enhanced How It Works */}
+      {/* Enhanced How It Works - Ease of use */}
       <TimelineSteps onCtaClick={() => setIsWaitingListOpen(true)} />
 
-
-      {/* Enhanced Testimonials with social proof */}
+      {/* Enhanced Testimonials with social proof - Before pricing for credibility */}
       <section className="py-32 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
         {/* Background effects */}
         <div className="absolute inset-0 bg-gradient-to-b from-background-secondary via-background to-background-secondary"></div>
@@ -627,7 +652,7 @@ export default function HomePage() {
               <div className="flex items-center gap-3 mb-4">
                 <div className="relative">
                   <Users className="h-5 w-5 text-accent" />
-                  <div className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                  <div className="absolute -top-1 -right-1 w-2 h-2 bg-accent rounded-full animate-pulse"></div>
                 </div>
                 <span className="text-sm font-semibold text-foreground">Live Activity</span>
               </div>
@@ -699,7 +724,7 @@ export default function HomePage() {
                           className="w-full h-full object-cover"
                         />
                       </div>
-                      <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 rounded-full border-2 border-background-elevated"></div>
+                      <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-accent rounded-full border-2 border-background-elevated"></div>
                     </div>
                     <div>
                       <div className="font-bold text-foreground text-lg">
@@ -745,7 +770,7 @@ export default function HomePage() {
             </div>
             <div className="h-4 w-px bg-border"></div>
             <div className="flex items-center gap-2">
-              <CheckCircle2 className="h-4 w-4 text-green-500" />
+              <CheckCircle2 className="h-4 w-4 text-accent" />
               <span className="text-sm">Trusted by top brands</span>
             </div>
           </div>
@@ -775,7 +800,7 @@ export default function HomePage() {
               <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-background border border-accent/30 mb-8">
                 <Sparkles className="h-4 w-4 text-accent animate-pulse" />
                 <span className="text-sm font-semibold text-foreground">Limited Time Offer</span>
-                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                <div className="w-2 h-2 bg-accent rounded-full animate-pulse"></div>
               </div>
               
               {/* Heading */}
@@ -796,10 +821,10 @@ export default function HomePage() {
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8">
                 <Button
                   size="lg"
-                  className="group relative overflow-hidden bg-gradient-to-r from-accent via-pink-600 to-purple-600 hover:from-accent/90 hover:via-pink-500 hover:to-purple-500 text-white font-bold px-10 py-7 text-lg shadow-2xl shadow-accent/40 hover:shadow-accent/60 transition-all duration-300 hover:scale-105"
+                  className="group relative overflow-hidden bg-gradient-to-r from-accent via-pink-600 to-purple-600 hover:from-accent/90 hover:via-pink-500 hover:to-purple-500 text-white font-semibold px-10 py-7 text-lg shadow-2xl shadow-accent/40 hover:shadow-accent/60 transition-all duration-300 hover:scale-105"
                   onClick={() => setIsWaitingListOpen(true)}>
                   <span className="relative z-10 flex items-center">
-                    Start Free Trial
+                    Start Free Forever - No Credit Card →
                     <ArrowRight className="h-6 w-6 ml-2 group-hover:translate-x-1 transition-transform" />
                   </span>
                   <div className="absolute inset-0 bg-gradient-to-r from-purple-600 via-pink-500 to-accent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
@@ -809,9 +834,7 @@ export default function HomePage() {
                   size="lg"
                   className="border-2 border-accent/30 hover:border-accent/50 bg-background/50 backdrop-blur-sm px-10 py-7 text-lg font-semibold hover:bg-background transition-all duration-300"
                   onClick={() => {
-                    document
-                      .getElementById("demo-video")
-                      ?.scrollIntoView({ behavior: "smooth" });
+                    window.open('https://www.youtube.com/watch?v=qfZBnw7G2Tw', '_blank', 'noopener,noreferrer');
                   }}>
                   Watch Demo
                 </Button>
@@ -820,17 +843,17 @@ export default function HomePage() {
               {/* Trust indicators */}
               <div className="flex flex-wrap items-center justify-center gap-6 text-sm text-foreground-muted mb-8">
                 <div className="flex items-center gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-green-500" />
+                  <CheckCircle2 className="h-4 w-4 text-accent" />
                   <span>No credit card required</span>
                 </div>
                 <div className="h-4 w-px bg-border"></div>
                 <div className="flex items-center gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-green-500" />
-                  <span>14-day free trial</span>
+                  <CheckCircle2 className="h-4 w-4 text-accent" />
+                  <span>Free forever plan</span>
                 </div>
                 <div className="h-4 w-px bg-border"></div>
                 <div className="flex items-center gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-green-500" />
+                  <CheckCircle2 className="h-4 w-4 text-accent" />
                   <span>Cancel anytime</span>
                 </div>
               </div>
@@ -972,7 +995,7 @@ export default function HomePage() {
             </p>
             <div className="flex items-center gap-6">
               <div className="flex items-center gap-1">
-                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                <div className="w-2 h-2 bg-accent rounded-full animate-pulse"></div>
                 <span className="text-xs text-foreground-muted">All systems operational</span>
               </div>
             </div>
@@ -1109,6 +1132,52 @@ export default function HomePage() {
         open={isWaitingListOpen}
         onOpenChange={setIsWaitingListOpen}
       />
+
+      {/* Floating CTA Button - Mobile Sticky at bottom */}
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 md:hidden">
+        <Button
+          size="lg"
+          className="group relative overflow-hidden bg-gradient-to-r from-accent to-pink-600 hover:from-accent/90 hover:to-pink-500 text-white font-semibold px-6 py-4 text-base shadow-2xl shadow-accent/40 hover:shadow-accent/60 transition-all duration-300 active:scale-95"
+          onClick={(e) => {
+            e.preventDefault();
+            // Add click animation
+            const button = e.currentTarget;
+            button.classList.add('animate-pulse');
+            setTimeout(() => {
+              button.classList.remove('animate-pulse');
+              setIsWaitingListOpen(true);
+            }, 200);
+          }}>
+          <span className="relative z-10 flex items-center">
+            Claim Free Forever →
+            <ArrowRight className="h-5 w-5 ml-2 group-hover:translate-x-1 transition-transform" />
+          </span>
+        </Button>
+      </div>
+
+      {/* Desktop Sticky CTA - Right Side - Minimal Design (XL screens only) */}
+      <div className="hidden xl:block fixed right-4 top-1/2 -translate-y-1/2 z-40">
+        <button
+          onClick={(e) => {
+            e.preventDefault();
+            // Add click animation
+            const button = e.currentTarget;
+            button.classList.add('animate-pulse');
+            setTimeout(() => {
+              button.classList.remove('animate-pulse');
+              setIsWaitingListOpen(true);
+            }, 200);
+          }}
+          className="group flex flex-col items-center gap-2 p-2.5 sm:p-3 rounded-full bg-background-elevated/80 backdrop-blur-md border border-border/50 hover:border-accent/50 shadow-lg hover:shadow-accent/20 transition-all duration-300 hover:scale-105 active:scale-95"
+          aria-label="Get Free Access">
+          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-gradient-to-r from-accent to-pink-600 flex items-center justify-center group-hover:from-accent/90 group-hover:to-pink-500 transition-all">
+            <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5 text-white group-hover:translate-x-0.5 transition-transform" />
+          </div>
+          <span className="text-[10px] sm:text-xs font-medium text-foreground-muted group-hover:text-foreground transition-colors whitespace-nowrap">
+            Start Free
+          </span>
+        </button>
+      </div>
     </div>
   );
 }

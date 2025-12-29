@@ -53,9 +53,9 @@ export function ResultsSection() {
           {stats.map((stat, index) => (
             <div 
               key={index}
-              className="group relative p-8 rounded-[2rem] bg-background-elevated/40 border border-border hover:border-accent/40 transition-all duration-500 backdrop-blur-sm"
+              className="group relative p-8 rounded-[2rem] bg-background-elevated/40 border border-border hover:border-accent/40 transition-all duration-500 backdrop-blur-sm overflow-hidden"
             >
-              <div className={`absolute top-0 left-0 w-full h-1 bg-gradient-to-r ${stat.color} rounded-t-full scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-left`}></div>
+              <div className={`absolute top-0 left-0 w-full h-1 bg-gradient-to-r ${stat.color} scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-left`}></div>
               
               <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${stat.color} flex items-center justify-center mb-6 shadow-lg group-hover:scale-110 transition-transform duration-300`}>
                 <stat.icon className="h-6 w-6 text-white" />

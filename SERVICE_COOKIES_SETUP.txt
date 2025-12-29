@@ -1,0 +1,61 @@
+===========================================
+INSTAGRAM SERVICE ACCOUNT COOKIES
+===========================================
+
+Add these to your .env.local file:
+
+# Instagram Service Account Cookies (for public tools)
+INSTAGRAM_SERVICE_SESSION_ID=78941019254%3AHWq5ubDJqtsv06%3A13%3AAYhzJzVuFjcaZ5O7MeyFBT-9fStB1z01e5OunkfXkA
+INSTAGRAM_SERVICE_DS_USER_ID=78941019254
+INSTAGRAM_SERVICE_CSRF_TOKEN=2YRse7RGeWUsVOe5E4yq6ftB1Amh8EuH
+INSTAGRAM_SERVICE_IG_DID=8B9DDEF6-043A-45E8-BB1F-0A12BE54D1CF
+INSTAGRAM_SERVICE_MID=aNU5aQALAAGVyo_OhNII5_dZ2F6j
+INSTAGRAM_SERVICE_RUR=CCO,78941019254,1798289099:01fe340c5e19a291338a754c3cdc97a9e1b0c7eb7d2d151c29cbef445696c64dab7a29a7
+
+===========================================
+IMPORTANT NOTES:
+===========================================
+
+1. These cookies are ONLY used for public tools:
+   - Instagram Reels Downloader
+   - Fake Follower Checker
+   - Engagement Calculator
+   - Engagement Rate Calculator
+   - Photo Downloader
+
+2. These cookies are NOT used for:
+   - User account logins
+   - Lead generation
+   - Bulk DMs
+   - Campaigns
+   - Inbox/conversations
+
+3. Cookie Expiration:
+   - Cookies typically expire every 2-4 weeks
+   - When tools stop working, refresh these cookies
+   - Extract new cookies from browser DevTools
+
+4. Security:
+   - Keep these cookies secure
+   - Don't commit .env.local to git
+   - Rotate cookies if exposed
+
+===========================================
+HOW TO REFRESH COOKIES:
+===========================================
+
+1. Login to Instagram in browser (service account)
+2. Open DevTools (F12)
+3. Go to Application → Cookies → https://www.instagram.com
+4. Copy cookies:
+   - sessionid → INSTAGRAM_SERVICE_SESSION_ID
+   - ds_user_id → INSTAGRAM_SERVICE_DS_USER_ID
+   - csrftoken → INSTAGRAM_SERVICE_CSRF_TOKEN
+   - ig_did → INSTAGRAM_SERVICE_IG_DID (optional)
+   - mid → INSTAGRAM_SERVICE_MID (optional)
+   - rur → INSTAGRAM_SERVICE_RUR (optional)
+5. Update .env.local with new values
+6. Restart your development server
+
+===========================================
+

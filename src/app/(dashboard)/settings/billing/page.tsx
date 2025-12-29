@@ -4,30 +4,36 @@ import { CreditCard, Download, Check, Zap } from 'lucide-react';
 
 const plans = [
   {
-    name: 'Starter',
-    price: 29,
-    features: ['1 Instagram account', '1,000 DMs/month', 'Basic analytics', 'Email support'],
-    current: false,
+    name: 'Free Forever',
+    price: 'FREE',
+    priceType: 'forever',
+    features: ['1 Instagram account', '40 DMs daily bulk sending', 'Basic AI response engine', 'Unified Inbox access', 'Email support', 'Free forever - no credit card required'],
+    current: true,
+    popular: true,
+    isFree: true,
   },
   {
     name: 'Pro',
-    price: 79,
-    features: ['5 Instagram accounts', '10,000 DMs/month', 'Advanced analytics', 'Priority support', 'AI automations'],
-    current: true,
-    popular: true,
+    price: 'Custom',
+    priceType: 'custom',
+    features: ['Unlimited automated DMs', 'Advanced AI with persona training', 'Lead scoring & qualification', 'Priority support', 'Up to 5 Instagram accounts', 'Analytics Dashboard', 'Custom features on request'],
+    current: false,
+    isFree: false,
   },
   {
     name: 'Enterprise',
-    price: 199,
-    features: ['Unlimited accounts', 'Unlimited DMs', 'Custom integrations', 'Dedicated support', 'API access'],
+    price: 'Custom',
+    priceType: 'custom',
+    features: ['Multi-user collaboration', 'API access', 'Custom AI model training', 'Dedicated account manager', 'Unlimited accounts', 'SLA guarantee', 'White-glove setup & support'],
     current: false,
+    isFree: false,
   },
 ];
 
 const invoices = [
-  { date: 'Dec 1, 2024', amount: '$79.00', status: 'Paid' },
-  { date: 'Nov 1, 2024', amount: '$79.00', status: 'Paid' },
-  { date: 'Oct 1, 2024', amount: '$79.00', status: 'Paid' },
+  { date: 'Dec 1, 2024', amount: 'Free Forever Plan', status: 'Active' },
+  { date: 'Nov 1, 2024', amount: 'Free Forever Plan', status: 'Active' },
+  { date: 'Oct 1, 2024', amount: 'Free Forever Plan', status: 'Active' },
 ];
 
 export default function BillingPage() {
@@ -43,19 +49,19 @@ export default function BillingPage() {
         <div className="flex items-center justify-between mb-4">
           <div>
             <h2 className="text-lg font-semibold text-white">Current Plan</h2>
-            <p className="text-zinc-500">You are currently on the Pro plan</p>
+            <p className="text-zinc-500">You are currently on the Free Forever plan</p>
           </div>
           <div className="text-right">
-            <p className="text-2xl font-bold text-white">$79<span className="text-sm text-zinc-500">/month</span></p>
-            <p className="text-sm text-zinc-500">Next billing: Jan 1, 2025</p>
+            <p className="text-2xl font-bold text-white bg-gradient-to-r from-pink-500 to-purple-500 bg-clip-text text-transparent">FREE<span className="text-sm text-zinc-500"> Forever</span></p>
+            <p className="text-sm text-zinc-500">No billing required</p>
           </div>
         </div>
         <div className="flex gap-3">
-          <button className="px-4 py-2 rounded-lg bg-zinc-800 text-zinc-300 hover:bg-zinc-700 transition-colors text-sm font-medium">
-            Change Plan
+          <button className="px-4 py-2 rounded-lg bg-gradient-to-r from-pink-500 to-purple-500 text-white hover:from-pink-600 hover:to-purple-600 transition-colors text-sm font-medium">
+            Upgrade to Pro
           </button>
-          <button className="px-4 py-2 rounded-lg text-rose-400 hover:bg-rose-500/10 transition-colors text-sm font-medium">
-            Cancel Subscription
+          <button className="px-4 py-2 rounded-lg bg-zinc-800 text-zinc-300 hover:bg-zinc-700 transition-colors text-sm font-medium">
+            Contact Support
           </button>
         </div>
       </div>
@@ -75,17 +81,19 @@ export default function BillingPage() {
             >
               {plan.popular && (
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-gradient-to-r from-pink-500 to-purple-500 text-white text-xs font-medium">
-                  Most Popular
+                  Limited Time
                 </div>
               )}
               <h3 className="text-lg font-semibold text-white mb-2">{plan.name}</h3>
-              <p className="text-3xl font-bold text-white mb-4">
-                ${plan.price}<span className="text-sm text-zinc-500 font-normal">/mo</span>
+              <p className={`text-3xl font-bold mb-4 ${plan.isFree ? 'bg-gradient-to-r from-pink-500 to-purple-500 bg-clip-text text-transparent' : 'text-white'}`}>
+                {plan.price === 'FREE' ? 'FREE' : plan.price}
+                {plan.priceType === 'forever' && <span className="text-sm text-zinc-500 font-normal ml-2">Forever</span>}
+                {plan.priceType === 'custom' && <span className="text-sm text-zinc-500 font-normal ml-2">Pricing</span>}
               </p>
               <ul className="space-y-2 mb-6">
                 {plan.features.map((feature) => (
                   <li key={feature} className="flex items-center gap-2 text-sm text-zinc-400">
-                    <Check className="h-4 w-4 text-emerald-400" />
+                    <Check className="h-4 w-4 text-pink-400" />
                     {feature}
                   </li>
                 ))}
@@ -94,11 +102,13 @@ export default function BillingPage() {
                 className={`w-full py-2.5 rounded-lg font-medium transition-colors ${
                   plan.current
                     ? 'bg-zinc-800 text-zinc-400 cursor-default'
+                    : plan.isFree
+                    ? 'bg-gradient-to-r from-pink-500 to-purple-500 text-white hover:from-pink-600 hover:to-purple-600'
                     : 'bg-gradient-to-r from-pink-500 to-purple-500 text-white hover:from-pink-600 hover:to-purple-600'
                 }`}
                 disabled={plan.current}
               >
-                {plan.current ? 'Current Plan' : 'Upgrade'}
+                {plan.current ? 'Current Plan' : plan.isFree ? 'Claim Free Forever' : 'Contact for Pricing'}
               </button>
             </div>
           ))}
@@ -113,10 +123,10 @@ export default function BillingPage() {
           </div>
           <div className="flex-1">
             <h2 className="font-semibold text-white">Payment Method</h2>
-            <p className="text-sm text-zinc-500">Visa ending in 4242</p>
+            <p className="text-sm text-zinc-500">No payment method required for Free Forever plan</p>
           </div>
-          <button className="px-4 py-2 rounded-lg bg-zinc-800 text-zinc-300 hover:bg-zinc-700 transition-colors text-sm font-medium">
-            Update
+          <button className="px-4 py-2 rounded-lg bg-zinc-800 text-zinc-300 hover:bg-zinc-700 transition-colors text-sm font-medium" disabled>
+            N/A
           </button>
         </div>
       </div>
@@ -134,7 +144,7 @@ export default function BillingPage() {
                 <p className="text-sm text-zinc-500">{invoice.amount}</p>
               </div>
               <div className="flex items-center gap-4">
-                <span className="px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-400 text-xs font-medium">
+                <span className="px-2.5 py-1 rounded-full bg-pink-500/20 text-pink-400 text-xs font-medium">
                   {invoice.status}
                 </span>
                 <button className="p-2 rounded-lg hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors">

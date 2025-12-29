@@ -39,20 +39,20 @@ export function Dialog({ open, onOpenChange, children, title, className }: Dialo
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center"
+      className="fixed inset-0 z-50 flex items-center justify-center animate-fade-in"
       onClick={(e) => {
         if (e.target === e.currentTarget) {
           onOpenChange(false);
         }
       }}>
-      {/* Overlay */}
-      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" />
+      {/* Overlay with animation */}
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm animate-fade-in" />
 
-      {/* Dialog */}
+      {/* Dialog with scale and fade animation */}
       <div
         className={cn(
           "relative z-50 w-full max-w-md mx-4 bg-background-elevated rounded-2xl border border-border shadow-2xl",
-          "animate-fade-in",
+          "animate-fade-in-scale",
           className
         )}
         onClick={(e) => e.stopPropagation()}>

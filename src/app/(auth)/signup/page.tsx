@@ -177,9 +177,9 @@ export default function SignupPage() {
           </div>
           
           <div className="flex items-center gap-4 text-sm text-foreground-muted">
-            <span>✓ Free 14-day trial</span>
+            <span>✓ Free forever plan</span>
             <span>✓ No credit card required</span>
-            <span>✓ Cancel anytime</span>
+            <span>✓ 1 account + 40 DMs daily</span>
           </div>
         </div>
       </div>
@@ -206,7 +206,7 @@ export default function SignupPage() {
           
           <div className="text-center mb-8">
             <h2 className="text-2xl font-bold text-foreground mb-2">Create your account</h2>
-            <p className="text-foreground-muted">Start your free trial - no credit card required</p>
+            <p className="text-foreground-muted">Get free forever - no credit card required</p>
           </div>
 
           {error && (

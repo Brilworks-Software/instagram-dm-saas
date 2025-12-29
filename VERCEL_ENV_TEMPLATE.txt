@@ -71,6 +71,20 @@ SLACK_WEBHOOK_URL=
 #
 REDIS_URL=redis://default:password@host:port
 
+# AI Services (Required for AI-powered tools)
+# Get from: https://makersuite.google.com/app/apikey
+GEMINI_API_KEY=your-gemini-api-key-here
+
+# Instagram Service Account (Optional - for Instagram data tools)
+# Create a dedicated Instagram account for public tools
+# Get cookies by logging in and extracting from browser
+INSTAGRAM_SERVICE_SESSION_ID=your-service-session-id
+INSTAGRAM_SERVICE_DS_USER_ID=your-service-ds-user-id
+INSTAGRAM_SERVICE_CSRF_TOKEN=your-service-csrf-token
+INSTAGRAM_SERVICE_IG_DID=your-service-ig-did (optional)
+INSTAGRAM_SERVICE_MID=your-service-mid (optional)
+INSTAGRAM_SERVICE_RUR=your-service-rur (optional)
+
 # ============================================
 # HOW TO GET VALUES:
 # ============================================
@@ -110,6 +124,22 @@ REDIS_URL=redis://default:password@host:port
 #   - Railway:
 #     1. Create a new Redis service
 #     2. Copy the REDIS_URL from variables
+#
+# GEMINI_API_KEY:
+#   - Go to: https://makersuite.google.com/app/apikey
+#   - Create API key (free tier: 1,500 requests/day)
+#   - Copy and paste here
+#
+# Instagram Service Account (for Instagram data tools):
+#   - Create a dedicated Instagram account (e.g., @yourbrand_tools)
+#   - Login to Instagram in browser
+#   - Open DevTools → Application → Cookies
+#   - Copy these cookies:
+#     * sessionid → INSTAGRAM_SERVICE_SESSION_ID
+#     * ds_user_id → INSTAGRAM_SERVICE_DS_USER_ID
+#     * csrftoken → INSTAGRAM_SERVICE_CSRF_TOKEN
+#   - Optional: ig_did, mid, rur
+#   - Note: Cookies expire every few weeks, need to refresh
 #
 # ============================================
 

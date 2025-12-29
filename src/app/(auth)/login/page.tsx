@@ -108,23 +108,48 @@ export default function LoginPage() {
 
           if (result.error) {
             const errorMsg = result.error.message || 'Unknown error';
-            if (errorMsg.includes('504') || errorMsg.includes('Gateway Timeout')) {
-              if (retryCount < 2) {
-                // Auto-retry once
-                setRetryCount(retryCount + 1);
-                setError(`Connection issue (attempt ${retryCount + 1}/3). Retrying...`);
-                // Wait 2 seconds then retry
-                setTimeout(() => {
-                  const retryEvent = { ...e, isRetry: true } as any;
-                  handleSubmit(retryEvent);
-                }, 2000);
-                return;
-              }
-              setError('Email service is temporarily unavailable. Please try again in a few moments or use password login.');
+            const errorCode = result.error.status || result.error.code;
+            
+            // Handle specific error: "Error sending magic link email" with code "unexpected_failure"
+            if (errorCode === 'unexpected_failure' || errorMsg.includes('Error sending magic link email')) {
+              setError('Unable to send magic link email. The email service may be unavailable. Please use password login instead.');
+              capture('magic_link_failed', { 
+                email, 
+                error: 'unexpected_failure',
+                code: errorCode,
+                message: errorMsg 
+              });
+            }
+            // Handle 500 Internal Server Error
+            else if (errorCode === 500 || errorMsg.includes('500') || errorMsg.includes('Internal Server Error')) {
+              setError('Email service is currently unavailable. Please use password login or try again later.');
+              capture('magic_link_failed', { 
+                email, 
+                error: '500_internal_server_error',
+                message: errorMsg 
+              });
+            } else if (errorMsg.includes('504') || errorMsg.includes('Gateway Timeout')) {
+              setError('Email service timed out. Please use password login or try again in a few moments.');
+              capture('magic_link_failed', { 
+                email, 
+                error: '504_gateway_timeout',
+                message: errorMsg 
+              });
             } else if (errorMsg.includes('rate limit') || errorMsg.includes('too many')) {
-              setError('Too many requests. Please wait a few minutes before trying again.');
+              setError('Too many email requests. Please wait a few minutes before trying again or use password login.');
+              capture('magic_link_failed', { 
+                email, 
+                error: 'rate_limit',
+                message: errorMsg 
+              });
             } else {
-              setError(errorMsg);
+              setError(`Unable to send magic link. Please use password login instead.`);
+              capture('magic_link_failed', { 
+                email, 
+                error: 'other',
+                code: errorCode,
+                message: errorMsg 
+              });
             }
             setIsLoading(false);
             setRetryCount(0);

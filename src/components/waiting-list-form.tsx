@@ -159,26 +159,49 @@ export function WaitingListForm({ open, onOpenChange }: WaitingListFormProps) {
   // ============================================================================
 
   return (
-    <Dialog open={open} onOpenChange={handleClose} title="Join Waiting List">
+    <Dialog open={open} onOpenChange={handleClose} title="Get Free Access Forever">
       <form onSubmit={handleSubmit} className="space-y-4">
         {success ? (
           // Success State
           <div className="flex flex-col items-center justify-center py-8 text-center">
-            <CheckCircle className="h-16 w-16 text-green-500 mb-4" />
-            <h3 className="text-xl font-semibold text-foreground mb-2">
+            <CheckCircle className="h-16 w-16 text-accent mb-4" />
+            <h3 className="text-2xl font-bold text-foreground mb-2">
               Successfully Joined!
             </h3>
-            <p className="text-foreground-muted">
-              We'll notify you when SocialOra is ready.
+            <p className="text-foreground-muted text-lg mb-2">
+              Welcome to SocialOra
+            </p>
+            <p className="text-sm text-foreground-muted">
+              You're all set! You'll get free access to <span className="font-semibold text-foreground">1 Instagram account + 40 DMs daily</span>, forever. We'll send you access details via email shortly.
             </p>
           </div>
         ) : (
           // Form State
           <>
-            <div>
-              <p className="text-sm text-foreground-muted mb-4">
-                Enter your email address to join our waiting list. We'll notify you when SocialOra is ready!
+            <div className="text-center mb-6">
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-accent/15 via-pink-500/15 to-purple-500/15 border border-accent/30 mb-4">
+                <span className="text-sm font-semibold text-accent">🎁 Free Forever Plan</span>
+              </div>
+              <h3 className="text-2xl sm:text-3xl font-bold text-foreground mb-3">
+                Get Free Access Forever
+              </h3>
+              <p className="text-sm sm:text-base text-foreground-muted mb-3 leading-relaxed">
+                Join <span className="font-semibold text-accent">thousands of creators</span> who are already automating their Instagram DMs. Get <span className="font-semibold text-foreground">1 Instagram account + 40 DMs daily</span> - completely free, forever.
               </p>
+              <div className="flex flex-wrap items-center justify-center gap-4 text-xs sm:text-sm text-foreground-muted">
+                <div className="flex items-center gap-1.5">
+                  <CheckCircle className="h-4 w-4 text-accent" />
+                  <span>No credit card required</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <CheckCircle className="h-4 w-4 text-accent" />
+                  <span>Free forever - no hidden fees</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <CheckCircle className="h-4 w-4 text-accent" />
+                  <span>Access in minutes</span>
+                </div>
+              </div>
             </div>
 
             <div className="space-y-4">
@@ -237,23 +260,18 @@ export function WaitingListForm({ open, onOpenChange }: WaitingListFormProps) {
               </div>
             )}
 
-            {/* Action Buttons */}
-            <div className="flex gap-3 pt-2">
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={handleClose}
-                disabled={isSubmitting}
-                className="flex-1">
-                Cancel
-              </Button>
+            {/* Action Button */}
+            <div className="pt-2">
               <Button
                 type="submit"
                 disabled={isSubmitting || !email.trim()}
                 isLoading={isSubmitting}
-                className="flex-1">
-                Join Waiting List
+                className="w-full py-6 text-base sm:text-lg font-semibold bg-gradient-to-r from-accent via-pink-600 to-purple-600 hover:from-accent/90 hover:via-pink-500 hover:to-purple-500 text-white shadow-xl shadow-accent/40 hover:shadow-accent/60 hover:scale-[1.02] transition-all">
+                Claim My Free Forever Plan →
               </Button>
+              <p className="text-center text-xs text-foreground-muted/70 mt-3">
+                Join 10,000+ creators already automating their DMs
+              </p>
             </div>
           </>
         )}

@@ -50,21 +50,25 @@
 
 - 🔐 **Multi-Account Management**: Connect and manage unlimited Instagram accounts from one dashboard
 - 💬 **Unified Inbox**: View and manage all Instagram DMs from all accounts in one place
-- 📊 **Campaign Management**: Create, schedule, and track DM campaigns with advanced targeting
+- 📊 **Campaign Management**: Create multi-step message sequences with scheduling, time windows, and multi-account distribution
+- 🛠️ **Instagram Tools**: 30+ free tools including Reels downloader, caption generator, hashtag generator, and analytics calculators
 - 🤖 **AI Automations**: Set up intelligent auto-responses based on keywords and triggers
 - 👥 **Lead Generation**: Find and engage potential customers using hashtags, followers, and bio keywords
 - 📈 **Analytics Dashboard**: Track campaign performance, response rates, and engagement metrics
 - 🔔 **Smart Notifications**: Get notified about important messages and campaign updates
-- 🎯 **Personalization**: Use variables to personalize messages at scale
+- 🎯 **Personalization**: Use variables (`{name}`, `{username}`, `{firstname}`) to personalize messages at scale
 
 ### Advanced Features
 
 - 🌐 **Direct Login**: Browser-based Instagram login without manual cookie management
 - 🔄 **Auto-Reconnection**: Automatic account reconnection when cookies expire
 - 💾 **Persistent Sessions**: Cookies saved securely in Supabase for seamless experience
-- 🛡️ **Rate Limiting**: Built-in protection against Instagram rate limits
+- 🛡️ **Rate Limiting**: Built-in protection against Instagram rate limits (per-account daily limits, time windows)
 - 📱 **Chrome Extension**: One-click Instagram account connection
 - 🔒 **Workspace Isolation**: Secure data separation for teams and agencies
+- ⏰ **Smart Scheduling**: Time-based campaign scheduling with timezone support
+- 🔁 **Multi-Step Sequences**: Create follow-up message sequences with delays and conditions
+- 🎨 **AI-Powered Tools**: Generate captions, hashtags, and content ideas using Google Gemini AI
 
 ## 🛠 Tech Stack
 
@@ -295,12 +299,16 @@ Socialora offers three methods to connect Instagram accounts:
 
 1. **Navigate to Campaigns**: Click "Campaigns" in sidebar
 2. **Create Campaign**: Click "Create Campaign" button
-3. **Select Account**: Choose which Instagram account to use
-4. **Add Recipients**: Select contacts from your leads or add new ones
-5. **Write Message**: Create personalized message template
+3. **Configure Scheduling**: Set time window (start/end time), timezone, and messages per day
+4. **Select Recipients**: Choose contacts and/or leads to include
+5. **Select Accounts**: Choose one or more Instagram accounts (messages distributed automatically)
+6. **Create Message Sequence**: Add multiple message steps with delays between them
    - Use `{name}`, `{username}`, `{firstname}` for personalization
-6. **Configure Settings**: Set sending rate, delays, schedule
-7. **Launch**: Start your campaign!
+   - Set delays in minutes (e.g., 1440 = 24 hours)
+   - Add conditional logic (e.g., only send step 2 if no reply)
+7. **Preview & Launch**: Review settings and start your campaign!
+
+**See [CAMPAIGNS.md](./CAMPAIGNS.md) for detailed campaign documentation.**
 
 ### Setting Up AI Automations
 
@@ -310,6 +318,19 @@ Socialora offers three methods to connect Instagram accounts:
 4. **Write Response**: Create AI-powered response templates
 5. **Choose Mode**: Manual review or fully automated
 6. **Activate**: Enable the automation
+
+### Using Instagram Tools
+
+1. **Navigate to Tools**: Click "Tools" in sidebar or visit `/tools`
+2. **Browse Tools**: 30+ free Instagram tools organized by category:
+   - **Growth**: Reels downloader, follower analytics, engagement calculators
+   - **Content**: Caption generator, hashtag generator, content ideas
+   - **Marketing**: Brand matcher, influencer tools, ads spy
+   - **Analytics**: Ratio calculator, EMV calculator, engagement rate
+3. **Use a Tool**: Click on any tool, fill in the form, and get instant results
+4. **AI-Powered**: Many tools use Google Gemini AI for intelligent results
+
+**See [TOOLS_STATUS.md](./TOOLS_STATUS.md) for complete tool list and status.**
 
 ### Finding Leads
 
@@ -486,6 +507,8 @@ See detailed guide: [`EXTENSION_DEPLOYMENT.md`](./EXTENSION_DEPLOYMENT.md)
 ## 📚 Documentation
 
 - 📖 **[Full Documentation](./src/app/docs/page.tsx)** - Complete user guide (available at `/docs`)
+- 📊 **[Campaigns Guide](./CAMPAIGNS.md)** - Complete guide to creating and managing campaigns
+- 🛠️ **[Tools Status](./TOOLS_STATUS.md)** - List of all Instagram tools and their implementation status
 - 🚀 **[Vercel Deployment Guide](./VERCEL_DEPLOYMENT_GUIDE.md)** - Detailed Vercel deployment instructions
 - 🔌 **[Extension Guide](./extension/README.md)** - Chrome extension setup
 - 📧 **[Email Templates](./SUPABASE_EMAIL_TEMPLATES.md)** - Supabase email customization

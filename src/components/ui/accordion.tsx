@@ -13,19 +13,32 @@ interface AccordionItemProps {
 
 export function AccordionItem({ question, answer, index, defaultOpen = false }: AccordionItemProps) {
   const [isOpen, setIsOpen] = React.useState(defaultOpen);
+  const contentRef = React.useRef<HTMLDivElement>(null);
+  const [height, setHeight] = React.useState<number | undefined>(defaultOpen ? undefined : 0);
+
+  React.useEffect(() => {
+    if (!contentRef.current) return;
+    
+    if (isOpen) {
+      const contentHeight = contentRef.current.scrollHeight;
+      setHeight(contentHeight);
+    } else {
+      setHeight(0);
+    }
+  }, [isOpen]);
 
   return (
     <div
       className={cn(
-        'border border-border rounded-lg overflow-hidden transition-all',
-        'bg-background-elevated hover:bg-background-tertiary'
+        'border border-border rounded-lg transition-all',
+        'bg-background-elevated hover:bg-background-tertiary overflow-hidden'
       )}
       itemScope
       itemType="https://schema.org/Question"
     >
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full px-6 py-4 flex items-center justify-between text-left focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-background"
+        className="w-full px-6 py-5 flex items-center justify-between text-left focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-background"
         aria-expanded={isOpen}
         aria-controls={`faq-answer-${index}`}
       >
@@ -45,15 +58,14 @@ export function AccordionItem({ question, answer, index, defaultOpen = false }: 
       </button>
       <div
         id={`faq-answer-${index}`}
-        className={cn(
-          'overflow-hidden transition-all duration-300 ease-in-out',
-          isOpen ? 'max-h-[1000px] opacity-100' : 'max-h-0 opacity-0'
-        )}
+        ref={contentRef}
+        className="overflow-hidden transition-all duration-300 ease-in-out"
+        style={{ maxHeight: height !== undefined ? `${height}px` : 'none' }}
         itemScope
         itemType="https://schema.org/Answer"
         itemProp="acceptedAnswer"
       >
-        <div className="px-6 pb-4 pt-0">
+        <div className="px-6 pb-5 pt-2">
           <p className="text-foreground-muted leading-relaxed" itemProp="text">
             {answer}
           </p>
@@ -70,7 +82,7 @@ interface AccordionProps {
 
 export function Accordion({ children, className }: AccordionProps) {
   return (
-    <div className={cn('space-y-3', className)}>
+    <div className={cn('space-y-4', className)}>
       {children}
     </div>
   );

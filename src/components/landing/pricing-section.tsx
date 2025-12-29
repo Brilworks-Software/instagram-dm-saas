@@ -1,125 +1,144 @@
 'use client';
 
-import { Check, Sparkles } from 'lucide-react';
+import { Check, Sparkles, Infinity, Zap, Gift } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useState } from 'react';
 
 const plans = [
   {
-    name: "Starter",
-    description: "Perfect for growing creators",
-    price: { monthly: 29, yearly: 19 },
+    name: "Free Forever",
+    description: "Start automating your Instagram DMs today",
+    price: { monthly: "FREE", yearly: "FREE" },
+    badge: "LIMITED TIME",
+    badgeColor: "bg-gradient-to-r from-accent via-pink-500 to-purple-500",
     features: [
-      "Up to 500 automated DMs/mo",
+      "1 Instagram account",
+      "40 DMs daily bulk sending",
       "Basic AI response engine",
       "Unified Inbox access",
       "Email support",
-      "1 Instagram account"
+      "Free forever - no credit card required"
     ],
-    cta: "Join Waitlist",
-    highlight: false
+    cta: "Claim Free Forever →",
+    highlight: true,
+    isFree: true
   },
   {
     name: "Pro",
-    description: "For serious businesses & agencies",
-    price: { monthly: 79, yearly: 49 },
+    description: "Scale your outreach with advanced features",
+    price: { monthly: "Custom", yearly: "Custom" },
+    badge: "POPULAR",
+    badgeColor: "bg-gradient-to-r from-accent to-pink-500",
     features: [
       "Unlimited automated DMs",
       "Advanced AI with persona training",
       "Lead scoring & qualification",
       "Priority support",
       "Up to 5 Instagram accounts",
-      "Analytics Dashboard"
+      "Analytics Dashboard",
+      "Custom features on request"
     ],
-    cta: "Join Waitlist",
-    highlight: true
+    cta: "Get Custom Pricing →",
+    highlight: false,
+    isFree: false
   },
   {
     name: "Enterprise",
-    description: "Custom solutions for large scale",
+    description: "Custom solutions for large scale operations",
     price: { monthly: "Custom", yearly: "Custom" },
+    badge: "ENTERPRISE",
+    badgeColor: "bg-gradient-to-r from-purple-500 to-indigo-500",
     features: [
       "Multi-user collaboration",
       "API access",
       "Custom AI model training",
       "Dedicated account manager",
       "Unlimited accounts",
-      "SLA guarantee"
+      "SLA guarantee",
+      "White-glove setup & support"
     ],
-    cta: "Contact Sales",
-    highlight: false
+    cta: "Talk to Sales Team →",
+    highlight: false,
+    isFree: false
   }
 ];
 
 export function PricingSection({ onJoinWaitlist }: { onJoinWaitlist: () => void }) {
-  const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
 
   return (
-    <section className="py-24 px-4 sm:px-6 lg:px-8 bg-background relative overflow-hidden">
+    <section className="py-16 sm:py-20 md:py-24 px-4 sm:px-6 lg:px-8 bg-background relative overflow-hidden">
       <div className="max-w-7xl mx-auto relative z-10">
-        <div className="text-center mb-16">
-          <h2 className="text-4xl sm:text-5xl font-bold text-foreground mb-4">
-            Simple, Transparent <span className="bg-gradient-to-r from-accent to-pink-500 bg-clip-text text-transparent">Pricing</span>
-          </h2>
-          <p className="text-xl text-foreground-muted mb-10 max-w-2xl mx-auto">
-            Choose the plan that fits your growth. Save up to 40% with yearly billing.
-          </p>
-
-          <div className="flex items-center justify-center gap-4 mb-12">
-            <span className={`text-sm ${billingCycle === 'monthly' ? 'text-foreground font-bold' : 'text-foreground-muted'}`}>Monthly</span>
-            <button
-              onClick={() => setBillingCycle(billingCycle === 'monthly' ? 'yearly' : 'monthly')}
-              className="relative w-14 h-7 bg-background-elevated rounded-full p-1 transition-colors hover:bg-border"
-            >
-              <div className={`w-5 h-5 bg-accent rounded-full transition-transform ${billingCycle === 'yearly' ? 'translate-x-7' : 'translate-x-0'}`} />
-            </button>
-            <span className={`text-sm ${billingCycle === 'yearly' ? 'text-foreground font-bold' : 'text-foreground-muted'}`}>
-              Yearly <span className="text-accent text-xs font-bold ml-1">SAVE 40%</span>
-            </span>
+        <div className="text-center mb-12 sm:mb-16 px-4">
+          <div className="inline-flex items-center gap-2 bg-gradient-to-r from-accent/15 via-pink-500/15 to-purple-500/15 border border-accent/30 rounded-full px-4 sm:px-6 py-2.5 sm:py-3 mb-6 shadow-md shadow-accent/5 backdrop-blur-sm">
+            <Gift className="h-4 w-4 sm:h-5 sm:w-5 text-accent" />
+            <span className="text-xs sm:text-sm font-semibold text-accent">Limited Time: Claim Your Free Forever Plan</span>
           </div>
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-foreground mb-4 sm:mb-6">
+            Start <span className="bg-gradient-to-r from-accent to-pink-500 bg-clip-text text-transparent">Free Forever</span>
+          </h2>
+          <p className="text-base sm:text-lg md:text-xl text-foreground-muted mb-4 sm:mb-6 max-w-2xl mx-auto leading-relaxed">
+            Get 1 Instagram account + 40 DMs daily bulk sending - completely free for life. No credit card required.
+          </p>
+          <p className="text-sm sm:text-base text-foreground-muted/70 max-w-xl mx-auto">
+            Need more? Connect with our support team for custom pricing on unlimited DMs, multiple accounts, and advanced features.
+          </p>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+        <div className="grid md:grid-cols-3 gap-6 sm:gap-8 max-w-6xl mx-auto px-4">
           {plans.map((plan, index) => (
             <div
               key={index}
-              className={`relative bg-background-secondary rounded-3xl p-10 border transition-all duration-300 hover:scale-105 ${
+              className={`relative bg-background-secondary rounded-3xl p-8 sm:p-10 border transition-all duration-300 hover:scale-[1.02] ${
                 plan.highlight 
-                  ? 'border-accent shadow-2xl shadow-accent/20 scale-105' 
+                  ? plan.isFree
+                    ? 'border-accent/60 shadow-2xl shadow-accent/30 scale-[1.02] ring-2 ring-accent/20' 
+                    : 'border-accent shadow-2xl shadow-accent/20 scale-[1.02]'
                   : 'border-border hover:border-accent/50'
               }`}
             >
-              {plan.highlight && (
-                <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-accent text-white px-4 py-1 rounded-full text-xs font-bold flex items-center gap-1">
-                  <Sparkles className="h-3 w-3" />
-                  MOST POPULAR
+              {plan.badge && (
+                <div className={`absolute -top-4 left-1/2 -translate-x-1/2 ${plan.badgeColor} text-white px-4 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 shadow-lg`}>
+                  {plan.isFree ? <Infinity className="h-3 w-3" /> : plan.highlight ? <Sparkles className="h-3 w-3" /> : <Zap className="h-3 w-3" />}
+                  {plan.badge}
                 </div>
               )}
 
-              <div className="mb-8">
-                <h3 className="text-2xl font-bold text-foreground mb-2">{plan.name}</h3>
-                <p className="text-foreground-muted text-sm">{plan.description}</p>
+              <div className="mb-6 sm:mb-8">
+                <h3 className="text-xl sm:text-2xl font-bold text-foreground mb-2">{plan.name}</h3>
+                <p className="text-foreground-muted text-sm sm:text-base">{plan.description}</p>
               </div>
 
               <div className="mb-8">
                 <div className="flex items-baseline gap-1">
-                  <span className="text-4xl font-bold text-foreground">
-                    {typeof plan.price === 'string' ? '' : '$'}
-                    {typeof plan.price === 'string' ? plan.price : plan.price[billingCycle]}
-                  </span>
-                  {typeof plan.price !== 'string' && (
-                    <span className="text-foreground-muted">/month</span>
+                  {plan.isFree ? (
+                    <>
+                      <span className="text-4xl sm:text-5xl font-bold bg-gradient-to-r from-accent via-pink-500 to-purple-500 bg-clip-text text-transparent">
+                        FREE
+                      </span>
+                      <span className="text-foreground-muted text-base sm:text-lg ml-2">Forever</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="text-4xl font-bold text-foreground">
+                        {plan.price.monthly}
+                      </span>
+                      {plan.price.monthly !== 'Custom' && (
+                        <span className="text-foreground-muted">/month</span>
+                      )}
+                    </>
                   )}
                 </div>
-                {billingCycle === 'yearly' && typeof plan.price !== 'string' && (
-                  <p className="text-accent text-xs font-semibold mt-2">Billed annually</p>
+                {plan.isFree && (
+                  <p className="text-accent text-sm font-semibold mt-2 flex items-center gap-1.5">
+                    <Check className="h-4 w-4 text-accent" />
+                    No credit card required
+                  </p>
                 )}
               </div>
 
-              <ul className="space-y-4 mb-10">
+              <ul className="space-y-3 sm:space-y-4 mb-8 sm:mb-10">
                 {plan.features.map((feature, fIndex) => (
-                  <li key={fIndex} className="flex items-start gap-3 text-foreground-muted text-sm">
-                    <Check className="h-5 w-5 text-accent flex-shrink-0" />
+                  <li key={fIndex} className="flex items-start gap-3 text-foreground-muted text-sm sm:text-base">
+                    <Check className={`h-5 w-5 flex-shrink-0 text-accent`} />
                     <span>{feature}</span>
                   </li>
                 ))}
@@ -127,10 +146,12 @@ export function PricingSection({ onJoinWaitlist }: { onJoinWaitlist: () => void 
 
               <Button
                 variant={plan.highlight ? 'primary' : 'secondary'}
-                className={`w-full py-6 text-lg font-bold rounded-2xl ${
-                  plan.highlight 
-                    ? 'bg-gradient-to-r from-accent to-pink-600 hover:from-accent/90 hover:to-pink-500 text-white' 
-                    : 'bg-background hover:bg-background-elevated'
+                className={`w-full py-5 sm:py-6 text-base sm:text-lg font-semibold rounded-2xl transition-all ${
+                  plan.isFree
+                    ? 'bg-gradient-to-r from-accent via-pink-600 to-purple-600 hover:from-accent/90 hover:via-pink-500 hover:to-purple-500 text-white shadow-xl shadow-accent/40 hover:shadow-accent/60 hover:scale-105'
+                    : plan.highlight 
+                    ? 'bg-gradient-to-r from-accent to-pink-600 hover:from-accent/90 hover:to-pink-500 text-white shadow-lg shadow-accent/30' 
+                    : 'bg-background hover:bg-background-elevated border-2 border-border hover:border-accent/50'
                 }`}
                 onClick={onJoinWaitlist}
               >

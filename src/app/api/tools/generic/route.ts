@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { formatToolUsageSlackMessage, postToSlack } from '@/lib/slack';
+import { processTool } from '@/lib/server/tools/tool-processors';
 
 export async function POST(request: NextRequest) {
   try {
@@ -107,7 +108,26 @@ export async function POST(request: NextRequest) {
       console.warn('Slack notification failed:', slackError);
     }
 
-    return NextResponse.json({ success: true });
+    // Process tool and get results
+    let results = null;
+    
+    try {
+      console.log('[Tool Processing] Starting processing for:', toolSlug);
+      results = await processTool(toolSlug, formData);
+      console.log('[Tool Processing] ✅ Results generated successfully');
+    } catch (error: any) {
+      console.error(`[Tool Processing] ❌ Error for ${toolSlug}:`, error);
+      // Return error but still mark as success (data saved)
+      results = {
+        error: error.message || 'Failed to process tool',
+        message: 'Your request was saved. Please try again later.',
+      };
+    }
+
+    return NextResponse.json({ 
+      success: true, 
+      results: results 
+    });
   } catch (error) {
     console.error('Error saving tool usage:', error);
     return NextResponse.json(

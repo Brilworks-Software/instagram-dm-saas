@@ -43,6 +43,7 @@ export function GenericToolForm({
   const [formData, setFormData] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [results, setResults] = useState<any>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -95,7 +96,11 @@ export function GenericToolForm({
         return;
       }
 
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Store results if available
+      if (data.results) {
+        setResults(data.results);
+      }
+      
       setShowSuccess(true);
     } catch (error) {
       console.error('Error:', error);
@@ -180,8 +185,287 @@ export function GenericToolForm({
         )}
       </form>
 
-      {/* Success Message */}
-      {showSuccess && (
+      {/* Results Display */}
+      {results && !results.error && (
+        <div className="rounded-xl border border-accent/30 bg-background-elevated p-6 space-y-4 animate-slide-up">
+          <h3 className="text-xl font-bold text-foreground mb-4 flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-accent" />
+            Results
+          </h3>
+          
+          {/* Caption Generator Results */}
+          {results.captions && Array.isArray(results.captions) && (
+            <div>
+              <h4 className="font-semibold mb-3 text-foreground">Generated Captions ({results.count}):</h4>
+              <div className="space-y-3">
+                {results.captions.map((caption: string, i: number) => (
+                  <div key={i} className="p-4 bg-background rounded-lg border border-border hover:border-accent/50 transition-all group">
+                    <p className="text-sm text-foreground mb-2">{caption}</p>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(caption);
+                        alert('Caption copied to clipboard!');
+                      }}
+                      className="text-xs text-accent hover:underline opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      Copy
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Hashtag Generator Results */}
+          {results.hashtags && Array.isArray(results.hashtags) && (
+            <div>
+              <h4 className="font-semibold mb-3 text-foreground">Generated Hashtags ({results.count}):</h4>
+              <div className="flex flex-wrap gap-2 mb-3">
+                {results.hashtags.map((tag: string, i: number) => (
+                  <span
+                    key={i}
+                    className="px-3 py-1.5 bg-background rounded-lg border border-border text-sm cursor-pointer hover:bg-accent/10 hover:border-accent/50 transition-all"
+                    onClick={() => {
+                      navigator.clipboard.writeText(tag);
+                    }}
+                    title="Click to copy"
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(results.hashtags.join(' '));
+                  alert('All hashtags copied to clipboard!');
+                }}
+                className="text-sm text-accent hover:underline font-medium"
+              >
+                Copy All Hashtags
+              </button>
+            </div>
+          )}
+
+          {/* Content Ideas Results */}
+          {results.ideas && Array.isArray(results.ideas) && (
+            <div>
+              <h4 className="font-semibold mb-3 text-foreground">Content Ideas ({results.count}):</h4>
+              <ul className="space-y-2">
+                {results.ideas.map((idea: string, i: number) => (
+                  <li key={i} className="p-3 bg-background rounded-lg border border-border text-sm text-foreground">
+                    {idea}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Fake Follower Checker Results */}
+          {results.fakeFollowerPercentage !== undefined && (
+            <div>
+              <h4 className="font-semibold mb-4 text-foreground">Analysis Results for @{results.username}</h4>
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                <div className="p-4 bg-background rounded-lg border border-border">
+                  <p className="text-xs text-foreground-muted mb-1">Fake Followers</p>
+                  <p className="text-3xl font-bold text-red-500">{results.fakeFollowerPercentage}%</p>
+                </div>
+                <div className="p-4 bg-background rounded-lg border border-border">
+                  <p className="text-xs text-foreground-muted mb-1">Total Followers</p>
+                  <p className="text-3xl font-bold text-foreground">{results.followerCount?.toLocaleString()}</p>
+                </div>
+              </div>
+              {results.insights && Array.isArray(results.insights) && (
+                <div className="p-4 bg-background-secondary rounded-lg border border-border">
+                  <p className="text-xs font-semibold text-foreground-muted mb-2">Insights:</p>
+                  <ul className="space-y-1">
+                    {results.insights.map((insight: string, i: number) => (
+                      <li key={i} className="text-xs text-foreground-muted">• {insight}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Engagement Calculator Results */}
+          {results.estimatedEngagementRate && (
+            <div>
+              <h4 className="font-semibold mb-4 text-foreground">Engagement Analysis for @{results.username}</h4>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <div className="p-4 bg-background rounded-lg border border-border">
+                  <p className="text-xs text-foreground-muted mb-1">Engagement Rate</p>
+                  <p className="text-2xl font-bold text-foreground">{results.estimatedEngagementRate}</p>
+                </div>
+                <div className="p-4 bg-background rounded-lg border border-border">
+                  <p className="text-xs text-foreground-muted mb-1">Avg Likes</p>
+                  <p className="text-2xl font-bold text-foreground">{results.estimatedAvgLikes?.toLocaleString()}</p>
+                </div>
+                <div className="p-4 bg-background rounded-lg border border-border">
+                  <p className="text-xs text-foreground-muted mb-1">Avg Comments</p>
+                  <p className="text-2xl font-bold text-foreground">{results.estimatedAvgComments?.toLocaleString()}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Ratio Calculator Results */}
+          {results.ratio !== undefined && (
+            <div>
+              <h4 className="font-semibold mb-4 text-foreground">Follower-to-Following Ratio</h4>
+              <div className="p-6 bg-background rounded-lg border border-border text-center">
+                <p className="text-5xl font-bold text-accent mb-2">{results.ratio}</p>
+                <p className="text-sm text-foreground-muted mb-4">{results.status}</p>
+                <div className="flex justify-center gap-6 text-sm">
+                  <div>
+                    <span className="text-foreground-muted">Followers: </span>
+                    <span className="font-semibold">{results.followers?.toLocaleString()}</span>
+                  </div>
+                  <div>
+                    <span className="text-foreground-muted">Following: </span>
+                    <span className="font-semibold">{results.following?.toLocaleString()}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* EMV Calculator Results */}
+          {results.emv && (
+            <div>
+              <h4 className="font-semibold mb-4 text-foreground">Earned Media Value (EMV)</h4>
+              <div className="p-6 bg-background rounded-lg border border-border text-center">
+                <p className="text-4xl font-bold text-accent mb-2">{results.estimatedValue}</p>
+                <div className="flex justify-center gap-6 text-sm mt-4">
+                  <div>
+                    <span className="text-foreground-muted">Followers: </span>
+                    <span className="font-semibold">{results.followers?.toLocaleString()}</span>
+                  </div>
+                  <div>
+                    <span className="text-foreground-muted">Engagement Rate: </span>
+                    <span className="font-semibold">{results.engagementRate}%</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Reels Downloader Results */}
+          {results.videoUrl && results.success && (
+            <div>
+              <h4 className="font-semibold mb-4 text-foreground">Reel Ready to Download</h4>
+              <div className="space-y-4">
+                {/* Thumbnail Preview */}
+                {results.thumbnailUrl && (
+                  <div className="relative rounded-lg overflow-hidden border border-border">
+                    <img 
+                      src={results.thumbnailUrl} 
+                      alt="Reel thumbnail" 
+                      className="w-full h-auto max-h-96 object-contain"
+                    />
+                  </div>
+                )}
+                
+                {/* Reel Info */}
+                <div className="p-4 bg-background rounded-lg border border-border">
+                  {results.username && (
+                    <p className="text-sm text-foreground-muted mb-1">
+                      <span className="font-semibold">Creator:</span> @{results.username}
+                    </p>
+                  )}
+                  {results.caption && (
+                    <p className="text-sm text-foreground mt-2 mb-2">{results.caption}</p>
+                  )}
+                  <div className="flex gap-4 text-xs text-foreground-muted mt-3">
+                    {results.likeCount !== undefined && (
+                      <span>❤️ {results.likeCount.toLocaleString()} likes</span>
+                    )}
+                    {results.commentCount !== undefined && (
+                      <span>💬 {results.commentCount.toLocaleString()} comments</span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Download Button */}
+                <a
+                  href={results.downloadUrl}
+                  download
+                  className="block w-full text-center px-6 py-4 bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 text-white font-semibold rounded-lg transition-all shadow-lg hover:shadow-xl"
+                >
+                  <ArrowRight className="inline-block h-5 w-5 mr-2" />
+                  Download Reel (MP4)
+                </a>
+
+                {/* Direct Video URL (for advanced users) */}
+                <details className="mt-4">
+                  <summary className="text-sm text-foreground-muted cursor-pointer hover:text-foreground">
+                    Show Direct Video URL
+                  </summary>
+                  <div className="mt-2 p-3 bg-background-secondary rounded border border-border">
+                    <p className="text-xs text-foreground-muted mb-2 break-all">{results.videoUrl}</p>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(results.videoUrl);
+                        alert('Video URL copied to clipboard!');
+                      }}
+                      className="text-xs text-accent hover:underline"
+                    >
+                      Copy URL
+                    </button>
+                  </div>
+                </details>
+              </div>
+            </div>
+          )}
+
+          {/* Likes-to-Followers Ratio Results */}
+          {results.percentage && results.ratio !== undefined && (
+            <div>
+              <h4 className="font-semibold mb-4 text-foreground">Likes-to-Followers Ratio</h4>
+              <div className="p-6 bg-background rounded-lg border border-border text-center">
+                <p className="text-5xl font-bold text-accent mb-2">{results.percentage}</p>
+                <p className="text-sm text-foreground-muted mb-4">{results.status}</p>
+                <div className="flex justify-center gap-6 text-sm">
+                  <div>
+                    <span className="text-foreground-muted">Likes: </span>
+                    <span className="font-semibold">{results.likes?.toLocaleString()}</span>
+                  </div>
+                  <div>
+                    <span className="text-foreground-muted">Followers: </span>
+                    <span className="font-semibold">{results.followers?.toLocaleString()}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Error Message */}
+      {results?.error && (
+        <div className="rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/20 p-6">
+          <div className="flex items-start gap-4">
+            <div className="flex-shrink-0 w-10 h-10 rounded-full bg-red-500 flex items-center justify-center">
+              <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </div>
+            <div className="flex-1">
+              <h3 className="font-semibold text-red-900 dark:text-red-100 mb-1">Error</h3>
+              <p className="text-sm text-red-800 dark:text-red-200">
+                {results.error}
+              </p>
+              {results.message && (
+                <p className="text-sm text-red-700 dark:text-red-300 mt-2">
+                  {results.message}
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Success Message (when no results) */}
+      {showSuccess && !results && (
         <div className="rounded-xl border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950/20 p-6">
           <div className="flex items-start gap-4">
             <div className="flex-shrink-0 w-10 h-10 rounded-full bg-green-500 flex items-center justify-center">
@@ -192,7 +476,7 @@ export function GenericToolForm({
             <div className="flex-1">
               <h3 className="font-semibold text-green-900 dark:text-green-100 mb-1">Success!</h3>
               <p className="text-sm text-green-800 dark:text-green-200">
-                Your request has been submitted successfully. We're processing your information.
+                {results?.message || "Your request has been submitted successfully. We're processing your information."}
               </p>
             </div>
           </div>
