@@ -1,6 +1,6 @@
 'use client';
 
-import { Check, Sparkles, Infinity, Zap, Gift } from 'lucide-react';
+import { Check, Sparkles, Infinity, Zap, Gift, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const plans = [
@@ -18,7 +18,7 @@ const plans = [
       "Email support",
       "Free forever - no credit card required"
     ],
-    cta: "Claim Free Forever →",
+    cta: "Claim Free Forever",
     highlight: true,
     isFree: true
   },
@@ -37,7 +37,7 @@ const plans = [
       "Analytics Dashboard",
       "Custom features on request"
     ],
-    cta: "Get Custom Pricing →",
+    cta: "Get Custom Pricing",
     highlight: false,
     isFree: false
   },
@@ -56,7 +56,7 @@ const plans = [
       "SLA guarantee",
       "White-glove setup & support"
     ],
-    cta: "Talk to Sales Team →",
+    cta: "Talk to Sales Team",
     highlight: false,
     isFree: false
   }
@@ -87,7 +87,7 @@ export function PricingSection({ onJoinWaitlist }: { onJoinWaitlist: () => void 
           {plans.map((plan, index) => (
             <div
               key={index}
-              className={`relative bg-background-secondary rounded-3xl p-8 sm:p-10 border transition-all duration-300 hover:scale-[1.02] ${
+              className={`relative bg-background-secondary rounded-3xl p-8 sm:p-10 border transition-all duration-300 hover:scale-[1.02] flex flex-col ${
                 plan.highlight 
                   ? plan.isFree
                     ? 'border-accent/60 shadow-2xl shadow-accent/30 scale-[1.02] ring-2 ring-accent/20' 
@@ -135,7 +135,7 @@ export function PricingSection({ onJoinWaitlist }: { onJoinWaitlist: () => void 
                 )}
               </div>
 
-              <ul className="space-y-3 sm:space-y-4 mb-8 sm:mb-10">
+              <ul className="space-y-3 sm:space-y-4 mb-8 sm:mb-10 flex-1">
                 {plan.features.map((feature, fIndex) => (
                   <li key={fIndex} className="flex items-start gap-3 text-foreground-muted text-sm sm:text-base">
                     <Check className={`h-5 w-5 flex-shrink-0 text-accent`} />
@@ -146,7 +146,7 @@ export function PricingSection({ onJoinWaitlist }: { onJoinWaitlist: () => void 
 
               <Button
                 variant={plan.highlight ? 'primary' : 'secondary'}
-                className={`w-full py-5 sm:py-6 text-base sm:text-lg font-semibold rounded-2xl transition-all ${
+                className={`w-full py-5 sm:py-6 text-base sm:text-lg font-semibold rounded-2xl transition-all group mt-auto ${
                   plan.isFree
                     ? 'bg-gradient-to-r from-accent via-pink-600 to-purple-600 hover:from-accent/90 hover:via-pink-500 hover:to-purple-500 text-white shadow-xl shadow-accent/40 hover:shadow-accent/60 hover:scale-105'
                     : plan.highlight 
@@ -155,7 +155,10 @@ export function PricingSection({ onJoinWaitlist }: { onJoinWaitlist: () => void 
                 }`}
                 onClick={onJoinWaitlist}
               >
-                {plan.cta}
+                <span className="flex items-center justify-center gap-2">
+                  {plan.cta}
+                  <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
+                </span>
               </Button>
             </div>
           ))}

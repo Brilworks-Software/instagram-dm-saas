@@ -533,7 +533,7 @@ export default function HomePage() {
                 className="group relative overflow-hidden bg-gradient-to-r from-accent to-pink-600 hover:from-accent/90 hover:to-pink-500 text-white font-semibold w-full sm:w-auto px-6 sm:px-8 md:px-10 py-5 sm:py-6 md:py-7 text-base sm:text-lg md:text-xl shadow-2xl shadow-accent/40 hover:shadow-accent/60 transition-all duration-300 transform hover:scale-105"
                 onClick={() => setIsWaitingListOpen(true)}>
                 <span className="relative z-10 flex items-center justify-center gap-2">
-                  Claim Your Free Forever Plan →
+                  Claim Your Free Forever Plan
                   <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5 group-hover:translate-x-1 transition-transform" />
                 </span>
                 <div className="absolute inset-0 bg-gradient-to-r from-pink-600 to-purple-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
@@ -824,7 +824,7 @@ export default function HomePage() {
                   className="group relative overflow-hidden bg-gradient-to-r from-accent via-pink-600 to-purple-600 hover:from-accent/90 hover:via-pink-500 hover:to-purple-500 text-white font-semibold px-10 py-7 text-lg shadow-2xl shadow-accent/40 hover:shadow-accent/60 transition-all duration-300 hover:scale-105"
                   onClick={() => setIsWaitingListOpen(true)}>
                   <span className="relative z-10 flex items-center">
-                    Start Free Forever - No Credit Card →
+                    Start Free Forever - No Credit Card
                     <ArrowRight className="h-6 w-6 ml-2 group-hover:translate-x-1 transition-transform" />
                   </span>
                   <div className="absolute inset-0 bg-gradient-to-r from-purple-600 via-pink-500 to-accent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
@@ -1149,34 +1149,49 @@ export default function HomePage() {
             }, 200);
           }}>
           <span className="relative z-10 flex items-center">
-            Claim Free Forever →
+            Claim Free Forever
             <ArrowRight className="h-5 w-5 ml-2 group-hover:translate-x-1 transition-transform" />
           </span>
         </Button>
       </div>
 
-      {/* Desktop Sticky CTA - Right Side - Minimal Design (XL screens only) */}
-      <div className="hidden xl:block fixed right-4 top-1/2 -translate-y-1/2 z-40">
-        <button
-          onClick={(e) => {
-            e.preventDefault();
-            // Add click animation
-            const button = e.currentTarget;
-            button.classList.add('animate-pulse');
-            setTimeout(() => {
-              button.classList.remove('animate-pulse');
-              setIsWaitingListOpen(true);
-            }, 200);
-          }}
-          className="group flex flex-col items-center gap-2 p-2.5 sm:p-3 rounded-full bg-background-elevated/80 backdrop-blur-md border border-border/50 hover:border-accent/50 shadow-lg hover:shadow-accent/20 transition-all duration-300 hover:scale-105 active:scale-95"
-          aria-label="Get Free Access">
-          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-gradient-to-r from-accent to-pink-600 flex items-center justify-center group-hover:from-accent/90 group-hover:to-pink-500 transition-all">
-            <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5 text-white group-hover:translate-x-0.5 transition-transform" />
-          </div>
-          <span className="text-[10px] sm:text-xs font-medium text-foreground-muted group-hover:text-foreground transition-colors whitespace-nowrap">
-            Start Free
-          </span>
-        </button>
+      {/* Desktop Sticky CTA - Right Side - Modern Card Design (XL screens only) */}
+      <div className="hidden xl:block fixed right-8 top-1/2 -translate-y-1/2 z-40">
+        <div className="relative group">
+          {/* Gradient glow background */}
+          <div className="absolute -inset-1 bg-gradient-to-r from-accent via-pink-500 to-purple-500 rounded-3xl opacity-0 group-hover:opacity-100 blur-lg transition-all duration-500"></div>
+          
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              const button = e.currentTarget;
+              button.classList.add('animate-pulse');
+              setTimeout(() => {
+                button.classList.remove('animate-pulse');
+                setIsWaitingListOpen(true);
+              }, 200);
+            }}
+            className="relative flex flex-col items-center gap-4 px-6 py-6 rounded-3xl bg-gradient-to-br from-background-elevated via-background-elevated to-background-secondary backdrop-blur-2xl border border-border/80 hover:border-accent/40 shadow-2xl transition-all duration-500 hover:scale-105 active:scale-95"
+            aria-label="Get Free Access">
+            
+            {/* Icon with animated gradient */}
+            <div className="relative w-14 h-14 rounded-2xl bg-gradient-to-br from-accent via-pink-500 to-pink-600 flex items-center justify-center shadow-lg shadow-accent/40 group-hover:shadow-xl group-hover:shadow-accent/60 transition-all duration-500 group-hover:-rotate-6">
+              <ArrowRight className="h-6 w-6 text-white" />
+              {/* Shine effect */}
+              <div className="absolute inset-0 rounded-2xl bg-gradient-to-tr from-white/0 via-white/30 to-white/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+            </div>
+            
+            {/* Text content */}
+            <div className="flex flex-col items-center gap-1">
+              <span className="text-sm font-bold text-foreground group-hover:text-accent transition-colors duration-300 tracking-tight">
+                Start Free
+              </span>
+              <span className="text-[10px] font-medium text-foreground-muted group-hover:text-foreground-subtle transition-colors duration-300">
+                Forever Plan
+              </span>
+            </div>
+          </button>
+        </div>
       </div>
     </div>
   );

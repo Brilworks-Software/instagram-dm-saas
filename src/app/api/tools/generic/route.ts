@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { prisma } from '@/lib/server/prisma/client';
 import { formatToolUsageSlackMessage, postToSlack } from '@/lib/slack';
+import { createClient } from '@/lib/supabase/server';
 import { processTool } from '@/lib/server/tools/tool-processors';
 
 export async function POST(request: NextRequest) {
@@ -126,7 +127,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ 
       success: true, 
-      results: results 
+      result: results // Frontend expects "result" not "results"
     });
   } catch (error) {
     console.error('Error saving tool usage:', error);

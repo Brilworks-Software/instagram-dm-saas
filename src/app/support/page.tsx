@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/button';
-import { Book, FileText, HelpCircle, Mail, Search, Users, Video } from 'lucide-react';
+import { ArrowRight, Book, FileText, HelpCircle, Mail, Search, Users, Video } from 'lucide-react';
 import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -115,36 +115,43 @@ export default function SupportPage() {
 
         {/* Support Options */}
         <div className="grid md:grid-cols-3 gap-6 mb-16">
-          {supportOptions.map((option, index) => (
-            <div
-              key={index}
-              className="bg-background-elevated rounded-xl p-6 border border-border hover:border-accent/50 transition-all hover:shadow-lg">
-              <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-accent to-pink-500 flex items-center justify-center mb-4">
-                <option.icon className="h-6 w-6 text-white" />
-              </div>
-              <h3 className="text-lg font-semibold text-foreground mb-2">
-                {option.title}
-              </h3>
-              <p className="text-sm text-foreground-muted mb-4">
-                {option.description}
-              </p>
-              {option.href.startsWith("/") ? (
-                <Link
-                  href={option.href}
-                  className="text-accent hover:underline text-sm font-medium">
-                  {option.action} →
-                </Link>
-              ) : (
-                <a
-                  href={option.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-accent hover:underline text-sm font-medium">
-                  {option.action} →
-                </a>
-              )}
-            </div>
-          ))}
+          {supportOptions.map((option, index) => {
+            const cardContent = (
+              <>
+                <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-accent to-pink-500 flex items-center justify-center mb-4">
+                  <option.icon className="h-6 w-6 text-white" />
+                </div>
+                <h3 className="text-lg font-semibold text-foreground mb-2">
+                  {option.title}
+                </h3>
+                <p className="text-sm text-foreground-muted mb-4">
+                  {option.description}
+                </p>
+                <div className="text-accent text-sm font-medium flex items-center gap-1 mt-auto">
+                  {option.action}
+                  <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                </div>
+              </>
+            );
+
+            return option.href.startsWith("/") ? (
+              <Link
+                key={index}
+                href={option.href}
+                className="group bg-background-elevated rounded-xl p-6 border border-border hover:border-accent/50 transition-all hover:shadow-lg flex flex-col cursor-pointer hover:scale-[1.02] duration-300">
+                {cardContent}
+              </Link>
+            ) : (
+              <a
+                key={index}
+                href={option.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group bg-background-elevated rounded-xl p-6 border border-border hover:border-accent/50 transition-all hover:shadow-lg flex flex-col cursor-pointer hover:scale-[1.02] duration-300">
+                {cardContent}
+              </a>
+            );
+          })}
         </div>
 
         {/* Quick Links */}

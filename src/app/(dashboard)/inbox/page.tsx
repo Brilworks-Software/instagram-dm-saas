@@ -10,7 +10,7 @@ import { ConversationList } from '@/components/inbox/conversation-list';
 import { MessageThread } from '@/components/inbox/message-thread';
 import { cn } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
-import type { Conversation, Message } from '@/types';
+import type { Conversation, Message, MessageType, MessageDirection, MessageStatus } from '@/types';
 
 // All API calls use relative URLs since backend and frontend are on the same domain
 
@@ -22,6 +22,19 @@ interface InstagramAccount {
   isActive: boolean;
 }
 
+interface Contact {
+  id: string;
+  igUserId: string;
+  igUsername: string;
+  name?: string;
+  profilePictureUrl?: string;
+  followerCount?: number;
+  isVerified: boolean;
+  tags: string[];
+  notes?: string;
+  createdAt: string;
+}
+
 export default function InboxPage() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
@@ -29,6 +42,10 @@ export default function InboxPage() {
   const [accounts, setAccounts] = useState<InstagramAccount[]>([]);
   const [selectedAccount, setSelectedAccount] = useState<InstagramAccount | null>(null);
   const [viewMode, setViewMode] = useState<'all' | 'account'>('account'); // 'all' for all inbox, 'account' for specific account
+  const [listView, setListView] = useState<'conversations' | 'contacts'>('conversations'); // Toggle between conversations and contacts
+  const [contacts, setContacts] = useState<Contact[]>([]);
+  const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
+  const [isLoadingContacts, setIsLoadingContacts] = useState(false);
   const [isLoadingConversations, setIsLoadingConversations] = useState(true);
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -71,6 +88,39 @@ export default function InboxPage() {
     }
   }, [selectedAccount]);
 
+  // Fetch contacts
+  const fetchContacts = useCallback(async () => {
+    setIsLoadingContacts(true);
+    try {
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from('contacts')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      const transformedContacts: Contact[] = (data || []).map((c: any) => ({
+        id: c.id,
+        igUserId: c.ig_user_id,
+        igUsername: c.ig_username || '',
+        name: c.name,
+        profilePictureUrl: c.profile_picture_url,
+        followerCount: c.follower_count,
+        isVerified: c.is_verified || false,
+        tags: c.tags || [],
+        notes: c.notes,
+        createdAt: c.created_at,
+      }));
+
+      setContacts(transformedContacts);
+    } catch (error) {
+      console.error('Error fetching contacts:', error);
+    } finally {
+      setIsLoadingContacts(false);
+    }
+  }, []);
+
   // Fetch conversations from Supabase
   const fetchConversations = useCallback(async () => {
     if (viewMode === 'account' && !selectedAccount) {
@@ -86,7 +136,12 @@ export default function InboxPage() {
       let query = supabase
         .from('conversations')
         .select(`
-          *,
+          id,
+          ig_thread_id,
+          status,
+          last_message_at,
+          unread_count,
+          is_automation_paused,
           contact:contacts(*),
           instagram_account:instagram_accounts(id, ig_username)
         `);
@@ -106,6 +161,7 @@ export default function InboxPage() {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const transformedConversations: Conversation[] = (data || []).map((conv: any) => ({
         id: conv.id,
+        igThreadId: conv.ig_thread_id,
         status: conv.status,
         lastMessageAt: conv.last_message_at,
         unreadCount: conv.unread_count,
@@ -135,59 +191,139 @@ export default function InboxPage() {
     }
   }, [selectedAccount, viewMode]);
 
-  // Fetch messages for a conversation
+  // Fetch messages for a conversation from Instagram
   const fetchMessages = useCallback(async (conversationId: string) => {
     setIsLoadingMessages(true);
     try {
-      const supabase = createClient();
-      const { data, error } = await supabase
-        .from('messages')
-        .select('*')
-        .eq('conversation_id', conversationId)
-        .order('created_at', { ascending: true });
+      if (!selectedAccount) {
+        console.error('No account selected');
+        setMessages([]);
+        return;
+      }
 
-      if (error) throw error;
+      // Get conversation details to find thread ID
+      const conversation = conversations.find(c => c.id === conversationId);
+      if (!conversation) {
+        console.error('Conversation not found');
+        setMessages([]);
+        return;
+      }
 
-      // Transform to match our Message type
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const transformedMessages: Message[] = (data || []).map((msg: any) => ({
-        id: msg.id,
-        igMessageId: msg.ig_message_id,
-        content: msg.content,
-        messageType: msg.message_type,
-        direction: msg.direction,
-        status: msg.status,
-        sentAt: msg.sent_at,
-        deliveredAt: msg.delivered_at,
-        readAt: msg.read_at,
-        errorMessage: msg.error_message,
-        aiGenerated: msg.ai_generated,
-        createdAt: msg.created_at,
-      }));
+      // Get cookies from localStorage
+      const cookiesStr = localStorage.getItem(`socialora_cookies_${selectedAccount.igUserId}`);
+      if (!cookiesStr) {
+        console.error('No cookies found for account');
+        toast.error('Session expired', {
+          description: 'Please reconnect your Instagram account',
+        });
+        setMessages([]);
+        return;
+      }
 
-      setMessages(transformedMessages);
+      const cookies = JSON.parse(cookiesStr);
 
-      // Mark conversation as read
-      await supabase
-        .from('conversations')
-        .update({ unread_count: 0 })
-        .eq('id', conversationId);
+      // If no thread ID, we need to get it first by fetching inbox
+      let threadId = conversation.igThreadId;
+      
+      if (!threadId) {
+        console.log('No thread ID found, checking inbox...');
+        // Fetch inbox to find thread ID for this contact
+        const inboxResponse = await fetch('/api/instagram/cookie/inbox', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ cookies, limit: 50 }),
+        });
 
-      // Update local state
-      setConversations(prev =>
-        prev.map(c => c.id === conversationId ? { ...c, unreadCount: 0 } : c)
-      );
+        if (inboxResponse.ok) {
+          const inboxData = await inboxResponse.json();
+          const thread = inboxData.threads?.find((t: any) => 
+            t.users?.some((u: any) => u.pk === conversation.contact.igUserId)
+          );
+          
+          if (thread) {
+            threadId = thread.threadId;
+            // Update conversation with thread ID
+            const supabase = createClient();
+            await supabase
+              .from('conversations')
+              .update({ ig_thread_id: threadId })
+              .eq('id', conversationId);
+          }
+        }
+      }
+
+      if (!threadId) {
+        console.log('No messages yet for this conversation');
+        setMessages([]);
+        return;
+      }
+
+      // Fetch messages from Instagram
+      const response = await fetch('/api/instagram/cookie/thread/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          cookies,
+          threadId,
+          limit: 50,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch messages from Instagram');
+      }
+
+      const result = await response.json();
+      
+      if (result.success && result.messages) {
+        // Transform Instagram messages to our Message type
+        const transformedMessages: Message[] = result.messages.map((msg: any) => ({
+          id: msg.itemId || msg.id,
+          igMessageId: msg.itemId,
+          content: msg.text || '',
+          messageType: 'TEXT' as MessageType,
+          direction: msg.userId === cookies.dsUserId ? 'OUTBOUND' : 'INBOUND' as MessageDirection,
+          status: 'DELIVERED' as MessageStatus,
+          sentAt: new Date(msg.timestamp).toISOString(),
+          deliveredAt: null,
+          readAt: null,
+          errorMessage: null,
+          aiGenerated: false,
+          createdAt: new Date(msg.timestamp).toISOString(),
+        }));
+
+        setMessages(transformedMessages);
+
+        // Mark conversation as read
+        const supabase = createClient();
+        await supabase
+          .from('conversations')
+          .update({ unread_count: 0 })
+          .eq('id', conversationId);
+
+        // Update local state
+        setConversations(prev =>
+          prev.map(c => c.id === conversationId ? { ...c, unreadCount: 0 } : c)
+        );
+      } else {
+        setMessages([]);
+      }
     } catch (error) {
       console.error('Error fetching messages:', error);
+      toast.error('Failed to load messages', {
+        description: 'Could not fetch messages from Instagram',
+      });
+      setMessages([]);
     } finally {
       setIsLoadingMessages(false);
     }
-  }, []);
+  }, [selectedAccount, conversations]);
 
   // Load accounts on mount
   useEffect(() => {
     fetchAccounts();
-  }, [fetchAccounts]);
+    fetchContacts();
+  }, [fetchAccounts, fetchContacts]);
 
   // Load conversations when account or view mode changes
   useEffect(() => {
@@ -213,8 +349,114 @@ export default function InboxPage() {
   // Handle conversation selection
   const handleSelectConversation = useCallback((conversation: Conversation) => {
     setSelectedConversation(conversation);
+    setSelectedContact(null);
     fetchMessages(conversation.id);
   }, [fetchMessages]);
+
+  // Handle contact selection - create or find conversation
+  const handleSelectContact = useCallback(async (contact: Contact) => {
+    setSelectedContact(contact);
+    setSelectedConversation(null);
+    setIsLoadingMessages(true);
+
+    try {
+      if (!selectedAccount) {
+        toast.error('Please select an account first');
+        return;
+      }
+
+      const supabase = createClient();
+      
+      // Try to find existing conversation
+      const { data: existingConv } = await supabase
+        .from('conversations')
+        .select(`
+          *,
+          contact:contacts(*),
+          instagram_account:instagram_accounts(id, ig_username)
+        `)
+        .eq('contact_id', contact.id)
+        .eq('instagram_account_id', selectedAccount.id)
+        .single();
+
+      if (existingConv) {
+        // Conversation exists, load it
+        const conversation: Conversation = {
+          id: existingConv.id,
+          igThreadId: existingConv.ig_thread_id,
+          status: existingConv.status,
+          lastMessageAt: existingConv.last_message_at,
+          unreadCount: existingConv.unread_count,
+          isAutomationPaused: existingConv.is_automation_paused,
+          contact: {
+            id: existingConv.contact.id,
+            igUserId: existingConv.contact.ig_user_id,
+            igUsername: existingConv.contact.ig_username,
+            name: existingConv.contact.name,
+            profilePictureUrl: existingConv.contact.profile_picture_url,
+            followerCount: existingConv.contact.follower_count,
+            isVerified: existingConv.contact.is_verified,
+            tags: existingConv.contact.tags || [],
+            notes: existingConv.contact.notes,
+          },
+          instagramAccount: {
+            id: existingConv.instagram_account.id,
+            igUsername: existingConv.instagram_account.ig_username,
+          },
+        };
+        setSelectedConversation(conversation);
+        await fetchMessages(conversation.id);
+      } else {
+        // No conversation yet, create a new one
+        const { data: newConv, error } = await supabase
+          .from('conversations')
+          .insert({
+            instagram_account_id: selectedAccount.id,
+            contact_id: contact.id,
+            status: 'OPEN',
+          })
+          .select(`
+            *,
+            contact:contacts(*),
+            instagram_account:instagram_accounts(id, ig_username)
+          `)
+          .single();
+
+        if (error) throw error;
+
+        const conversation: Conversation = {
+          id: newConv.id,
+          igThreadId: newConv.ig_thread_id,
+          status: newConv.status,
+          lastMessageAt: newConv.last_message_at,
+          unreadCount: newConv.unread_count,
+          isAutomationPaused: newConv.is_automation_paused,
+          contact: {
+            id: newConv.contact.id,
+            igUserId: newConv.contact.ig_user_id,
+            igUsername: newConv.contact.ig_username,
+            name: newConv.contact.name,
+            profilePictureUrl: newConv.contact.profile_picture_url,
+            followerCount: newConv.contact.follower_count,
+            isVerified: newConv.contact.is_verified,
+            tags: newConv.contact.tags || [],
+            notes: newConv.contact.notes,
+          },
+          instagramAccount: {
+            id: newConv.instagram_account.id,
+            igUsername: newConv.instagram_account.ig_username,
+          },
+        };
+        setSelectedConversation(conversation);
+        setMessages([]);
+      }
+    } catch (error) {
+      console.error('Error loading contact conversation:', error);
+      toast.error('Failed to load conversation');
+    } finally {
+      setIsLoadingMessages(false);
+    }
+  }, [selectedAccount, fetchMessages]);
 
   // Handle sending a message
   const handleSendMessage = useCallback(async (content: string) => {
@@ -919,78 +1161,224 @@ export default function InboxPage() {
             </div>
           )}
 
+          {/* View Toggle - Conversations / Contacts */}
+          <div className="p-4 border-b border-border">
+            <div className="flex items-center gap-2 bg-background-elevated rounded-lg p-1">
+              <button
+                onClick={() => setListView('conversations')}
+                className={cn(
+                  'flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors',
+                  listView === 'conversations'
+                    ? 'bg-background text-foreground shadow-sm'
+                    : 'text-foreground-muted hover:text-foreground'
+                )}
+              >
+                <MessageSquare className="h-4 w-4 inline mr-2" />
+                Conversations
+              </button>
+              <button
+                onClick={() => setListView('contacts')}
+                className={cn(
+                  'flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors',
+                  listView === 'contacts'
+                    ? 'bg-background text-foreground shadow-sm'
+                    : 'text-foreground-muted hover:text-foreground'
+                )}
+              >
+                <Users className="h-4 w-4 inline mr-2" />
+                Contacts ({contacts.length})
+              </button>
+            </div>
+          </div>
+
           {/* Filters */}
           <div className="p-4 space-y-3 border-b border-border">
             <Input
-              placeholder="Search conversations..."
+              placeholder={listView === 'conversations' ? 'Search conversations...' : 'Search contacts...'}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               leftIcon={<Search className="h-4 w-4" />}
             />
 
-            <div className="flex items-center gap-2">
-              {['all', 'OPEN', 'SNOOZED', 'CLOSED'].map((status) => (
-                <button
-                  key={status}
-                  onClick={() => setStatusFilter(status)}
-                  className={cn(
-                    'px-3 py-1.5 rounded-lg text-xs font-medium transition-colors',
-                    statusFilter === status
-                      ? 'bg-accent text-white'
-                      : 'bg-background-elevated text-foreground-muted hover:text-foreground'
-                  )}
-                >
-                  {status === 'all' ? 'All' : status.charAt(0) + status.slice(1).toLowerCase()}
-                </button>
-              ))}
+            {listView === 'conversations' && (
+              <div className="flex items-center gap-2">
+                {['all', 'OPEN', 'SNOOZED', 'CLOSED'].map((status) => (
+                  <button
+                    key={status}
+                    onClick={() => setStatusFilter(status)}
+                    className={cn(
+                      'px-3 py-1.5 rounded-lg text-xs font-medium transition-colors',
+                      statusFilter === status
+                        ? 'bg-accent text-white'
+                        : 'bg-background-elevated text-foreground-muted hover:text-foreground'
+                    )}
+                  >
+                    {status === 'all' ? 'All' : status.charAt(0) + status.slice(1).toLowerCase()}
+                  </button>
+                ))}
 
-              <Button
-                size="sm"
-                variant="secondary"
-                onClick={() => {
-                  if (viewMode === 'all') {
-                    toast.info('Sync individual accounts', {
-                      description: 'Please select a specific account to sync its inbox.',
-                    });
-                  } else {
-                    handleSyncInbox(true);
-                  }
-                }}
-                disabled={isSyncing || (viewMode === 'account' && !selectedAccount)}
-                className="ml-auto"
-                title={viewMode === 'all' ? 'Select an account to sync' : 'Sync messages from Instagram'}
-              >
-                <RefreshCw className={cn("h-3.5 w-3.5", isSyncing && "animate-spin")} />
-                {isSyncing ? 'Syncing...' : 'Sync'}
-              </Button>
-            </div>
-          </div>
-
-          {isLoadingConversations ? (
-            <div className="flex-1 flex items-center justify-center">
-              <div className="text-foreground-muted animate-pulse">Loading conversations...</div>
-            </div>
-          ) : filteredConversations.length > 0 ? (
-            <ConversationList
-              conversations={filteredConversations}
-              selectedId={selectedConversation?.id || null}
-              onSelect={handleSelectConversation}
-            />
-          ) : (
-            <div className="flex-1 flex items-center justify-center p-6">
-              <div className="text-center">
-                <MessageSquare className="h-12 w-12 text-foreground-subtle mx-auto mb-3" />
-                <p className="text-foreground-muted text-sm">No conversations yet</p>
-                <Button 
-                  size="sm" 
-                  className="mt-4"
-                  onClick={() => setShowNewDmModal(true)}
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => {
+                    if (viewMode === 'all') {
+                      toast.info('Sync individual accounts', {
+                        description: 'Please select a specific account to sync its inbox.',
+                      });
+                    } else {
+                      handleSyncInbox(true);
+                    }
+                  }}
+                  disabled={isSyncing || (viewMode === 'account' && !selectedAccount)}
+                  className="ml-auto"
+                  title={viewMode === 'all' ? 'Select an account to sync' : 'Sync messages from Instagram'}
                 >
-                  <Plus className="h-4 w-4" />
-                  Start a conversation
+                  <RefreshCw className={cn("h-3.5 w-3.5", isSyncing && "animate-spin")} />
+                  {isSyncing ? 'Syncing...' : 'Sync'}
                 </Button>
               </div>
-            </div>
+            )}
+          </div>
+
+          {/* Conversations List */}
+          {listView === 'conversations' && (
+            <>
+              {isLoadingConversations ? (
+                <div className="flex-1 flex items-center justify-center">
+                  <div className="text-foreground-muted animate-pulse">Loading conversations...</div>
+                </div>
+              ) : filteredConversations.length > 0 ? (
+                <ConversationList
+                  conversations={filteredConversations}
+                  selectedId={selectedConversation?.id || null}
+                  onSelect={handleSelectConversation}
+                />
+              ) : (
+                <div className="flex-1 flex items-center justify-center p-6">
+                  <div className="text-center">
+                    <MessageSquare className="h-12 w-12 text-foreground-subtle mx-auto mb-3" />
+                    <p className="text-foreground-muted text-sm">No conversations yet</p>
+                    <Button 
+                      size="sm" 
+                      className="mt-4"
+                      onClick={() => setShowNewDmModal(true)}
+                    >
+                      <Plus className="h-4 w-4" />
+                      Start a conversation
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+
+          {/* Contacts List */}
+          {listView === 'contacts' && (
+            <>
+              {isLoadingContacts ? (
+                <div className="flex-1 flex items-center justify-center">
+                  <div className="text-foreground-muted animate-pulse">Loading contacts...</div>
+                </div>
+              ) : (
+                <div className="flex-1 overflow-y-auto">
+                  {contacts
+                    .filter(contact => 
+                      !searchQuery || 
+                      contact.igUsername?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                      contact.name?.toLowerCase().includes(searchQuery.toLowerCase())
+                    )
+                    .map((contact, index) => (
+                      <button
+                        key={contact.id}
+                        onClick={() => handleSelectContact(contact)}
+                        className={cn(
+                          'w-full p-4 flex items-start gap-3 text-left transition-all duration-200 border-b border-border/50',
+                          'hover:bg-background-elevated',
+                          selectedContact?.id === contact.id && 'bg-background-elevated border-l-2 border-l-accent',
+                          index === 0 && 'animate-slide-in'
+                        )}
+                        style={{ animationDelay: `${index * 50}ms` }}
+                      >
+                        <div className="relative">
+                          {contact.profilePictureUrl ? (
+                            <img
+                              src={contact.profilePictureUrl}
+                              alt={contact.igUsername}
+                              className="w-10 h-10 rounded-full"
+                            />
+                          ) : (
+                            <div className="w-10 h-10 rounded-full bg-accent/20 flex items-center justify-center text-accent font-medium">
+                              {(contact.name || contact.igUsername || '?')[0].toUpperCase()}
+                            </div>
+                          )}
+                          {contact.isVerified && (
+                            <div className="absolute -bottom-0.5 -right-0.5 h-4 w-4 rounded-full bg-blue-500 flex items-center justify-center">
+                              <svg className="h-2.5 w-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                              </svg>
+                            </div>
+                          )}
+                        </div>
+                        
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="font-medium text-sm text-foreground truncate">
+                              {contact.name || `@${contact.igUsername}`}
+                            </span>
+                          </div>
+                          
+                          <div className="flex items-center gap-2 mt-1">
+                            <p className="text-sm text-foreground-muted truncate">
+                              @{contact.igUsername}
+                            </p>
+                            {contact.followerCount && (
+                              <span className="text-xs text-foreground-subtle">
+                                • {contact.followerCount.toLocaleString()} followers
+                              </span>
+                            )}
+                          </div>
+
+                          {contact.tags.length > 0 && (
+                            <div className="flex items-center gap-1 mt-2">
+                              {contact.tags.slice(0, 2).map((tag) => (
+                                <span
+                                  key={tag}
+                                  className="px-2 py-0.5 rounded-full bg-accent/10 text-accent text-xs"
+                                >
+                                  {tag}
+                                </span>
+                              ))}
+                              {contact.tags.length > 2 && (
+                                <span className="text-xs text-foreground-subtle">
+                                  +{contact.tags.length - 2}
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </button>
+                    ))
+                  }
+                  {contacts.filter(contact => 
+                    !searchQuery || 
+                    contact.igUsername?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    contact.name?.toLowerCase().includes(searchQuery.toLowerCase())
+                  ).length === 0 && (
+                    <div className="flex-1 flex items-center justify-center p-6">
+                      <div className="text-center">
+                        <Users className="h-12 w-12 text-foreground-subtle mx-auto mb-3" />
+                        <p className="text-foreground-muted text-sm">
+                          {searchQuery ? 'No contacts found' : 'No contacts yet'}
+                        </p>
+                        <p className="text-foreground-subtle text-xs mt-1">
+                          {searchQuery ? 'Try a different search' : 'Contacts will appear here after syncing inbox'}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </>
           )}
         </div>
 

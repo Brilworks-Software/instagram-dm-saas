@@ -96,11 +96,10 @@ export function GenericToolForm({
         return;
       }
 
-      // Store results if available
-      if (data.results) {
-        setResults(data.results);
-      }
+      // Store the results from the API response
+      setResults(data.result || data);
       
+      await new Promise(resolve => setTimeout(resolve, 2000));
       setShowSuccess(true);
     } catch (error) {
       console.error('Error:', error);
@@ -249,14 +248,39 @@ export function GenericToolForm({
           {/* Content Ideas Results */}
           {results.ideas && Array.isArray(results.ideas) && (
             <div>
-              <h4 className="font-semibold mb-3 text-foreground">Content Ideas ({results.count}):</h4>
-              <ul className="space-y-2">
+              <div className="flex items-center justify-between mb-4">
+                <h4 className="font-semibold text-foreground">💡 Content Ideas ({results.count})</h4>
+                {results.niche && (
+                  <span className="text-xs text-foreground-muted">For: {results.niche}</span>
+                )}
+              </div>
+              <div className="grid gap-3">
                 {results.ideas.map((idea: string, i: number) => (
-                  <li key={i} className="p-3 bg-background rounded-lg border border-border text-sm text-foreground">
-                    {idea}
-                  </li>
+                  <div 
+                    key={i} 
+                    className="group p-4 bg-gradient-to-br from-background to-background-elevated rounded-lg border border-border hover:border-accent/50 transition-all cursor-pointer"
+                    onClick={() => {
+                      navigator.clipboard.writeText(idea);
+                      alert('Idea copied to clipboard!');
+                    }}
+                  >
+                    <div className="flex items-start gap-3">
+                      <span className="flex-shrink-0 w-6 h-6 rounded-full bg-accent/10 text-accent text-xs font-semibold flex items-center justify-center">
+                        {i + 1}
+                      </span>
+                      <p className="flex-1 text-sm text-foreground font-medium">{idea}</p>
+                      <button className="opacity-0 group-hover:opacity-100 transition-opacity text-xs text-accent hover:underline">
+                        Copy
+                      </button>
+                    </div>
+                  </div>
                 ))}
-              </ul>
+              </div>
+              <div className="mt-4 p-3 bg-accent/5 rounded-lg border border-accent/20">
+                <p className="text-xs text-foreground-muted">
+                  💡 <strong>Tip:</strong> Click any idea to copy it. Mix and match these with your unique style!
+                </p>
+              </div>
             </div>
           )}
 

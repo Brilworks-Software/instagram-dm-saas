@@ -65,11 +65,13 @@ export async function processTool(toolSlug: string, formData: Record<string, str
 
     case 'content-ideas-generator': {
       const niche = formData['niche'] || formData['topic'] || formData['content-niche'] || Object.values(formData)[0];
-      const ideas = await generateContentIdeas(niche, 20);
+      const contentType = formData['content-type'] || formData['type'] || 'Posts, Stories, Reels';
+      const ideas = await generateContentIdeas(niche, 15);
       return {
         ideas,
         count: ideas.length,
         niche,
+        contentType,
       };
     }
 
