@@ -53,6 +53,7 @@ export type ConversationStatus = 'OPEN' | 'CLOSED' | 'SNOOZED' | 'ARCHIVED';
 
 export interface Conversation {
   id: string;
+  igThreadId?: string | null;
   status: ConversationStatus;
   lastMessageAt: string | null;
   unreadCount: number;

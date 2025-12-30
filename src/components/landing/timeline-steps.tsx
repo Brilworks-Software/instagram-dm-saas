@@ -2,7 +2,7 @@
 
 import { Instagram, Sparkles, Rocket, ArrowRight, CheckCircle2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 
 const steps = [
@@ -37,9 +37,52 @@ const steps = [
 
 export function TimelineSteps({ onCtaClick }: { onCtaClick: () => void }) {
   const [activeStep, setActiveStep] = useState(0);
+  const sectionRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const section = sectionRef.current;
+    if (!section) return;
+
+    const handleScroll = () => {
+      const rect = section.getBoundingClientRect();
+      const viewportHeight = window.innerHeight;
+      const sectionTop = rect.top;
+      const sectionMiddle = sectionTop + rect.height / 2;
+      const viewportMiddle = viewportHeight / 2;
+      
+      // Calculate distance from section middle to viewport middle
+      const distanceFromCenter = Math.abs(sectionMiddle - viewportMiddle);
+      const maxDistance = viewportHeight;
+      
+      // Progress based on how centered the section is (0 = far, 1 = centered)
+      const centerProgress = 1 - Math.min(distanceFromCenter / maxDistance, 1);
+      
+      // Also consider overall scroll progress through section
+      const scrollProgress = Math.max(0, Math.min(1, 
+        (viewportHeight - rect.top) / (rect.height + viewportHeight)
+      ));
+      
+      // Combine both metrics, weighted toward center alignment
+      const combinedProgress = (centerProgress * 0.7) + (scrollProgress * 0.3);
+      
+      // Activate steps based on combined progress
+      if (combinedProgress < 0.35) {
+        setActiveStep(0);
+      } else if (combinedProgress < 0.6) {
+        setActiveStep(1);
+      } else {
+        setActiveStep(2);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    handleScroll(); // Initial check
+
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   return (
-    <section className="py-20 sm:py-24 md:py-32 px-4 sm:px-6 lg:px-8 relative overflow-hidden bg-background-secondary">
+    <section ref={sectionRef} className="py-20 sm:py-24 md:py-32 px-4 sm:px-6 lg:px-8 relative overflow-hidden bg-background-secondary">
       {/* Background effects */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute top-1/4 left-0 w-96 h-96 bg-accent/5 rounded-full blur-3xl"></div>

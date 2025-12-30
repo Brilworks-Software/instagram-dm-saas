@@ -453,7 +453,20 @@ export default function LeadsPage() {
         });
         
         if (results.length === 0) {
-          setSearchError('No users found. Try a different keyword or check your Instagram session.');
+          // Provide more helpful error messages based on search type
+          if (type === 'hashtag') {
+            setSearchError(
+              `No users found for "${query}". Try:\n` +
+              `• Using a more popular or specific keyword\n` +
+              `• Checking if the hashtag exists on Instagram\n` +
+              `• Trying a related keyword (e.g., "business coach" instead of "businesscoach")\n` +
+              `• Using a different search method (try username search)`
+            );
+          } else if (type === 'username') {
+            setSearchError(`No users found matching "${query}". Try a different search term.`);
+          } else {
+            setSearchError('No users found. Try a different keyword or check your Instagram session.');
+          }
         }
         
         // Check if there might be more results

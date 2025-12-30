@@ -7,7 +7,7 @@ import {
     validateEmail,
     validateInstagramId,
 } from "@/lib/waiting-list/validation";
-import { AlertCircle, CheckCircle, Instagram, Mail } from 'lucide-react';
+import { AlertCircle, CheckCircle, Instagram, Mail,ArrowRight } from 'lucide-react';
 import { useState } from 'react';
 
 // ============================================================================
@@ -267,7 +267,8 @@ export function WaitingListForm({ open, onOpenChange }: WaitingListFormProps) {
                 disabled={isSubmitting || !email.trim()}
                 isLoading={isSubmitting}
                 className="w-full py-6 text-base sm:text-lg font-semibold bg-gradient-to-r from-accent via-pink-600 to-purple-600 hover:from-accent/90 hover:via-pink-500 hover:to-purple-500 text-white shadow-xl shadow-accent/40 hover:shadow-accent/60 hover:scale-[1.02] transition-all">
-                Claim My Free Forever Plan →
+                Claim My Free Forever Plan
+                <ArrowRight className="h-5 w-5 ml-2" />
               </Button>
               <p className="text-center text-xs text-foreground-muted/70 mt-3">
                 Join 10,000+ creators already automating their DMs
