@@ -10,224 +10,257 @@ declare const Deno: {
 };
 
 /**
+ * CORS headers helper function
+ * Returns standard CORS headers for all responses
+ */
+function getCorsHeaders(): Record<string, string> {
+  return {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "POST, GET, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    "Access-Control-Max-Age": "86400", // 24 hours
+  };
+}
+
+/**
+ * Create a JSON response with CORS headers
+ */
+function createJsonResponse(
+  data: any,
+  status: number = 200,
+  additionalHeaders: Record<string, string> = {}
+): Response {
+  let jsonBody: string;
+  try {
+    jsonBody = JSON.stringify(data);
+  } catch (error) {
+    // Fallback if JSON.stringify fails
+    jsonBody = JSON.stringify({
+      success: false,
+      error: "Failed to serialize response",
+      originalError: error instanceof Error ? error.message : "Unknown error",
+    });
+    status = 500;
+  }
+
+  return new Response(jsonBody, {
+    status,
+    headers: {
+      "Content-Type": "application/json; charset=utf-8",
+      ...getCorsHeaders(),
+      ...additionalHeaders,
+    },
+  });
+}
+
+/**
+ * Handle OPTIONS preflight request for CORS
+ */
+function handleOptionsRequest(): Response {
+  return new Response(null, {
+    status: 204,
+    headers: getCorsHeaders(),
+  });
+}
+
+/**
+ * Create a fetch request with timeout
+ */
+async function fetchWithTimeout(
+  url: string,
+  options: RequestInit,
+  timeoutMs: number = 30000
+): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+    return response;
+  } catch (error: any) {
+    clearTimeout(timeoutId);
+    if (error.name === "AbortError") {
+      throw new Error(`Request timeout after ${timeoutMs}ms`);
+    }
+    throw error;
+  }
+}
+
+/**
+ * Parse JSON response safely
+ */
+async function parseJsonResponse(response: Response): Promise<any> {
+  const contentType = response.headers.get("content-type");
+  if (!contentType || !contentType.includes("application/json")) {
+    const text = await response.text();
+    return {
+      success: false,
+      error: "Response is not JSON",
+      rawResponse: text.substring(0, 500), // Limit raw response length
+    };
+  }
+
+  try {
+    return await response.json();
+  } catch (error) {
+    return {
+      success: false,
+      error: "Failed to parse JSON response",
+      parseError: error instanceof Error ? error.message : "Unknown error",
+    };
+  }
+}
+
+/**
  * Supabase Edge Function to process campaigns
  * Called by pg_cron on a schedule
- * 
+ *
  * This function calls the Next.js API endpoint to process all RUNNING campaigns
  */
 Deno.serve(async (req: Request) => {
   const startTime = Date.now();
   const requestId = crypto.randomUUID();
 
+  // Handle CORS preflight OPTIONS request
+  if (req.method === "OPTIONS") {
+    return handleOptionsRequest();
+  }
+
+  // Handle GET requests for health checks (useful for testing)
+  if (req.method === "GET") {
+    return createJsonResponse(
+      {
+        success: true,
+        message: "Edge Function is running",
+        method: "GET",
+        supportedMethods: ["POST", "GET", "OPTIONS"],
+        requestId,
+        timestamp: new Date().toISOString(),
+      },
+      200
+    );
+  }
+
+  // Validate HTTP method - only POST is allowed for actual processing
+  if (req.method !== "POST") {
+    console.error(`[${requestId}] Method not allowed: ${req.method}`);
+    return createJsonResponse(
+      {
+        success: false,
+        error: `Method ${req.method} not allowed. Supported methods: POST, GET, OPTIONS`,
+        requestId,
+        timestamp: new Date().toISOString(),
+      },
+      405
+    );
+  }
+
   try {
-    console.log(
-      `[${requestId}] Edge Function invoked at ${new Date().toISOString()}`
-    );
-    console.log(`[${requestId}] Request method: ${req.method}`);
-    console.log(`[${requestId}] Request URL: ${req.url}`);
-
-    // Log request headers (excluding sensitive data)
-    const headers: Record<string, string> = {};
-    req.headers.forEach((value, key) => {
-      headers[key] = key.toLowerCase().includes("authorization")
-        ? "[REDACTED]"
-        : value;
-    });
-    console.log(
-      `[${requestId}] Request headers:`,
-      JSON.stringify(headers, null, 2)
-    );
-
-    // Get environment variables
-    console.log(`[${requestId}] Checking environment variables...`);
+    // Get environment variables early
     const backendUrl = Deno.env.get("NEXT_PUBLIC_BACKEND_URL");
     const internalApiSecret = Deno.env.get("INTERNAL_API_SECRET");
 
-    console.log(
-      `[${requestId}] NEXT_PUBLIC_BACKEND_URL: ${
-        backendUrl ? "SET" : "NOT SET"
-      }`
-    );
-    console.log(
-      `[${requestId}] INTERNAL_API_SECRET: ${
-        internalApiSecret ? "SET" : "NOT SET"
-      }`
-    );
-
     if (!backendUrl) {
-      const error = "NEXT_PUBLIC_BACKEND_URL is not configured";
-      console.error(`[${requestId}] ERROR: ${error}`);
-      return new Response(
-        JSON.stringify({
-          success: false,
-          error,
-          requestId,
-          timestamp: new Date().toISOString(),
-        }),
+      console.error(`[${requestId}] NEXT_PUBLIC_BACKEND_URL is not configured`);
+      return createJsonResponse(
         {
-          status: 500,
-          headers: { "Content-Type": "application/json" },
-        }
+          success: false,
+          error: "NEXT_PUBLIC_BACKEND_URL is not configured",
+          requestId,
+        },
+        500
       );
     }
 
     if (!internalApiSecret) {
-      const error = "INTERNAL_API_SECRET is not configured";
-      console.error(`[${requestId}] ERROR: ${error}`);
-      return new Response(
-        JSON.stringify({
-          success: false,
-          error,
-          requestId,
-          timestamp: new Date().toISOString(),
-        }),
+      console.error(`[${requestId}] INTERNAL_API_SECRET is not configured`);
+      return createJsonResponse(
         {
-          status: 500,
-          headers: { "Content-Type": "application/json" },
-        }
+          success: false,
+          error: "INTERNAL_API_SECRET is not configured",
+          requestId,
+        },
+        500
       );
     }
 
     // Construct the Next.js API endpoint URL
     const apiUrl = `${backendUrl}/api/internal/process-campaigns`;
-    console.log(`[${requestId}] Constructed API URL: ${apiUrl}`);
 
-    // Call the Next.js API endpoint
-    console.log(`[${requestId}] Making fetch request to Next.js API...`);
-    const fetchStartTime = Date.now();
+    console.log(`[${requestId}] Calling Next.js API: ${apiUrl}`);
 
+    // Call the Next.js API endpoint with timeout (30 seconds)
     let response: Response;
     try {
-      response = await fetch(apiUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${internalApiSecret}`,
+      response = await fetchWithTimeout(
+        apiUrl,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${internalApiSecret}`,
+          },
+          body: JSON.stringify({}),
         },
-        body: JSON.stringify({}),
-      });
+        30000 // 30 second timeout
+      );
+    } catch (error: any) {
+      const errorMessage = error?.message || "Unknown network error";
+      console.error(`[${requestId}] Network error:`, errorMessage);
 
-      const fetchDuration = Date.now() - fetchStartTime;
-      console.log(`[${requestId}] Fetch completed in ${fetchDuration}ms`);
-      console.log(
-        `[${requestId}] Response status: ${response.status} ${response.statusText}`
-      );
-      console.log(
-        `[${requestId}] Response headers:`,
-        JSON.stringify(Object.fromEntries(response.headers.entries()), null, 2)
-      );
-    } catch (fetchError: any) {
-      const fetchDuration = Date.now() - fetchStartTime;
-      console.error(
-        `[${requestId}] Fetch failed after ${fetchDuration}ms:`,
-        fetchError
-      );
-      console.error(`[${requestId}] Fetch error name:`, fetchError?.name);
-      console.error(`[${requestId}] Fetch error message:`, fetchError?.message);
-      console.error(`[${requestId}] Fetch error stack:`, fetchError?.stack);
-
-      return new Response(
-        JSON.stringify({
+      return createJsonResponse(
+        {
           success: false,
-          error: `Failed to call Next.js API: ${
-            fetchError?.message || "Unknown fetch error"
-          }`,
-          errorType: fetchError?.name || "FetchError",
+          error: "Failed to reach backend API",
+          details: errorMessage,
           requestId,
           timestamp: new Date().toISOString(),
-        }),
-        {
-          status: 502,
-          headers: { "Content-Type": "application/json" },
-        }
+        },
+        503 // Service Unavailable
       );
     }
 
-    // Get response data
-    console.log(`[${requestId}] Parsing response body...`);
-    let data: any;
-    try {
-      const responseText = await response.text();
-      console.log(
-        `[${requestId}] Response body length: ${responseText.length} characters`
-      );
-      console.log(
-        `[${requestId}] Response body preview: ${responseText.substring(
-          0,
-          500
-        )}`
-      );
+    // Parse response safely
+    const data = await parseJsonResponse(response);
 
-      data = JSON.parse(responseText);
-      console.log(`[${requestId}] Successfully parsed JSON response`);
-    } catch (parseError: any) {
-      console.error(`[${requestId}] Failed to parse response:`, parseError);
-      console.error(`[${requestId}] Parse error:`, parseError?.message);
-      data = {
-        success: false,
-        error: "Failed to parse response",
-        parseError: parseError?.message,
-      };
-    }
-
-    const totalDuration = Date.now() - startTime;
-    console.log(`[${requestId}] Edge Function completed in ${totalDuration}ms`);
+    const duration = Date.now() - startTime;
     console.log(
-      `[${requestId}] Returning response with status: ${
-        response.ok ? 200 : response.status
-      }`
+      `[${requestId}] Request completed in ${duration}ms with status ${response.status}`
     );
 
-    // Return the response from Next.js API
-    return new Response(
-      JSON.stringify({
+    // Return the response from Next.js API with additional metadata
+    return createJsonResponse(
+      {
         ...data,
         edgeFunctionTimestamp: new Date().toISOString(),
-        edgeFunctionDuration: `${totalDuration}ms`,
+        edgeFunctionDuration: `${duration}ms`,
         requestId,
-        backendUrl: backendUrl,
-      }),
-      {
-        status: response.ok ? 200 : response.status,
-        headers: { "Content-Type": "application/json" },
-      }
+      },
+      response.ok ? 200 : response.status
     );
   } catch (error: any) {
-    const totalDuration = Date.now() - startTime;
-    console.error(
-      `[${requestId}] Edge Function error after ${totalDuration}ms:`,
-      error
-    );
-    console.error(`[${requestId}] Error name:`, error?.name);
-    console.error(`[${requestId}] Error message:`, error?.message);
-    console.error(`[${requestId}] Error stack:`, error?.stack);
-    console.error(
-      `[${requestId}] Error details:`,
-      JSON.stringify(
-        {
-          name: error?.name,
-          message: error?.message,
-          cause: error?.cause,
-        },
-        null,
-        2
-      )
-    );
+    const duration = Date.now() - startTime;
+    const errorMessage = error?.message || "Unknown error occurred";
+    const errorStack = error?.stack || "No stack trace available";
 
-    return new Response(
-      JSON.stringify({
+    console.error(`[${requestId}] Edge Function error after ${duration}ms:`, {
+      message: errorMessage,
+      stack: errorStack,
+    });
+
+    return createJsonResponse(
+      {
         success: false,
-        error: error?.message || "Unknown error occurred",
-        errorType: error?.name || "Error",
+        error: errorMessage,
         requestId,
         timestamp: new Date().toISOString(),
-        duration: `${totalDuration}ms`,
-      }),
-      {
-        status: 500,
-        headers: { "Content-Type": "application/json" },
-      }
+        duration: `${duration}ms`,
+      },
+      500
     );
   }
 });
-
