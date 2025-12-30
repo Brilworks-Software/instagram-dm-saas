@@ -15,15 +15,20 @@ export class CampaignService {
    * Now supports multiple accounts.
    */
   async processCampaign(campaignId: string): Promise<void> {
+    // Use select to explicitly exclude sendStartTime and sendEndTime (TIME columns)
+    // that cause Prisma conversion errors. These fields are not needed for processing.
     const campaign = await prisma.campaign.findUnique({
       where: { id: campaignId },
-      include: {
+      select: {
+        id: true,
+        status: true,
+        messagesPerDay: true,
         steps: {
-          orderBy: { stepOrder: 'asc' },
+          orderBy: { stepOrder: "asc" },
         },
         recipients: {
           where: {
-            status: { in: ['PENDING', 'IN_PROGRESS'] },
+            status: { in: ["PENDING", "IN_PROGRESS"] },
           },
           include: {
             contact: true,
@@ -37,7 +42,7 @@ export class CampaignService {
       throw new Error(`Campaign ${campaignId} not found`);
     }
 
-    if (campaign.status !== 'RUNNING') {
+    if (campaign.status !== "RUNNING") {
       console.warn(`Campaign ${campaignId} is not in RUNNING status`);
       return;
     }
@@ -49,9 +54,9 @@ export class CampaignService {
 
     // Get campaign accounts (supports both multi-account and legacy single-account)
     const campaignAccounts = await this.getCampaignAccounts(campaignId);
-    
+
     if (campaignAccounts.length === 0) {
-      throw new Error('No accounts assigned to campaign');
+      throw new Error("No accounts assigned to campaign");
     }
 
     const now = new Date();
@@ -60,7 +65,7 @@ export class CampaignService {
     // Process recipients assigned to each account separately
     for (const account of campaignAccounts) {
       const accountRecipients = campaign.recipients.filter(
-        r => r.assignedAccountId === account.id
+        (r) => r.assignedAccountId === account.id
       );
 
       if (accountRecipients.length === 0) continue;
@@ -75,7 +80,9 @@ export class CampaignService {
       // Check daily limit for this account
       const dailyCount = await this.getAccountDailyCount(account.id, now);
       if (dailyCount >= campaign.messagesPerDay) {
-        console.log(`Account ${account.id} has reached daily limit (${dailyCount}/${campaign.messagesPerDay})`);
+        console.log(
+          `Account ${account.id} has reached daily limit (${dailyCount}/${campaign.messagesPerDay})`
+        );
         continue;
       }
 
@@ -88,7 +95,7 @@ export class CampaignService {
           }
 
           const currentStep = campaign.steps.find(
-            s => s.stepOrder === recipient.currentStepOrder + 1
+            (s) => s.stepOrder === recipient.currentStepOrder + 1
           );
 
           if (!currentStep) {
@@ -96,7 +103,7 @@ export class CampaignService {
             await prisma.campaignRecipient.update({
               where: { id: recipient.id },
               data: {
-                status: 'COMPLETED',
+                status: "COMPLETED",
                 lastProcessedAt: now,
               },
             });
@@ -105,14 +112,24 @@ export class CampaignService {
 
           // Get message template (use variants if available, otherwise use messageTemplate)
           let messageTemplate = currentStep.messageTemplate;
-          
+
           // Check if variants exist in condition JSON
-          if (currentStep.condition && typeof currentStep.condition === 'object') {
+          if (
+            currentStep.condition &&
+            typeof currentStep.condition === "object"
+          ) {
             const condition = currentStep.condition as any;
-            if (condition.variants && Array.isArray(condition.variants) && condition.variants.length > 0) {
+            if (
+              condition.variants &&
+              Array.isArray(condition.variants) &&
+              condition.variants.length > 0
+            ) {
               // Randomly select a variant
-              const randomIndex = Math.floor(Math.random() * condition.variants.length);
-              messageTemplate = condition.variants[randomIndex].template || messageTemplate;
+              const randomIndex = Math.floor(
+                Math.random() * condition.variants.length
+              );
+              messageTemplate =
+                condition.variants[randomIndex].template || messageTemplate;
             }
           }
 
@@ -124,22 +141,24 @@ export class CampaignService {
 
           // Send DM
           const result = await instagramCookieService.sendDM(cookies, {
-            recipientUsername: recipient.contact.igUsername || '',
+            recipientUsername: recipient.contact.igUsername || "",
             message,
           });
 
           if (result.success) {
             // Calculate next process time (delay for next step)
             const nextStep = campaign.steps.find(
-              s => s.stepOrder === recipient.currentStepOrder + 2
+              (s) => s.stepOrder === recipient.currentStepOrder + 2
             );
             const delayMinutes = nextStep?.delayMinutes || 0;
-            const nextProcessAt = new Date(now.getTime() + delayMinutes * 60 * 1000);
+            const nextProcessAt = new Date(
+              now.getTime() + delayMinutes * 60 * 1000
+            );
 
             await prisma.campaignRecipient.update({
               where: { id: recipient.id },
               data: {
-                status: 'IN_PROGRESS',
+                status: "IN_PROGRESS",
                 currentStepOrder: currentStep.stepOrder,
                 lastProcessedAt: now,
                 nextProcessAt: nextStep ? nextProcessAt : null,
@@ -154,8 +173,8 @@ export class CampaignService {
                   recipient.contact.id
                 ),
                 content: message,
-                direction: 'OUTBOUND',
-                status: 'SENT',
+                direction: "OUTBOUND",
+                status: "SENT",
                 sentAt: now,
                 campaignStepId: currentStep.id,
               },
@@ -178,8 +197,8 @@ export class CampaignService {
             await prisma.campaignRecipient.update({
               where: { id: recipient.id },
               data: {
-                status: 'FAILED',
-                errorMessage: result.error || 'Unknown error',
+                status: "FAILED",
+                errorMessage: result.error || "Unknown error",
               },
             });
 
@@ -200,7 +219,7 @@ export class CampaignService {
           await prisma.campaignRecipient.update({
             where: { id: recipient.id },
             data: {
-              status: 'FAILED',
+              status: "FAILED",
               errorMessage: error?.message,
             },
           });
@@ -212,7 +231,7 @@ export class CampaignService {
     const remainingRecipients = await prisma.campaignRecipient.count({
       where: {
         campaignId,
-        status: { in: ['PENDING', 'IN_PROGRESS'] },
+        status: { in: ["PENDING", "IN_PROGRESS"] },
       },
     });
 
@@ -220,7 +239,7 @@ export class CampaignService {
       await prisma.campaign.update({
         where: { id: campaignId },
         data: {
-          status: 'COMPLETED',
+          status: "COMPLETED",
           completedAt: now,
         },
       });

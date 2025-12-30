@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
           success: true,
           sentCount: updatedCampaign?.sentCount || 0,
           failedCount: updatedCampaign?.failedCount || 0,
-          status: updatedCampaign?.status || 'RUNNING',
+          status: updatedCampaign?.status || "RUNNING",
         });
 
         totalProcessed++;
