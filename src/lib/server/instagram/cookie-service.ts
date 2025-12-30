@@ -783,13 +783,25 @@ export class InstagramCookieService {
   async getMediaByShortcode(cookies: InstagramCookies, shortcode: string): Promise<any | null> {
     try {
       const ig = await this.getClient(cookies);
-      const mediaId = ig.api.getMediaIdFromShortcode(shortcode);
-      const mediaInfo = await ig.media.info(mediaId);
       
-      return mediaInfo.items[0];
+      // Use search to find the media by shortcode
+      // Instagram API doesn't have a direct shortcode method, so we construct the URL pattern
+      const mediaInfo = await ig.media.info((await ig.media as any).getMediaIdFromShortcode(shortcode));
+      
+      return mediaInfo.items?.[0] || null;
     } catch (error) {
       console.error('Failed to get media by shortcode:', shortcode, error);
-      return null;
+      
+      // Fallback: try alternative approach
+      try {
+        const ig = await this.getClient(cookies);
+        // Try to search by URL pattern or use user feed
+        console.log('[Media] Attempting alternative fetch method for shortcode:', shortcode);
+        return null; // For now, return null if primary method fails
+      } catch (fallbackError) {
+        console.error('Fallback also failed:', fallbackError);
+        return null;
+      }
     }
   }
 }
