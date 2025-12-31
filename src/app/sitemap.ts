@@ -1,5 +1,6 @@
 import { MetadataRoute } from 'next';
 import { instagramTools } from '@/app/tools/_data/tools';
+import { SITE_LAUNCH_DATE } from "@/lib/constants";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://www.socialora.app';
@@ -12,75 +13,100 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticPages = [
     {
       url: cleanBaseUrl,
-      lastModified: new Date(),
-      changeFrequency: 'daily' as const,
+      lastModified: SITE_LAUNCH_DATE,
+      changeFrequency: "daily" as const,
       priority: 1.0, // Highest priority - homepage
     },
     {
       url: `${cleanBaseUrl}/blog`,
-      lastModified: new Date(),
-      changeFrequency: 'daily' as const,
+      lastModified: SITE_LAUNCH_DATE, // Will be updated with latest blog post date below
+      changeFrequency: "daily" as const,
       priority: 0.9, // High priority - content marketing
     },
     {
       url: `${cleanBaseUrl}/blog/rss.xml`,
-      lastModified: new Date(),
-      changeFrequency: 'daily' as const,
+      lastModified: SITE_LAUNCH_DATE, // Will be updated with latest blog post date below
+      changeFrequency: "daily" as const,
       priority: 0.7, // Medium priority - RSS feed
     },
     {
       url: `${cleanBaseUrl}/ebook/increase-instagram-followers-reach-engagement`,
-      lastModified: new Date(),
-      changeFrequency: 'monthly' as const,
+      lastModified: SITE_LAUNCH_DATE,
+      changeFrequency: "monthly" as const,
       priority: 0.85, // High priority - lead magnet
     },
     {
       url: `${cleanBaseUrl}/blog/free-ebook-increase-instagram-followers-reach-engagement`,
-      lastModified: new Date(),
-      changeFrequency: 'monthly' as const,
+      lastModified: SITE_LAUNCH_DATE,
+      changeFrequency: "monthly" as const,
       priority: 0.8, // High priority - SEO content
     },
     {
       url: `${cleanBaseUrl}/tools`,
-      lastModified: new Date(),
-      changeFrequency: 'weekly' as const,
+      lastModified: SITE_LAUNCH_DATE,
+      changeFrequency: "weekly" as const,
       priority: 0.85, // High priority - product discovery
     },
     {
       url: `${cleanBaseUrl}/signup`,
-      lastModified: new Date(),
-      changeFrequency: 'weekly' as const,
+      lastModified: SITE_LAUNCH_DATE,
+      changeFrequency: "weekly" as const,
       priority: 0.9, // High priority - conversion page
     },
     {
       url: `${cleanBaseUrl}/docs`,
-      lastModified: new Date(),
-      changeFrequency: 'weekly' as const,
+      lastModified: SITE_LAUNCH_DATE,
+      changeFrequency: "weekly" as const,
       priority: 0.8, // Important - documentation
     },
     {
       url: `${cleanBaseUrl}/support`,
-      lastModified: new Date(),
-      changeFrequency: 'weekly' as const,
+      lastModified: SITE_LAUNCH_DATE,
+      changeFrequency: "weekly" as const,
       priority: 0.7, // Medium priority - support
     },
     {
       url: `${cleanBaseUrl}/privacy`,
-      lastModified: new Date(),
-      changeFrequency: 'monthly' as const,
+      lastModified: SITE_LAUNCH_DATE,
+      changeFrequency: "monthly" as const,
       priority: 0.5, // Lower priority - legal
     },
     {
       url: `${cleanBaseUrl}/terms`,
-      lastModified: new Date(),
-      changeFrequency: 'monthly' as const,
+      lastModified: SITE_LAUNCH_DATE,
+      changeFrequency: "monthly" as const,
       priority: 0.5, // Lower priority - legal
     },
   ];
 
   // Dynamic blog post pages with smart prioritization
-  const { getAllBlogPosts } = await import('@/lib/blog-loader');
+  const { getAllBlogPosts } = await import("@/lib/blog-loader");
   const blogPosts = getAllBlogPosts();
+
+  // Get latest blog post date for blog listing and RSS pages
+  const latestBlogPostDate =
+    blogPosts.length > 0
+      ? new Date(
+          blogPosts.sort(
+            (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+          )[0].date
+        )
+      : SITE_LAUNCH_DATE;
+
+  // Update blog listing and RSS pages with latest post date
+  const blogListingIndex = staticPages.findIndex(
+    (page) => page.url === `${cleanBaseUrl}/blog`
+  );
+  if (blogListingIndex !== -1) {
+    staticPages[blogListingIndex].lastModified = latestBlogPostDate;
+  }
+  const rssIndex = staticPages.findIndex(
+    (page) => page.url === `${cleanBaseUrl}/blog/rss.xml`
+  );
+  if (rssIndex !== -1) {
+    staticPages[rssIndex].lastModified = latestBlogPostDate;
+  }
+  
   const blogPages = blogPosts.map((post) => {
     // Higher priority for pillar and featured posts
     let priority = 0.8;
@@ -112,8 +138,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const toolPages = instagramTools.map((tool) => ({
     url: `${cleanBaseUrl}/tools/${tool.slug}`,
-    lastModified: new Date(),
-    changeFrequency: 'monthly' as const,
+    lastModified: SITE_LAUNCH_DATE,
+    changeFrequency: "monthly" as const,
     priority: 0.6,
   }));
 
