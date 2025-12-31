@@ -195,12 +195,14 @@ export default function InboxPage() {
   }, [selectedAccount, viewMode]);
 
   // Fetch messages for a conversation from Instagram
-  const fetchMessages = useCallback(async (conversationId: string) => {
-    setIsLoadingMessages(true);
+  const fetchMessages = useCallback(async (conversationId: string, silent = false) => {
+    if (!silent) {
+      setIsLoadingMessages(true);
+    }
     try {
       if (!selectedAccount) {
         console.error('No account selected');
-        setMessages([]);
+        if (!silent) setMessages([]);
         return;
       }
 
@@ -208,7 +210,7 @@ export default function InboxPage() {
       const conversation = conversations.find(c => c.id === conversationId);
       if (!conversation) {
         console.error('Conversation not found');
-        setMessages([]);
+        if (!silent) setMessages([]);
         return;
       }
 
@@ -216,10 +218,12 @@ export default function InboxPage() {
       const cookiesStr = localStorage.getItem(`socialora_cookies_${selectedAccount.igUserId}`);
       if (!cookiesStr) {
         console.error('No cookies found for account');
-        toast.error('Session expired', {
-          description: 'Please reconnect your Instagram account',
-        });
-        setMessages([]);
+        if (!silent) {
+          toast.error('Session expired', {
+            description: 'Please reconnect your Instagram account',
+          });
+          setMessages([]);
+        }
         return;
       }
 
@@ -257,7 +261,7 @@ export default function InboxPage() {
 
       if (!threadId) {
         console.log('No messages yet for this conversation');
-        setMessages([]);
+        if (!silent) setMessages([]);
         return;
       }
 
@@ -295,7 +299,16 @@ export default function InboxPage() {
           createdAt: new Date(msg.timestamp).toISOString(),
         }));
 
-        setMessages(transformedMessages);
+        // Sort messages by timestamp in ascending order (oldest first)
+        transformedMessages.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+
+        // Only update if messages changed (prevents unnecessary re-renders)
+        setMessages(prev => {
+          if (JSON.stringify(prev) === JSON.stringify(transformedMessages)) {
+            return prev; // No change, return same reference
+          }
+          return transformedMessages;
+        });
 
         // Mark conversation as read
         const supabase = createClient();
@@ -309,16 +322,20 @@ export default function InboxPage() {
           prev.map(c => c.id === conversationId ? { ...c, unreadCount: 0 } : c)
         );
       } else {
-        setMessages([]);
+        if (!silent) setMessages([]);
       }
     } catch (error) {
       console.error('Error fetching messages:', error);
-      toast.error('Failed to load messages', {
-        description: 'Could not fetch messages from Instagram',
-      });
-      setMessages([]);
+      if (!silent) {
+        toast.error('Failed to load messages', {
+          description: 'Could not fetch messages from Instagram',
+        });
+        setMessages([]);
+      }
     } finally {
-      setIsLoadingMessages(false);
+      if (!silent) {
+        setIsLoadingMessages(false);
+      }
     }
   }, [selectedAccount, conversations]);
 
@@ -334,6 +351,23 @@ export default function InboxPage() {
       fetchConversations();
     }
   }, [selectedAccount?.id, viewMode, fetchConversations]);
+
+  // Auto-sync messages for selected conversation
+  useEffect(() => {
+    if (!selectedConversation || !selectedAccount) return;
+
+    // Initial fetch with loading indicator
+    fetchMessages(selectedConversation.id, false);
+
+    // Set up auto-sync every 3 seconds (silent mode - no loading indicators or error toasts)
+    const autoSyncInterval = setInterval(() => {
+      fetchMessages(selectedConversation.id, true);
+    }, 3000); // Poll every 3 seconds
+
+    return () => {
+      clearInterval(autoSyncInterval);
+    };
+  }, [selectedConversation?.id, selectedAccount?.id, fetchMessages]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -353,8 +387,8 @@ export default function InboxPage() {
   const handleSelectConversation = useCallback((conversation: Conversation) => {
     setSelectedConversation(conversation);
     setSelectedContact(null);
-    fetchMessages(conversation.id);
-  }, [fetchMessages]);
+    // Don't call fetchMessages here - let the auto-sync effect handle it
+  }, []);
 
   // Handle contact selection - create or find conversation
   const handleSelectContact = useCallback(async (contact: Contact) => {
@@ -502,7 +536,11 @@ export default function InboxPage() {
         createdAt: newMessage.created_at,
       };
 
-      setMessages(prev => [...prev, transformedMessage]);
+      // Add new message and sort to ensure correct chronological order
+      setMessages(prev => {
+        const updated = [...prev, transformedMessage];
+        return updated.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+      });
 
       // If we have cookies, actually send via Instagram
       if (cookiesStr) {
@@ -560,9 +598,10 @@ export default function InboxPage() {
               .update({ status: 'SENT', ig_message_id: result.itemId })
               .eq('id', newMessage.id);
 
-            setMessages(prev =>
-              prev.map(m => m.id === newMessage.id ? { ...m, status: 'SENT', igMessageId: result.itemId } : m)
-            );
+            setMessages(prev => {
+              const updated = prev.map(m => m.id === newMessage.id ? { ...m, status: 'SENT' as MessageStatus, igMessageId: result.itemId } : m);
+              return updated.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+            });
             
             // Update conversation last message time
             await supabase
@@ -592,9 +631,10 @@ export default function InboxPage() {
             .update({ status: 'FAILED', error_message: (sendError as Error).message })
             .eq('id', newMessage.id);
 
-          setMessages(prev =>
-            prev.map(m => m.id === newMessage.id ? { ...m, status: 'FAILED' } : m)
-          );
+          setMessages(prev => {
+            const updated = prev.map(m => m.id === newMessage.id ? { ...m, status: 'FAILED' as MessageStatus } : m);
+            return updated.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+          });
           
           // Show error toast
           toast.error('Failed to send message', {

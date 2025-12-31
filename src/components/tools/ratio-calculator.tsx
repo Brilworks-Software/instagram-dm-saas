@@ -7,15 +7,15 @@ export function RatioCalculator() {
     {
       id: 'followers',
       label: 'Follower Count',
-      placeholder: 'Enter your follower count',
-      type: 'number' as const,
+      placeholder: 'e.g., 2500, 2.5k, 2.5m',
+      type: 'text' as const,
       required: true,
     },
     {
       id: 'following',
       label: 'Following Count',
-      placeholder: 'Enter your following count',
-      type: 'number' as const,
+      placeholder: 'e.g., 1500, 1.5k, 1.5m',
+      type: 'text' as const,
       required: true,
     },
   ];

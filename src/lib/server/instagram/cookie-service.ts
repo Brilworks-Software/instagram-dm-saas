@@ -778,6 +778,66 @@ export class InstagramCookieService {
   }
 
   /**
+   * Get user's recent posts and reels
+   */
+  async getUserRecentMedia(
+    cookies: InstagramCookies,
+    username: string,
+    limit = 5,
+    contentType: 'posts' | 'reels' | 'all' = 'all'
+  ): Promise<any[]> {
+    try {
+      const ig = await this.getClient(cookies);
+      
+      // Get user profile first
+      const profile = await this.getUserProfileByUsername(cookies, username);
+      if (!profile) {
+        throw new Error('User not found');
+      }
+
+      // Get user feed
+      const userFeed = ig.feed.user(profile.pk);
+      const media: any[] = [];
+      
+      // Fetch items
+      const items = await userFeed.items();
+      console.log(`[Media] Found ${items.length} media items for @${username}`);
+      
+      for (const item of items) {
+        if (media.length >= limit) break;
+        
+        // Filter by content type
+        const itemAny = item as any;
+        const isReel = item.media_type === 2 && itemAny.product_type === 'clips';
+        const isPost = item.media_type === 1 || (item.media_type === 8); // Photo or carousel
+        
+        if (contentType === 'reels' && !isReel) continue;
+        if (contentType === 'posts' && !isPost) continue;
+        
+        media.push({
+          id: item.id,
+          shortcode: item.code,
+          mediaType: isReel ? 'reel' : isPost ? 'post' : 'other',
+          likeCount: item.like_count || 0,
+          commentCount: item.comment_count || 0,
+          playCount: itemAny.play_count || 0,
+          viewCount: itemAny.view_count || 0,
+          caption: item.caption?.text || '',
+          thumbnailUrl: item.image_versions2?.candidates?.[0]?.url || '',
+          takenAt: item.taken_at,
+          url: `https://www.instagram.com/p/${item.code}/`,
+        });
+      }
+      
+      console.log(`[Media] Filtered ${media.length} ${contentType} items`);
+      return media;
+    } catch (error: any) {
+      console.error('Failed to get user media:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Get media information by shortcode (for Reels, Posts, etc.)
    */
   async getMediaByShortcode(cookies: InstagramCookies, shortcode: string): Promise<any | null> {

@@ -129,9 +129,63 @@ export async function processTool(toolSlug: string, formData: Record<string, str
       }
     }
 
-    case 'engagement-calculator':
+    case 'engagement-calculator': {
+      // Direct calculator using likes, comments, followers
+      const likes = parseFloat(formData['likes'] || formData['total-likes'] || '0');
+      const comments = parseFloat(formData['comments'] || formData['total-comments'] || '0');
+      const followers = parseFloat(formData['followers'] || formData['total-followers'] || '0');
+      
+      if (followers === 0) {
+        return {
+          error: 'Invalid input',
+          message: 'Follower count must be greater than 0',
+        };
+      }
+      
+      // Calculate engagement rate: (likes + comments) / followers * 100
+      const totalEngagement = likes + comments;
+      const engagementRate = (totalEngagement / followers) * 100;
+      
+      // Determine engagement quality
+      let quality = 'Low';
+      let qualityColor = 'red';
+      let description = 'Your engagement rate is below average. Focus on creating more engaging content and interacting with your audience.';
+      
+      if (engagementRate >= 10) {
+        quality = 'Excellent';
+        qualityColor = 'green';
+        description = 'Outstanding! Your engagement rate is exceptional. Keep creating the amazing content your audience loves.';
+      } else if (engagementRate >= 5) {
+        quality = 'Very Good';
+        qualityColor = 'green';
+        description = 'Great job! Your engagement rate is well above average. Your audience is highly engaged with your content.';
+      } else if (engagementRate >= 3) {
+        quality = 'Good';
+        qualityColor = 'blue';
+        description = 'Good engagement rate! You\'re doing well. Keep interacting with your audience to maintain and improve this rate.';
+      } else if (engagementRate >= 1) {
+        quality = 'Average';
+        qualityColor = 'yellow';
+        description = 'Your engagement rate is average. Try posting more engaging content and use stories to connect with your audience.';
+      }
+      
+      return {
+        engagementRate: engagementRate.toFixed(2) + '%',
+        engagementRateValue: parseFloat(engagementRate.toFixed(2)),
+        likes: likes.toLocaleString(),
+        comments: comments.toLocaleString(),
+        followers: followers.toLocaleString(),
+        totalEngagement: totalEngagement.toLocaleString(),
+        quality,
+        qualityColor,
+        description,
+      };
+    }
+    
     case 'engagement-rate-calculator': {
       const username = extractInstagramHandle(formData);
+      const contentType = (formData['content-type'] || 'posts').toLowerCase();
+      
       if (!username) throw new Error('Instagram handle required');
       
       const serviceCookies = getServiceCookies();
@@ -143,6 +197,7 @@ export async function processTool(toolSlug: string, formData: Record<string, str
       }
 
       try {
+        // Get user profile
         const profile = await instagramCookieService.getUserProfileByUsername(
           serviceCookies,
           username
@@ -152,20 +207,96 @@ export async function processTool(toolSlug: string, formData: Record<string, str
           return { error: 'User not found or account is private' };
         }
 
-        // Calculate estimated engagement
-        const estimatedEngagement = (profile.followerCount * 0.02); // 2% average
+        // Fetch last 5 posts or reels
+        const mediaType = contentType.includes('reel') ? 'reels' : 'posts';
+        const media = await instagramCookieService.getUserRecentMedia(
+          serviceCookies,
+          username,
+          5,
+          mediaType
+        );
+
+        if (media.length === 0) {
+          return {
+            error: 'No content found',
+            message: `No ${mediaType} found for @${username}. The account may be private or have no ${mediaType}.`,
+          };
+        }
+
+        // Calculate engagement metrics
+        const totalLikes = media.reduce((sum, m) => sum + m.likeCount, 0);
+        const totalComments = media.reduce((sum, m) => sum + m.commentCount, 0);
+        const totalViews = media.reduce((sum, m) => sum + (m.viewCount || m.playCount || 0), 0);
+        
+        const avgLikes = Math.round(totalLikes / media.length);
+        const avgComments = Math.round(totalComments / media.length);
+        const avgViews = Math.round(totalViews / media.length);
+        
+        // Calculate engagement rate
+        const avgEngagement = avgLikes + avgComments;
+        const engagementRate = profile.followerCount > 0 
+          ? (avgEngagement / profile.followerCount) * 100 
+          : 0;
+        
+        // Determine quality
+        let quality = 'Low';
+        let qualityColor = 'red';
+        let description = 'Your engagement rate is below average. Try posting more engaging content and interacting with your audience.';
+        
+        if (engagementRate >= 10) {
+          quality = 'Excellent';
+          qualityColor = 'green';
+          description = 'Outstanding! Your engagement rate is exceptional. Your audience loves your content!';
+        } else if (engagementRate >= 5) {
+          quality = 'Very Good';
+          qualityColor = 'green';
+          description = 'Great work! Your engagement rate is well above average. Keep it up!';
+        } else if (engagementRate >= 3) {
+          quality = 'Good';
+          qualityColor = 'blue';
+          description = 'Good engagement rate! You\'re doing well. Keep engaging with your audience.';
+        } else if (engagementRate >= 1) {
+          quality = 'Average';
+          qualityColor = 'yellow';
+          description = 'Your engagement rate is average. Consider experimenting with different content types.';
+        }
 
         return {
           username: profile.username,
           followerCount: profile.followerCount || 0,
-          followingCount: profile.followingCount || 0,
-          postCount: profile.postCount || 0,
-          estimatedEngagementRate: '2-5%',
-          estimatedAvgLikes: Math.round(estimatedEngagement * 0.9),
-          estimatedAvgComments: Math.round(estimatedEngagement * 0.1),
+          contentType: mediaType,
+          postsAnalyzed: media.length,
+          
+          // Engagement metrics
+          engagementRate: engagementRate.toFixed(2) + '%',
+          engagementRateValue: parseFloat(engagementRate.toFixed(2)),
+          quality,
+          qualityColor,
+          description,
+          
+          // Average metrics
+          avgLikes: avgLikes.toLocaleString(),
+          avgComments: avgComments.toLocaleString(),
+          avgViews: avgViews > 0 ? avgViews.toLocaleString() : null,
+          
+          // Total metrics
+          totalLikes: totalLikes.toLocaleString(),
+          totalComments: totalComments.toLocaleString(),
+          totalViews: totalViews > 0 ? totalViews.toLocaleString() : null,
+          
+          // Individual posts
+          posts: media.map(m => ({
+            url: m.url,
+            shortcode: m.shortcode,
+            likes: m.likeCount.toLocaleString(),
+            comments: m.commentCount.toLocaleString(),
+            views: m.viewCount || m.playCount || 0,
+            thumbnailUrl: m.thumbnailUrl,
+            caption: m.caption ? (m.caption.length > 100 ? m.caption.substring(0, 100) + '...' : m.caption) : '',
+          })),
         };
       } catch (error: any) {
-        console.error('Engagement calculator error:', error);
+        console.error('Engagement rate calculator error:', error);
         return {
           error: 'Failed to calculate engagement',
           message: error.message || 'Unable to fetch Instagram data. Please try again later.',
@@ -175,28 +306,48 @@ export async function processTool(toolSlug: string, formData: Record<string, str
 
     // Pure JavaScript Calculators (no API needed)
     case 'ratio-calculator': {
-      const followers = parseFloat(formData['followers'] || formData['follower-count'] || '0');
-      const following = parseFloat(formData['following'] || formData['following-count'] || '0');
-      const ratio = following > 0 ? (followers / following).toFixed(2) : '0';
+      const followers = parseFormattedNumber(formData['followers'] || formData['follower-count'] || '0');
+      const following = parseFormattedNumber(formData['following'] || formData['following-count'] || '0');
+      const ratio = following > 0 ? (followers / following) : 0;
+      const ratioFormatted = following > 0 ? `1:${(following / followers).toFixed(2)}` : '1:0';
       
       return {
-        ratio: parseFloat(ratio),
+        ratio: parseFloat(ratio.toFixed(2)),
+        ratioFormatted,
         followers,
         following,
-        status: getRatioStatus(parseFloat(ratio)),
+        status: getRatioStatus(ratio),
+        description: getRatioDescription(followers, following, ratio),
       };
     }
 
     case 'emv-calculator': {
-      const followers = parseFloat(formData['followers'] || formData['follower-count'] || '0');
+      const followers = parseFormattedNumber(formData['followers'] || formData['follower-count'] || '0');
       const engagementRate = parseFloat(formData['engagement-rate'] || formData['engagement'] || '0');
-      const emv = followers * (engagementRate / 100) * 0.01; // $0.01 per engagement
+      
+      // Calculate estimated engagements
+      const estimatedEngagements = followers * (engagementRate / 100);
+      
+      // EMV calculation: Industry standard is $0.01-$0.05 per engagement
+      // Using $0.02 as average
+      const emvPerEngagement = 0.02;
+      const emv = estimatedEngagements * emvPerEngagement;
+      
+      // Calculate per post value
+      const perPostValue = emv;
+      
+      // Calculate monthly value (assuming 20 posts per month)
+      const monthlyValue = perPostValue * 20;
       
       return {
         emv: emv.toFixed(2),
         followers,
         engagementRate,
-        estimatedValue: `$${emv.toFixed(2)}`,
+        estimatedValue: `$${emv.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+        perPostValue: `$${perPostValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+        monthlyValue: `$${monthlyValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+        estimatedEngagements: Math.round(estimatedEngagements).toLocaleString(),
+        description: getEMVDescription(followers, engagementRate, emv),
       };
     }
 
@@ -412,11 +563,78 @@ function analyzeFollowersForBots(followers: any[]): any {
   };
 }
 
+function parseFormattedNumber(value: string): number {
+  if (!value) return 0;
+  
+  const cleaned = value.toString().trim().toLowerCase();
+  const number = parseFloat(cleaned);
+  
+  if (cleaned.endsWith('k')) {
+    return number * 1000;
+  } else if (cleaned.endsWith('m')) {
+    return number * 1000000;
+  } else if (cleaned.endsWith('b')) {
+    return number * 1000000000;
+  } else if (cleaned.endsWith('t')) {
+    return number * 1000000000000;
+  }
+  
+  return number;
+}
+
 function getRatioStatus(ratio: number): string {
   if (ratio > 10) return 'Excellent - High follower quality';
   if (ratio > 5) return 'Good - Healthy account';
   if (ratio > 2) return 'Average - Room for improvement';
   return 'Low - Consider unfollowing inactive accounts';
+}
+
+function getRatioDescription(followers: number, following: number, ratio: number): string {
+  if (followers === 0 && following === 0) {
+    return 'Please enter valid follower and following counts.';
+  }
+  
+  if (followers > following) {
+    const times = ratio.toFixed(1);
+    return `Your followers are ${times}x higher than your following. This indicates strong account credibility and influence.`;
+  } else if (following > followers) {
+    const times = (following / followers).toFixed(1);
+    return `You're following ${times}x more accounts than your followers. Consider unfollowing inactive accounts to improve your ratio.`;
+  } else {
+    return 'Your followers and following are equal. This is a balanced account, but aim for more followers than following.';
+  }
+}
+
+function getEMVDescription(followers: number, engagementRate: number, emv: number): string {
+  if (followers === 0 || engagementRate === 0) {
+    return 'Enter your follower count and engagement rate to calculate your content\'s monetary value.';
+  }
+  
+  let tier = '';
+  if (followers < 10000) {
+    tier = 'nano-influencer';
+  } else if (followers < 50000) {
+    tier = 'micro-influencer';
+  } else if (followers < 500000) {
+    tier = 'mid-tier influencer';
+  } else if (followers < 1000000) {
+    tier = 'macro-influencer';
+  } else {
+    tier = 'mega-influencer';
+  }
+  
+  let engagementLevel = '';
+  if (engagementRate < 1) {
+    engagementLevel = 'below average';
+  } else if (engagementRate < 3) {
+    engagementLevel = 'average';
+  } else if (engagementRate < 6) {
+    engagementLevel = 'good';
+  } else {
+    engagementLevel = 'excellent';
+  }
+  
+  return `As a ${tier} with ${engagementLevel} engagement (${engagementRate}%), each post generates approximately $${emv.toFixed(2)} in earned media value. This represents the monetary worth brands would need to spend on traditional advertising to achieve similar reach and engagement.`;
 }
 
 function getLikesRatioStatus(ratio: number): string {
