@@ -15,6 +15,7 @@ import {
   Settings,
   Sparkles,
   Target,
+  X,
 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -34,7 +35,13 @@ const settingsNav = [
   { name: 'Settings', href: '/settings', icon: Settings },
 ];
 
-export function Sidebar() {
+interface SidebarProps {
+  isOpen?: boolean;
+  onClose?: () => void;
+  onMenuClick?: () => void;
+}
+
+export function Sidebar({ isOpen = false, onClose, onMenuClick }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
@@ -118,10 +125,77 @@ export function Sidebar() {
     user?.user_metadata?.full_name || user?.email?.split("@")[0] || "User";
   const userEmail = user?.email || "";
 
+  // Close sidebar when navigation link is clicked on mobile
+  const handleLinkClick = () => {
+    if (onClose) {
+      onClose();
+    }
+  };
+
   return (
-    <aside className="fixed left-0 top-0 z-40 h-screen w-64 border-r border-border bg-background-secondary flex flex-col">
-      {/* Logo */}
-      <div className="h-16 flex items-center px-6 border-b border-border">
+    <>
+      {/* Mobile/Tablet hamburger button - only visible when sidebar is closed on mobile/tablet */}
+      {onMenuClick && (
+        <button
+          onClick={onMenuClick}
+          className="fixed top-4 left-4 z-50 lg:hidden p-2 rounded-lg bg-background-secondary border border-border hover:bg-background-elevated transition-colors"
+          aria-label="Open menu"
+        >
+          <svg
+            className="h-6 w-6 text-foreground"
+            fill="none"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth="2"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </button>
+      )}
+
+      <aside
+        className={cn(
+          "fixed left-0 top-0 z-50 h-screen w-64 border-r border-border bg-background-secondary flex flex-col transition-transform duration-300 ease-in-out",
+          // Mobile/Tablet: hidden by default, slide in when open
+          "transform -translate-x-full lg:translate-x-0",
+          // Show when open on mobile/tablet
+          isOpen && "translate-x-0"
+        )}
+      >
+        {/* Mobile/Tablet close button */}
+        {onClose && (
+          <div className="h-16 flex items-center justify-between px-6 border-b border-border lg:hidden">
+            <div className="flex items-center">
+              <div className="h-14 w-14 flex items-center justify-center overflow-hidden">
+                <Image
+                  src="/images/logo.png"
+                  alt="SocialOra"
+                  width={56}
+                  height={56}
+                  className="h-full w-full object-contain"
+                />
+              </div>
+              <span className="font-bold text-xl">
+                Social<span className="text-accent">Ora</span>
+              </span>
+            </div>
+            <button
+              onClick={onClose}
+              className="p-2 rounded-lg hover:bg-background-elevated transition-colors"
+              aria-label="Close menu"
+            >
+              <X className="h-5 w-5 text-foreground" />
+            </button>
+          </div>
+        )}
+
+        {/* Logo - hidden on mobile/tablet when close button is shown */}
+        <div className={cn(
+          "h-16 flex items-center px-6 border-b border-border",
+          onClose && "hidden lg:flex"
+        )}>
         <Link href="/" className="flex items-center group">
           <div className="flex items-center">
             <div className="h-14 w-14 flex items-center justify-center overflow-hidden">
@@ -197,6 +271,7 @@ export function Sidebar() {
             <Link
               key={item.name}
               href={item.href}
+              onClick={handleLinkClick}
               className={cn(
                 "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 group",
                 isActive
@@ -270,6 +345,7 @@ export function Sidebar() {
         )}
       </div>
     </aside>
+    </>
   );
 }
 

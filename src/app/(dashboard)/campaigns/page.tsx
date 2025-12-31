@@ -226,12 +226,12 @@ export default function CampaignsPage() {
         }}
       />
 
-      <div className="p-6">
+      <div className="p-4 md:p-6">
         {/* No Accounts Warning */}
         {!isLoading && accounts.length === 0 && (
-          <div className="mb-8 p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center gap-3">
-            <AlertCircle className="h-5 w-5 text-amber-400" />
-            <div className="flex-1">
+          <div className="mb-8 p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 flex flex-col sm:flex-row items-start sm:items-center gap-3">
+            <AlertCircle className="h-5 w-5 text-amber-400 flex-shrink-0" />
+            <div className="flex-1 min-w-0">
               <p className="text-amber-400 font-medium">
                 No Instagram accounts connected
               </p>
@@ -242,7 +242,9 @@ export default function CampaignsPage() {
             <Button
               variant="secondary"
               size="sm"
-              onClick={() => (window.location.href = "/settings/instagram")}>
+              onClick={() => (window.location.href = "/settings/instagram")}
+              className="w-full sm:w-auto"
+            >
               <Instagram className="h-4 w-4" />
               Connect Account
             </Button>

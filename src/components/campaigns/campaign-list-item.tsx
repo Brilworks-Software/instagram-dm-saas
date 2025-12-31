@@ -31,22 +31,24 @@ export function CampaignListItem({
   return (
     <div
       className={cn(
-        "bg-background-secondary rounded-xl border border-border p-6 transition-all hover:border-border-hover",
+        "bg-background-secondary rounded-xl border border-border p-4 md:p-6 transition-all hover:border-border-hover",
         "animate-slide-up"
       )}
       style={{ animationDelay: `${index * 100}ms` }}>
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-3 mb-2">
-            <h3 className="text-lg font-semibold text-foreground truncate">
+      <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
+        <div className="flex-1 min-w-0 w-full">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-2">
+            <h3 className="text-base md:text-lg font-semibold text-foreground truncate">
               {campaign.name}
             </h3>
-            <Badge variant={statusInfo.variant}>{statusInfo.label}</Badge>
-            {campaign.instagramUsername && (
-              <span className="text-sm text-foreground-muted">
-                @{campaign.instagramUsername}
-              </span>
-            )}
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <Badge variant={statusInfo.variant}>{statusInfo.label}</Badge>
+              {campaign.instagramUsername && (
+                <span className="text-xs md:text-sm text-foreground-muted">
+                  @{campaign.instagramUsername}
+                </span>
+              )}
+            </div>
           </div>
 
           {campaign.description && (
@@ -74,7 +76,7 @@ export function CampaignListItem({
           )}
 
           {/* Stats */}
-          <div className="flex items-center gap-6 text-sm">
+          <div className="flex flex-wrap items-center gap-3 md:gap-6 text-xs md:text-sm">
             <div className="flex items-center gap-2">
               <Users className="h-4 w-4 text-foreground-subtle" />
               <span className="text-foreground-muted">
@@ -100,7 +102,7 @@ export function CampaignListItem({
         </div>
 
         {/* Actions */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-shrink-0 mt-4 sm:mt-0">
           {campaign.status === "DRAFT" && (
             <Button
               size="sm"
