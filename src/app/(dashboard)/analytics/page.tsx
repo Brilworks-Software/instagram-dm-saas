@@ -199,7 +199,7 @@ export default function AnalyticsPage() {
           return (
             <div
               key={stat.name}
-              className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-5"
+              className="rounded-xl border border-border bg-background-elevated p-5"
             >
               <div className="flex items-center justify-between mb-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-pink-500/20 to-purple-500/20 text-pink-400">
@@ -212,10 +212,10 @@ export default function AnalyticsPage() {
                   {stat.change}
                 </div>
               </div>
-              <p className="text-2xl font-bold text-white mb-1">
+              <p className="text-2xl font-bold text-foreground mb-1">
                 {isLoading ? '...' : stat.value}
               </p>
-              <p className="text-sm text-zinc-400">{stat.name}</p>
+              <p className="text-sm text-foreground-muted">{stat.name}</p>
             </div>
           );
         })}
@@ -224,11 +224,11 @@ export default function AnalyticsPage() {
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Messages Chart */}
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-6">
-          <h2 className="text-lg font-semibold text-white mb-6">Messages This Week</h2>
+        <div className="rounded-xl border border-border bg-background-elevated p-6">
+          <h2 className="text-lg font-semibold text-foreground mb-6">Messages This Week</h2>
           {isLoading ? (
             <div className="h-48 flex items-center justify-center">
-              <p className="text-zinc-400">Loading...</p>
+              <p className="text-foreground-muted">Loading...</p>
             </div>
           ) : messagesByDay.length > 0 ? (
             <div className="flex items-end justify-between h-48 gap-2">
@@ -238,47 +238,47 @@ export default function AnalyticsPage() {
                     className="w-full bg-gradient-to-t from-pink-500/80 to-purple-500/60 rounded-t-md transition-all hover:from-pink-500 hover:to-purple-500"
                     style={{ height: `${Math.max((data.messages / maxValue) * 100, 5)}%` }}
                   />
-                  <span className="mt-2 text-xs text-zinc-500">{data.day}</span>
-                  <span className="text-xs text-zinc-400">{data.messages}</span>
+                  <span className="mt-2 text-xs text-foreground-muted">{data.day}</span>
+                  <span className="text-xs text-foreground-muted">{data.messages}</span>
                 </div>
               ))}
             </div>
           ) : (
             <div className="h-48 flex items-center justify-center">
-              <p className="text-zinc-500">No message data available</p>
+              <p className="text-foreground-muted">No message data available</p>
             </div>
           )}
         </div>
 
         {/* Top Campaigns */}
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-6">
-          <h2 className="text-lg font-semibold text-white mb-6">Top Performing Campaigns</h2>
+        <div className="rounded-xl border border-border bg-background-elevated p-6">
+          <h2 className="text-lg font-semibold text-foreground mb-6">Top Performing Campaigns</h2>
           {isLoading ? (
             <div className="h-48 flex items-center justify-center">
-              <p className="text-zinc-400">Loading...</p>
+              <p className="text-foreground-muted">Loading...</p>
             </div>
           ) : campaigns.length > 0 ? (
             <div className="space-y-4">
               {campaigns.map((campaign, i) => (
                 <div key={campaign.name} className="flex items-center gap-4">
-                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-zinc-800 text-sm font-medium text-zinc-400">
+                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-background-tertiary text-sm font-medium text-foreground-muted">
                     {i + 1}
                   </span>
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-white truncate">{campaign.name}</p>
-                    <p className="text-sm text-zinc-500">{campaign.sent} sent</p>
+                    <p className="font-medium text-foreground truncate">{campaign.name}</p>
+                    <p className="text-sm text-foreground-muted">{campaign.sent} sent</p>
                   </div>
                   <div className="text-right">
                     <p className="font-semibold text-emerald-400">{campaign.replyRate}%</p>
-                    <p className="text-xs text-zinc-500">reply rate</p>
+                    <p className="text-xs text-foreground-muted">reply rate</p>
                   </div>
                 </div>
               ))}
             </div>
           ) : (
             <div className="h-48 flex items-center justify-center flex-col">
-              <BarChart3 className="h-12 w-12 text-zinc-600 mb-3" />
-              <p className="text-zinc-500">No campaigns yet</p>
+              <BarChart3 className="h-12 w-12 text-foreground-subtle mb-3" />
+              <p className="text-foreground-muted">No campaigns yet</p>
               <Button 
                 size="sm" 
                 variant="secondary" 

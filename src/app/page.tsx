@@ -644,6 +644,25 @@ export default function HomePage() {
             <p className="text-xl text-foreground-muted max-w-3xl mx-auto leading-relaxed">
               Join thousands of creators and businesses crushing their Instagram game with SocialOra.
             </p>
+            
+            {/* AI Just Better Badge */}
+            <div className="mt-8 flex justify-center">
+              <a 
+                href="https://aijustbetter.com/item/socialora.app" 
+                target="_blank" 
+                rel="noopener" 
+                title="Socialora: Detailed review, analysis and comparison on AI Just Better"
+                className="transition-transform hover:scale-105 duration-300"
+              >
+                <img 
+                  src="https://aijustbetter.com/badges/badge-dark.svg" 
+                  alt="Featured on AIJustBetter.com" 
+                  width="212" 
+                  height="55"
+                  className="max-w-full h-auto"
+                />
+              </a>
+            </div>
           </div>
 
           {/* Live activity feed */}

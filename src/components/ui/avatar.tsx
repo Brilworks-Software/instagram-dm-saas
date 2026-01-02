@@ -48,10 +48,11 @@ export function Avatar({ src, alt, name, size = 'md', className }: AvatarProps) 
   return (
     <div
       className={cn(
-        'relative flex items-center justify-center rounded-full bg-gradient-to-br from-accent/80 to-accent text-white font-semibold flex-shrink-0',
+        'relative flex items-center justify-center rounded-full bg-gradient-to-br from-accent to-accent/90 font-semibold flex-shrink-0',
         sizes[size],
         className
       )}
+      style={{ color: '#ffffff' }}
     >
       {showImage ? (
         // eslint-disable-next-line @next/next/no-img-element
@@ -63,7 +64,7 @@ export function Avatar({ src, alt, name, size = 'md', className }: AvatarProps) 
           crossOrigin="anonymous"
         />
       ) : (
-        <span>{getInitials(name)}</span>
+        <span style={{ color: '#ffffff' }} className="font-bold select-none">{getInitials(name)}</span>
       )}
     </div>
   );

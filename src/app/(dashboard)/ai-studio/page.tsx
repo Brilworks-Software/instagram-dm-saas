@@ -262,7 +262,7 @@ export default function AIStudioPage() {
 
       {/* Quick Templates */}
       <div className="mb-8">
-        <h2 className="text-lg font-semibold text-white mb-4">Quick Templates</h2>
+        <h2 className="text-lg font-semibold text-foreground mb-4">Quick Templates</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {templates.map((template) => {
             const Icon = template.icon;
@@ -273,14 +273,14 @@ export default function AIStudioPage() {
                   setNewAutomation(prev => ({ ...prev, name: template.name, description: template.description }));
                   setShowCreateModal(true);
                 }}
-                className="flex items-start gap-4 p-4 rounded-xl border border-zinc-800 bg-zinc-900/50 hover:border-pink-500/50 hover:bg-zinc-900 transition-all text-left"
+                className="flex items-start gap-4 p-4 rounded-xl border border-border bg-background-elevated hover:border-accent/50 hover:bg-background-secondary transition-all text-left"
               >
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-pink-500/20 to-purple-500/20 text-pink-400">
                   <Icon className="h-5 w-5" />
                 </div>
                 <div>
-                  <h3 className="font-medium text-white mb-1">{template.name}</h3>
-                  <p className="text-sm text-zinc-500">{template.description}</p>
+                  <h3 className="font-medium text-foreground mb-1">{template.name}</h3>
+                  <p className="text-sm text-foreground-subtle">{template.description}</p>
                 </div>
               </button>
             );
@@ -290,71 +290,71 @@ export default function AIStudioPage() {
 
       {/* Automations List */}
       <div>
-        <h2 className="text-lg font-semibold text-white mb-4">Your Automations</h2>
+        <h2 className="text-lg font-semibold text-foreground mb-4">Your Automations</h2>
         {isLoading ? (
-          <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-8 text-center">
+          <div className="rounded-xl border border-border bg-background-elevated p-8 text-center">
             <div className="animate-spin h-8 w-8 border-2 border-pink-500 border-t-transparent rounded-full mx-auto mb-4" />
-            <p className="text-zinc-400">Loading automations...</p>
+            <p className="text-foreground-muted">Loading automations...</p>
           </div>
         ) : automations.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-zinc-700 bg-zinc-900/30 p-12 text-center">
-            <Bot className="h-12 w-12 text-zinc-600 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-white mb-2">No automations yet</h3>
-            <p className="text-zinc-500 mb-6">Create your first AI automation to handle DMs automatically</p>
+          <div className="rounded-xl border border-dashed border-border bg-background-tertiary p-12 text-center">
+            <Bot className="h-12 w-12 text-foreground-subtle mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-foreground mb-2">No automations yet</h3>
+            <p className="text-foreground-muted mb-6">Create your first AI automation to handle DMs automatically</p>
             <Button onClick={() => setShowCreateModal(true)}>
               <Plus className="h-4 w-4" />
               Create Automation
             </Button>
           </div>
         ) : (
-          <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 overflow-hidden">
+          <div className="rounded-xl border border-border bg-background-elevated overflow-hidden">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-zinc-800">
-                  <th className="px-6 py-4 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">
+                <tr className="border-b border-border">
+                  <th className="px-6 py-4 text-left text-xs font-medium text-foreground-subtle uppercase tracking-wider">
                     Automation
                   </th>
-                  <th className="px-6 py-4 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">
+                  <th className="px-6 py-4 text-left text-xs font-medium text-foreground-subtle uppercase tracking-wider">
                     Account
                   </th>
-                  <th className="px-6 py-4 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">
+                  <th className="px-6 py-4 text-left text-xs font-medium text-foreground-subtle uppercase tracking-wider">
                     Trigger
                   </th>
-                  <th className="px-6 py-4 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">
+                  <th className="px-6 py-4 text-left text-xs font-medium text-foreground-subtle uppercase tracking-wider">
                     Status
                   </th>
-                  <th className="px-6 py-4 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">
+                  <th className="px-6 py-4 text-left text-xs font-medium text-foreground-subtle uppercase tracking-wider">
                     Messages
                   </th>
-                  <th className="px-6 py-4 text-right text-xs font-medium text-zinc-500 uppercase tracking-wider">
+                  <th className="px-6 py-4 text-right text-xs font-medium text-foreground-subtle uppercase tracking-wider">
                     Actions
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-800">
+              <tbody className="divide-y divide-border">
                 {automations.map((automation) => (
                   <tr
                     key={automation.id}
-                    className={`hover:bg-zinc-800/50 transition-colors cursor-pointer ${
-                      selectedAutomation === automation.id ? 'bg-zinc-800/50' : ''
+                    className={`hover:bg-background-secondary transition-colors cursor-pointer ${
+                      selectedAutomation === automation.id ? 'bg-background-secondary' : ''
                     }`}
                     onClick={() => setSelectedAutomation(automation.id)}
                   >
                     <td className="px-6 py-4">
                       <div>
-                        <p className="font-medium text-white">{automation.name}</p>
-                        <p className="text-sm text-zinc-500 max-w-xs truncate">
+                        <p className="font-medium text-foreground">{automation.name}</p>
+                        <p className="text-sm text-foreground-muted max-w-xs truncate">
                           {automation.description}
                         </p>
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <span className="text-sm text-zinc-400">
+                      <span className="text-sm text-foreground-muted">
                         @{automation.instagramUsername || 'Not set'}
                       </span>
                     </td>
                     <td className="px-6 py-4">
-                      <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-zinc-800 text-xs font-medium text-zinc-300">
+                      <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-background-tertiary text-xs font-medium text-foreground">
                         {automation.trigger}
                       </span>
                     </td>
@@ -363,7 +363,7 @@ export default function AIStudioPage() {
                         {automation.status.charAt(0).toUpperCase() + automation.status.slice(1)}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-zinc-400">
+                    <td className="px-6 py-4 text-foreground-muted">
                       {automation.messagesHandled.toLocaleString()}
                     </td>
                     <td className="px-6 py-4">
@@ -373,7 +373,7 @@ export default function AIStudioPage() {
                             e.stopPropagation();
                             toggleAutomationStatus(automation.id, automation.status);
                           }}
-                          className="p-2 rounded-lg hover:bg-zinc-700 text-zinc-400 hover:text-white transition-colors"
+                          className="p-2 rounded-lg hover:bg-background-tertiary text-foreground-muted hover:text-foreground transition-colors"
                         >
                           {automation.status === 'active' ? (
                             <Pause className="h-4 w-4" />
@@ -381,10 +381,10 @@ export default function AIStudioPage() {
                             <Play className="h-4 w-4" />
                           )}
                         </button>
-                        <button className="p-2 rounded-lg hover:bg-zinc-700 text-zinc-400 hover:text-white transition-colors">
+                        <button className="p-2 rounded-lg hover:bg-background-tertiary text-foreground-muted hover:text-foreground transition-colors">
                           <Settings2 className="h-4 w-4" />
                         </button>
-                        <button className="p-2 rounded-lg hover:bg-zinc-700 text-zinc-400 hover:text-white transition-colors">
+                        <button className="p-2 rounded-lg hover:bg-background-tertiary text-foreground-muted hover:text-foreground transition-colors">
                           <MoreHorizontal className="h-4 w-4" />
                         </button>
                       </div>
@@ -399,40 +399,40 @@ export default function AIStudioPage() {
 
       {/* AI Stats */}
       <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-5">
+        <div className="rounded-xl border border-border bg-background-elevated p-5">
           <div className="flex items-center gap-3 mb-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500/20 text-emerald-400">
               <Zap className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-white">
+              <p className="text-2xl font-bold text-foreground">
                 {automations.reduce((sum, a) => sum + a.messagesHandled, 0).toLocaleString()}
               </p>
-              <p className="text-sm text-zinc-500">Total messages automated</p>
+              <p className="text-sm text-foreground-muted">Total messages automated</p>
             </div>
           </div>
         </div>
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-5">
+        <div className="rounded-xl border border-border bg-background-elevated p-5">
           <div className="flex items-center gap-3 mb-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-pink-500/20 text-pink-400">
               <Bot className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-white">
+              <p className="text-2xl font-bold text-foreground">
                 {automations.filter(a => a.status === 'active').length}
               </p>
-              <p className="text-sm text-zinc-500">Active automations</p>
+              <p className="text-sm text-foreground-muted">Active automations</p>
             </div>
           </div>
         </div>
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-5">
+        <div className="rounded-xl border border-border bg-background-elevated p-5">
           <div className="flex items-center gap-3 mb-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-500/20 text-purple-400">
               <Instagram className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-white">{accounts.length}</p>
-              <p className="text-sm text-zinc-500">Connected accounts</p>
+              <p className="text-2xl font-bold text-foreground">{accounts.length}</p>
+              <p className="text-sm text-foreground-muted">Connected accounts</p>
             </div>
           </div>
         </div>
@@ -441,17 +441,17 @@ export default function AIStudioPage() {
       {/* Create Automation Modal */}
       {showCreateModal && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-          <div className="bg-zinc-900 rounded-2xl border border-zinc-800 max-w-md w-full">
-            <div className="p-6 border-b border-zinc-800">
-              <h2 className="text-lg font-semibold text-white">Create Automation</h2>
+          <div className="bg-background-secondary rounded-2xl border border-border max-w-md w-full">
+            <div className="p-6 border-b border-border">
+              <h2 className="text-lg font-semibold text-foreground">Create Automation</h2>
             </div>
             <div className="p-6 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-zinc-400 mb-2">Instagram Account</label>
+                <label className="block text-sm font-medium text-foreground-muted mb-2">Instagram Account</label>
                 <select
                   value={newAutomation.accountId}
                   onChange={(e) => setNewAutomation(prev => ({ ...prev, accountId: e.target.value }))}
-                  className="w-full px-4 py-2.5 rounded-lg bg-zinc-800 border border-zinc-700 text-white focus:border-pink-500 outline-none"
+                  className="w-full px-4 py-2.5 rounded-lg bg-background-tertiary border border-border text-foreground focus:border-pink-500 outline-none"
                 >
                   <option value="">Select account</option>
                   {accounts.map(acc => (
@@ -460,31 +460,31 @@ export default function AIStudioPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-zinc-400 mb-2">Name</label>
+                <label className="block text-sm font-medium text-foreground-muted mb-2">Name</label>
                 <input
                   type="text"
                   value={newAutomation.name}
                   onChange={(e) => setNewAutomation(prev => ({ ...prev, name: e.target.value }))}
                   placeholder="e.g., Welcome Message"
-                  className="w-full px-4 py-2.5 rounded-lg bg-zinc-800 border border-zinc-700 text-white placeholder-zinc-500 focus:border-pink-500 outline-none"
+                  className="w-full px-4 py-2.5 rounded-lg bg-background-tertiary border border-border text-foreground placeholder-foreground-subtle focus:border-pink-500 outline-none"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-zinc-400 mb-2">Description</label>
+                <label className="block text-sm font-medium text-foreground-muted mb-2">Description</label>
                 <textarea
                   value={newAutomation.description}
                   onChange={(e) => setNewAutomation(prev => ({ ...prev, description: e.target.value }))}
                   placeholder="What does this automation do?"
                   rows={3}
-                  className="w-full px-4 py-2.5 rounded-lg bg-zinc-800 border border-zinc-700 text-white placeholder-zinc-500 focus:border-pink-500 outline-none resize-none"
+                  className="w-full px-4 py-2.5 rounded-lg bg-background-tertiary border border-border text-foreground placeholder-foreground-subtle focus:border-pink-500 outline-none resize-none"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-zinc-400 mb-2">Trigger</label>
+                <label className="block text-sm font-medium text-foreground-muted mb-2">Trigger</label>
                 <select
                   value={newAutomation.trigger}
                   onChange={(e) => setNewAutomation(prev => ({ ...prev, trigger: e.target.value }))}
-                  className="w-full px-4 py-2.5 rounded-lg bg-zinc-800 border border-zinc-700 text-white focus:border-pink-500 outline-none"
+                  className="w-full px-4 py-2.5 rounded-lg bg-background-tertiary border border-border text-foreground focus:border-pink-500 outline-none"
                 >
                   <option value="New follower">New follower</option>
                   <option value="New message">New message</option>
@@ -493,7 +493,7 @@ export default function AIStudioPage() {
                 </select>
               </div>
             </div>
-            <div className="p-6 border-t border-zinc-800 flex gap-3">
+            <div className="p-6 border-t border-border flex gap-3">
               <Button variant="secondary" className="flex-1" onClick={() => setShowCreateModal(false)}>
                 Cancel
               </Button>

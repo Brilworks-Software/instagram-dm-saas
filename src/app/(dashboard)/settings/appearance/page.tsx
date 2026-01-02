@@ -252,7 +252,7 @@ export default function AppearancePage() {
               onClick={() => handleAccentColorChange(color.name)}
               className={`w-10 h-10 rounded-full ${color.color} transition-all relative ${
                 accentColor === color.name
-                  ? 'ring-2 ring-offset-2 ring-offset-zinc-900 ring-white scale-110'
+                  ? 'ring-2 ring-offset-2 ring-offset-background dark:ring-white ring-zinc-800 scale-110'
                   : 'hover:scale-105'
               }`}
             >
@@ -310,11 +310,11 @@ export default function AppearancePage() {
           </div>
           <button
             onClick={() => handleCompactModeChange(!compactMode)}
-            className={`w-12 h-6 rounded-full transition-colors ${
-              compactMode ? 'bg-accent' : 'bg-background-tertiary'
+            className={`w-12 h-6 rounded-full transition-colors relative ${
+              compactMode ? 'bg-accent' : 'bg-zinc-300 dark:bg-background-tertiary'
             }`}
           >
-            <div className={`w-5 h-5 rounded-full bg-white transform transition-transform ${
+            <div className={`w-5 h-5 rounded-full bg-white shadow-sm transform transition-transform ${
               compactMode ? 'translate-x-6' : 'translate-x-0.5'
             }`} />
           </button>

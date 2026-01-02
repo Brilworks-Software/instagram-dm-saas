@@ -1175,7 +1175,7 @@ export default function InstagramSettingsPage() {
     <div className="min-h-screen">
       <Header
         title="Instagram Accounts"
-        subtitle="Connect and manage your Instagram Business accounts"
+        subtitle="Connect and manage your Instagram accounts"
       />
 
       <div className="p-6 max-w-4xl mx-auto">
@@ -1444,15 +1444,17 @@ export default function InstagramSettingsPage() {
               </p>
 
               <div className="flex items-center gap-3 flex-wrap">
-                <Button
-                  onClick={handleBrowserLogin}
-                  isLoading={isBrowserLoggingIn}
-                  className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600">
-                  <Plus className="h-4 w-4 mr-2" />
+                <a
+                  href="https://chromewebstore.google.com/detail/socialora-instagram-sessi/lcpiammgpikppaipmnpckpbpdljppbck"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-lg font-medium transition-colors"
+                >
+                  <Plus className="h-4 w-4" />
                   {accounts.length > 0
                     ? "Add Account"
-                    : "Connect with Extension"}
-                </Button>
+                    : "Install Extension"}
+                </a>
 
                 {accounts.length > 0 && (
                   <Button
@@ -1941,7 +1943,7 @@ export default function InstagramSettingsPage() {
                   2
                 </div>
                 <div className="flex-1">
-                  <h3 className="font-medium text-foreground mb-2">Open Instagram</h3>
+                  <h3 className="font-medium text-foreground mb-2">Go to Instagram and Login</h3>
                   <p className="text-sm text-foreground-muted mb-3">
                     Go to Instagram.com and make sure you&apos;re logged in to the account you want to connect.
                   </p>
@@ -1963,13 +1965,13 @@ export default function InstagramSettingsPage() {
                   3
                 </div>
                 <div className="flex-1">
-                  <h3 className="font-medium text-foreground mb-2">Grab Instagram Session</h3>
+                  <h3 className="font-medium text-foreground mb-2">Click Extension Icon → &quot;PRESS TO START&quot;</h3>
                   <p className="text-sm text-foreground-muted mb-2">
-                    While on Instagram, click the SocialOra extension icon in your Chrome toolbar and click <strong>&quot;Grab Instagram Session&quot;</strong>.
+                    While on Instagram, click the SocialOra extension icon in your Chrome toolbar and click <strong>&quot;PRESS TO START&quot;</strong>.
                   </p>
                   <div className="bg-success/10 border border-success/20 rounded-lg p-3 mt-3">
                     <p className="text-xs text-success">
-                      ✅ Your account will connect automatically and appear in your dashboard instantly!
+                      ✅ Done! Your account will connect automatically and you can start sending DMs instantly!
                     </p>
                   </div>
                 </div>
