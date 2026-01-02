@@ -1,13 +1,15 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Search, RefreshCw, MessageSquare, Instagram, AlertCircle, Send, Plus, ChevronDown, Check, Users } from 'lucide-react';
+import { Search, RefreshCw, MessageSquare, Instagram, AlertCircle, Send, Plus, ChevronDown, Check, Users, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import { Header } from '@/components/layout/header';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ConversationList } from '@/components/inbox/conversation-list';
 import { MessageThread } from '@/components/inbox/message-thread';
+import { MobileConversationCard } from '@/components/inbox/mobile-conversation-card';
+import { MobileContactCard } from '@/components/inbox/mobile-contact-card';
 import { cn } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
 import type { Conversation, Message, MessageType, MessageDirection, MessageStatus } from '@/types';
@@ -1035,9 +1037,17 @@ export default function InboxPage() {
     return true;
   });
 
-  // Select first conversation when loaded
+  // Select first conversation when loaded (desktop only)
   useEffect(() => {
-    if (filteredConversations.length > 0 && !selectedConversation) {
+    // Only auto-select on desktop (lg and above, 1024px+) to show better UX
+    // On mobile/tablet, let users explicitly select a conversation
+    if (typeof window === 'undefined' || hasAutoSelectedRef.current) return;
+    
+    const isMobileOrTablet = window.innerWidth < 1024;
+    
+    // Only auto-select on desktop and only once
+    if (!isMobileOrTablet && filteredConversations.length > 0 && !selectedConversation) {
+      hasAutoSelectedRef.current = true;
       handleSelectConversation(filteredConversations[0]);
     }
   }, [filteredConversations, selectedConversation, handleSelectConversation]);
@@ -1084,10 +1094,14 @@ export default function InboxPage() {
 
       <div className="flex-1 flex overflow-hidden">
         {/* Conversation List Sidebar */}
-        <div className="w-96 border-r border-border flex flex-col bg-background-secondary/30">
+        <div className={cn(
+          "w-full lg:w-96 border-r border-border flex flex-col bg-background-secondary/30",
+          // On mobile/tablet, hide conversation list when a conversation is selected
+          selectedConversation && "hidden lg:flex"
+        )}>
           {/* Enhanced Account Selector */}
           {accounts.length > 0 && (
-            <div className="p-4 border-b border-border bg-background-elevated/50">
+            <div className="p-3 md:p-4 border-b border-border bg-background-elevated/50">
               <label className="block text-xs font-medium text-foreground-muted mb-2">
                 View Inbox
               </label>
@@ -1193,7 +1207,7 @@ export default function InboxPage() {
                   </div>
                 )}
               </div>
-              <p className="text-xs text-foreground-subtle mt-2">
+              <p className="text-xs text-foreground-subtle mt-2 line-clamp-1">
                 {viewMode === 'all' 
                   ? `${accounts.length} account${accounts.length > 1 ? 's' : ''} connected`
                   : selectedAccount && `Viewing @${selectedAccount.igUsername} inbox`
@@ -1204,14 +1218,15 @@ export default function InboxPage() {
 
           {/* No Accounts Warning */}
           {accounts.length === 0 && !isLoadingConversations && (
-            <div className="p-4 border-b border-border">
-              <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 flex flex-col items-center text-center gap-2">
-                <AlertCircle className="h-6 w-6 text-amber-400" />
-                <p className="text-sm text-amber-400">No Instagram accounts connected</p>
+            <div className="p-3 md:p-4 border-b border-border">
+              <div className="p-3 md:p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 flex flex-col items-center text-center gap-2">
+                <AlertCircle className="h-5 w-5 md:h-6 md:w-6 text-amber-400" />
+                <p className="text-xs md:text-sm text-amber-400">No Instagram accounts connected</p>
                 <Button 
                   size="sm" 
                   variant="secondary"
                   onClick={() => window.location.href = '/settings/instagram'}
+                  className="w-full sm:w-auto"
                 >
                   <Instagram className="h-4 w-4" />
                   Connect
@@ -1221,60 +1236,66 @@ export default function InboxPage() {
           )}
 
           {/* View Toggle - Conversations / Contacts */}
-          <div className="p-4 border-b border-border">
-            <div className="flex items-center gap-2 bg-background-elevated rounded-lg p-1">
+          <div className="p-3 md:p-4 border-b border-border">
+            <div className="flex items-center gap-1.5 md:gap-2 bg-background-elevated rounded-lg p-1">
               <button
                 onClick={() => setListView('conversations')}
                 className={cn(
-                  'flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors',
+                  'flex-1 px-2 md:px-3 py-2 rounded-md text-xs md:text-sm font-medium transition-colors min-h-[44px]',
                   listView === 'conversations'
                     ? 'bg-background text-foreground shadow-sm'
                     : 'text-foreground-muted hover:text-foreground'
                 )}
               >
-                <MessageSquare className="h-4 w-4 inline mr-2" />
-                Conversations
+                <MessageSquare className="h-4 w-4 inline mr-1.5 md:mr-2" />
+                <span className="hidden sm:inline">Conversations</span>
+                <span className="sm:hidden">Convos</span>
               </button>
               <button
                 onClick={() => setListView('contacts')}
                 className={cn(
-                  'flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors',
+                  'flex-1 px-2 md:px-3 py-2 rounded-md text-xs md:text-sm font-medium transition-colors min-h-[44px]',
                   listView === 'contacts'
                     ? 'bg-background text-foreground shadow-sm'
                     : 'text-foreground-muted hover:text-foreground'
                 )}
               >
-                <Users className="h-4 w-4 inline mr-2" />
-                Contacts ({contacts.length})
+                <Users className="h-4 w-4 inline mr-1.5 md:mr-2" />
+                <span className="hidden sm:inline">Contacts</span>
+                <span className="sm:hidden">Contacts</span>
+                <span className="ml-1">({contacts.length})</span>
               </button>
             </div>
           </div>
 
           {/* Filters */}
-          <div className="p-4 space-y-3 border-b border-border">
+          <div className="p-3 md:p-4 space-y-3 border-b border-border">
             <Input
               placeholder={listView === 'conversations' ? 'Search conversations...' : 'Search contacts...'}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               leftIcon={<Search className="h-4 w-4" />}
+              className="h-10"
             />
 
             {listView === 'conversations' && (
-              <div className="flex items-center gap-2">
-                {['all', 'OPEN', 'SNOOZED', 'CLOSED'].map((status) => (
-                  <button
-                    key={status}
-                    onClick={() => setStatusFilter(status)}
-                    className={cn(
-                      'px-3 py-1.5 rounded-lg text-xs font-medium transition-colors',
-                      statusFilter === status
-                        ? 'bg-accent text-white'
-                        : 'bg-background-elevated text-foreground-muted hover:text-foreground'
-                    )}
-                  >
-                    {status === 'all' ? 'All' : status.charAt(0) + status.slice(1).toLowerCase()}
-                  </button>
-                ))}
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                <div className="flex items-center gap-1.5 flex-wrap flex-1">
+                  {['all', 'OPEN', 'SNOOZED', 'CLOSED'].map((status) => (
+                    <button
+                      key={status}
+                      onClick={() => setStatusFilter(status)}
+                      className={cn(
+                        'px-2.5 md:px-3 py-2 rounded-lg text-xs font-medium transition-colors min-h-[36px]',
+                        statusFilter === status
+                          ? 'bg-accent text-white'
+                          : 'bg-background-elevated text-foreground-muted hover:text-foreground'
+                      )}
+                    >
+                      {status === 'all' ? 'All' : status.charAt(0) + status.slice(1).toLowerCase()}
+                    </button>
+                  ))}
+                </div>
 
                 <Button
                   size="sm"
@@ -1289,11 +1310,12 @@ export default function InboxPage() {
                     }
                   }}
                   disabled={isSyncing || (viewMode === 'account' && !selectedAccount)}
-                  className="ml-auto"
+                  className="w-full sm:w-auto sm:ml-auto min-h-[36px]"
                   title={viewMode === 'all' ? 'Select an account to sync' : 'Sync messages from Instagram'}
                 >
                   <RefreshCw className={cn("h-3.5 w-3.5", isSyncing && "animate-spin")} />
-                  {isSyncing ? 'Syncing...' : 'Sync'}
+                  <span className="hidden sm:inline">{isSyncing ? 'Syncing...' : 'Sync'}</span>
+                  <span className="sm:hidden">{isSyncing ? '...' : 'Sync'}</span>
                 </Button>
               </div>
             )}
@@ -1303,19 +1325,36 @@ export default function InboxPage() {
           {listView === 'conversations' && (
             <>
               {isLoadingConversations ? (
-                <div className="flex-1 flex items-center justify-center">
-                  <div className="text-foreground-muted animate-pulse">Loading conversations...</div>
+                <div className="flex-1 flex items-center justify-center p-4">
+                  <div className="text-foreground-muted animate-pulse text-sm">Loading conversations...</div>
                 </div>
               ) : filteredConversations.length > 0 ? (
-                <ConversationList
-                  conversations={filteredConversations}
-                  selectedId={selectedConversation?.id || null}
-                  onSelect={handleSelectConversation}
-                />
+                <>
+                  {/* Mobile/Tablet: Use mobile cards */}
+                  <div className="lg:hidden flex-1 overflow-y-auto">
+                    {filteredConversations.map((conversation, index) => (
+                      <MobileConversationCard
+                        key={conversation.id}
+                        conversation={conversation}
+                        isSelected={selectedConversation?.id === conversation.id}
+                        onSelect={handleSelectConversation}
+                        index={index}
+                      />
+                    ))}
+                  </div>
+                  {/* Desktop: Use regular list */}
+                  <div className="hidden lg:block flex-1">
+                    <ConversationList
+                      conversations={filteredConversations}
+                      selectedId={selectedConversation?.id || null}
+                      onSelect={handleSelectConversation}
+                    />
+                  </div>
+                </>
               ) : (
-                <div className="flex-1 flex items-center justify-center p-6">
+                <div className="flex-1 flex items-center justify-center p-4 md:p-6">
                   <div className="text-center">
-                    <MessageSquare className="h-12 w-12 text-foreground-subtle mx-auto mb-3" />
+                    <MessageSquare className="h-10 w-10 md:h-12 md:w-12 text-foreground-subtle mx-auto mb-3" />
                     <p className="text-foreground-muted text-sm">No conversations yet</p>
                     <Button 
                       size="sm" 
@@ -1335,8 +1374,8 @@ export default function InboxPage() {
           {listView === 'contacts' && (
             <>
               {isLoadingContacts ? (
-                <div className="flex-1 flex items-center justify-center">
-                  <div className="text-foreground-muted animate-pulse">Loading contacts...</div>
+                <div className="flex-1 flex items-center justify-center p-4">
+                  <div className="text-foreground-muted animate-pulse text-sm">Loading contacts...</div>
                 </div>
               ) : (
                 <div className="flex-1 overflow-y-auto">
@@ -1347,75 +1386,13 @@ export default function InboxPage() {
                       contact.name?.toLowerCase().includes(searchQuery.toLowerCase())
                     )
                     .map((contact, index) => (
-                      <button
+                      <MobileContactCard
                         key={contact.id}
-                        onClick={() => handleSelectContact(contact)}
-                        className={cn(
-                          'w-full p-4 flex items-start gap-3 text-left transition-all duration-200 border-b border-border/50',
-                          'hover:bg-background-elevated',
-                          selectedContact?.id === contact.id && 'bg-background-elevated border-l-2 border-l-accent',
-                          index === 0 && 'animate-slide-in'
-                        )}
-                        style={{ animationDelay: `${index * 50}ms` }}
-                      >
-                        <div className="relative">
-                          {contact.profilePictureUrl ? (
-                            <img
-                              src={contact.profilePictureUrl}
-                              alt={contact.igUsername}
-                              className="w-10 h-10 rounded-full"
-                            />
-                          ) : (
-                            <div className="w-10 h-10 rounded-full bg-accent/20 flex items-center justify-center text-accent font-medium">
-                              {(contact.name || contact.igUsername || '?')[0].toUpperCase()}
-                            </div>
-                          )}
-                          {contact.isVerified && (
-                            <div className="absolute -bottom-0.5 -right-0.5 h-4 w-4 rounded-full bg-blue-500 flex items-center justify-center">
-                              <svg className="h-2.5 w-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                              </svg>
-                            </div>
-                          )}
-                        </div>
-                        
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between gap-2">
-                            <span className="font-medium text-sm text-foreground truncate">
-                              {contact.name || `@${contact.igUsername}`}
-                            </span>
-                          </div>
-                          
-                          <div className="flex items-center gap-2 mt-1">
-                            <p className="text-sm text-foreground-muted truncate">
-                              @{contact.igUsername}
-                            </p>
-                            {contact.followerCount && (
-                              <span className="text-xs text-foreground-subtle">
-                                • {contact.followerCount.toLocaleString()} followers
-                              </span>
-                            )}
-                          </div>
-
-                          {contact.tags.length > 0 && (
-                            <div className="flex items-center gap-1 mt-2">
-                              {contact.tags.slice(0, 2).map((tag) => (
-                                <span
-                                  key={tag}
-                                  className="px-2 py-0.5 rounded-full bg-accent/10 text-accent text-xs"
-                                >
-                                  {tag}
-                                </span>
-                              ))}
-                              {contact.tags.length > 2 && (
-                                <span className="text-xs text-foreground-subtle">
-                                  +{contact.tags.length - 2}
-                                </span>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      </button>
+                        contact={contact}
+                        isSelected={selectedContact?.id === contact.id}
+                        onSelect={handleSelectContact}
+                        index={index}
+                      />
                     ))
                   }
                   {contacts.filter(contact => 
@@ -1423,9 +1400,9 @@ export default function InboxPage() {
                     contact.igUsername?.toLowerCase().includes(searchQuery.toLowerCase()) ||
                     contact.name?.toLowerCase().includes(searchQuery.toLowerCase())
                   ).length === 0 && (
-                    <div className="flex-1 flex items-center justify-center p-6">
+                    <div className="flex-1 flex items-center justify-center p-4 md:p-6">
                       <div className="text-center">
-                        <Users className="h-12 w-12 text-foreground-subtle mx-auto mb-3" />
+                        <Users className="h-10 w-10 md:h-12 md:w-12 text-foreground-subtle mx-auto mb-3" />
                         <p className="text-foreground-muted text-sm">
                           {searchQuery ? 'No contacts found' : 'No contacts yet'}
                         </p>
@@ -1442,23 +1419,31 @@ export default function InboxPage() {
         </div>
 
         {/* Message Thread */}
-        <div className="flex-1 bg-background">
+        <div className={cn(
+          "flex-1 bg-background",
+          // On mobile/tablet, hide message thread when no conversation is selected
+          // On desktop, show empty state when no conversation is selected
+          !selectedConversation && "hidden lg:flex lg:items-center lg:justify-center"
+        )}>
           {selectedConversation ? (
-            <MessageThread
-              conversation={selectedConversation}
-              messages={messages}
-              onSendMessage={handleSendMessage}
-              isLoading={isLoadingMessages}
-            />
+            <div className="flex-1 flex flex-col overflow-hidden h-full">
+              <MessageThread
+                conversation={selectedConversation}
+                messages={messages}
+                onSendMessage={handleSendMessage}
+                isLoading={isLoadingMessages}
+                onBack={() => setSelectedConversation(null)}
+              />
+            </div>
           ) : (
-            <div className="h-full flex items-center justify-center">
-              <div className="text-center">
-                <div className="h-16 w-16 rounded-2xl bg-background-elevated flex items-center justify-center mx-auto mb-4">
-                  <MessageSquare className="h-8 w-8 text-foreground-subtle" />
+            <div className="w-full h-full flex items-center justify-center p-8">
+              <div className="text-center max-w-lg w-full">
+                <div className="h-24 w-24 rounded-3xl bg-background-elevated/50 flex items-center justify-center mx-auto mb-6 border border-border/50">
+                  <MessageSquare className="h-12 w-12 text-foreground-subtle" />
                 </div>
-                <h3 className="text-lg font-medium text-foreground mb-1">Select a conversation</h3>
-                <p className="text-sm text-foreground-muted">
-                  Choose a conversation from the list to view messages
+                <h3 className="text-2xl font-semibold text-foreground mb-3">Select a conversation</h3>
+                <p className="text-base text-foreground-muted leading-relaxed">
+                  Choose a conversation from the list to view and send messages
                 </p>
               </div>
             </div>
@@ -1468,18 +1453,18 @@ export default function InboxPage() {
 
       {/* New DM Modal */}
       {showNewDmModal && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-          <div className="bg-background-secondary rounded-2xl border border-border max-w-md w-full">
-            <div className="p-6 border-b border-border">
-              <h2 className="text-lg font-semibold text-foreground">Send New DM</h2>
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-3 md:p-4">
+          <div className="bg-background-secondary rounded-xl md:rounded-2xl border border-border max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-4 md:p-6 border-b border-border sticky top-0 bg-background-secondary z-10">
+              <h2 className="text-base md:text-lg font-semibold text-foreground">Send New DM</h2>
             </div>
-            <div className="p-6 space-y-4">
+            <div className="p-4 md:p-6 space-y-4">
               <div>
                 <label className="block text-sm font-medium text-foreground mb-2">
                   Send From Account
                   {accounts.length > 1 && (
                     <span className="text-xs text-foreground-muted ml-2">
-                      ({accounts.length} accounts available)
+                      ({accounts.length} accounts)
                     </span>
                   )}
                 </label>
@@ -1489,7 +1474,7 @@ export default function InboxPage() {
                     const acc = accounts.find(a => a.id === e.target.value);
                     if (acc) setSelectedAccount(acc);
                   }}
-                  className="w-full px-4 py-2.5 rounded-lg bg-background border border-border text-foreground font-medium focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
+                  className="w-full px-3 md:px-4 py-2.5 rounded-lg bg-background border border-border text-foreground text-sm md:text-base font-medium focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
                 >
                   {accounts.map(acc => (
                     <option key={acc.id} value={acc.id}>
@@ -1505,7 +1490,7 @@ export default function InboxPage() {
                   value={newDmUsername}
                   onChange={(e) => setNewDmUsername(e.target.value)}
                   placeholder="@username"
-                  className="w-full px-4 py-2.5 rounded-lg bg-background border border-border text-foreground placeholder-foreground-subtle focus:border-accent outline-none"
+                  className="w-full px-3 md:px-4 py-2.5 rounded-lg bg-background border border-border text-foreground placeholder-foreground-subtle focus:border-accent outline-none text-sm md:text-base"
                 />
               </div>
               <div>
@@ -1515,16 +1500,20 @@ export default function InboxPage() {
                   onChange={(e) => setNewDmMessage(e.target.value)}
                   placeholder="Type your message..."
                   rows={4}
-                  className="w-full px-4 py-2.5 rounded-lg bg-background border border-border text-foreground placeholder-foreground-subtle focus:border-accent outline-none resize-none"
+                  className="w-full px-3 md:px-4 py-2.5 rounded-lg bg-background border border-border text-foreground placeholder-foreground-subtle focus:border-accent outline-none resize-none text-sm md:text-base"
                 />
               </div>
             </div>
-            <div className="p-6 border-t border-border flex gap-3">
-              <Button variant="secondary" className="flex-1" onClick={() => setShowNewDmModal(false)}>
+            <div className="p-4 md:p-6 border-t border-border flex flex-col sm:flex-row gap-2 sm:gap-3 sticky bottom-0 bg-background-secondary">
+              <Button 
+                variant="secondary" 
+                className="flex-1 w-full sm:w-auto min-h-[44px]" 
+                onClick={() => setShowNewDmModal(false)}
+              >
                 Cancel
               </Button>
               <Button 
-                className="flex-1" 
+                className="flex-1 w-full sm:w-auto min-h-[44px]" 
                 onClick={handleSendNewDm}
                 disabled={!newDmUsername || !newDmMessage || isSendingNewDm}
               >

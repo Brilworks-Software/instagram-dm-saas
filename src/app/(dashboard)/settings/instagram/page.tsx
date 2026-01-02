@@ -369,6 +369,7 @@ export default function InstagramSettingsPage() {
       } = await supabase.auth.getUser();
       if (!authUser) {
         setErrorMessage("Please log in");
+        processingAccountsRef.current.delete(igUserId);
         return;
       }
 
@@ -381,57 +382,136 @@ export default function InstagramSettingsPage() {
         setErrorMessage(
           "Failed to get or create workspace. Please try refreshing the page."
         );
+        processingAccountsRef.current.delete(igUserId);
         return;
       }
 
-      // Prepare account data to save (WITHOUT cookies - cookies stored in localStorage ONLY)
-      const accountDataToSave = {
-        workspace_id: workspaceId,
-        ig_user_id: String(igUserId),
-        ig_username: accountMetadata.username || `user_${igUserId}`,
-        profile_picture_url: accountMetadata.profilePicUrl || null,
-        access_token: "cookie_auth", // Placeholder - no actual cookies stored
-        access_token_expires_at: new Date(
-          Date.now() + 30 * 24 * 60 * 60 * 1000
-        ).toISOString(),
-        is_active: true,
-        daily_dm_limit: 100,
-        dms_sent_today: 0,
-        fb_page_id: `cookie_auth_${igUserId}`,
-        permissions: ["cookie_auth", "dm_send", "dm_read"],
-      };
+      // Get cookies from localStorage
+      const localStorageKey = `socialora_cookies_${igUserId}`;
+      let cookiesStr = localStorage.getItem(localStorageKey);
+
+      // Also check for cookies with username as fallback
+      if (!cookiesStr && accountMetadata.username) {
+        const usernameKey = `socialora_cookies_${accountMetadata.username}`;
+        cookiesStr = localStorage.getItem(usernameKey);
+        if (cookiesStr) {
+          console.log(
+            "Found cookies using username key, moving to userId key"
+          );
+          localStorage.setItem(localStorageKey, cookiesStr);
+        }
+      }
 
       let saveSuccess = false;
       let saveError: string | null = null;
 
-      // Use UPSERT to handle both insert and update automatically
-      // This prevents duplicate key errors by updating if exists, inserting if not
-      try {
-        const { error: upsertError } = await supabase
-          .from("instagram_accounts")
-          .upsert(accountDataToSave, {
-            onConflict: "ig_user_id,workspace_id", // Use the unique constraint columns
+      // If cookies are available, use the API endpoint to save properly
+      if (cookiesStr) {
+        try {
+          const cookies = JSON.parse(cookiesStr);
+          
+          // Call the API endpoint which properly encrypts and saves cookies
+          const response = await fetch("/api/instagram/cookie/connect", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              cookies,
+              workspaceId: workspaceId,
+            }),
           });
 
-        if (upsertError) {
-          console.error("Error upserting account:", upsertError);
-          saveError = "Failed to save account: " + upsertError.message;
-        } else {
-          console.log(
-            "✓ Account saved successfully (cookies in localStorage only)"
-          );
-          saveSuccess = true;
-        }
-      } catch (error: any) {
-        console.error("Unexpected error:", error);
-        saveError =
-          "Failed to save account: " + (error.message || "Unknown error");
-      }
+          const data = await response.json();
 
-      // Cookies are already in localStorage (transferred by extension)
-      console.log(
-        `✓ Cookies already in localStorage (key: socialora_cookies_${igUserId})`
-      );
+          if (data.success && data.savedToDatabase) {
+            console.log(
+              "✓ Account saved successfully with encrypted cookies via API"
+            );
+            saveSuccess = true;
+          } else if (data.success && !data.savedToDatabase) {
+            // API succeeded but didn't save to database (no workspace ID)
+            // Fall back to direct upsert with cookies
+            console.warn("API didn't save to database, using direct upsert");
+            const { error: upsertError } = await supabase
+              .from("instagram_accounts")
+              .upsert(
+                {
+                  workspace_id: workspaceId,
+                  ig_user_id: String(igUserId),
+                  ig_username: accountMetadata.username || `user_${igUserId}`,
+                  profile_picture_url: accountMetadata.profilePicUrl || null,
+                  access_token: "cookie_auth", // Will be updated by API on next call
+                  access_token_expires_at: new Date(
+                    Date.now() + 30 * 24 * 60 * 60 * 1000
+                  ).toISOString(),
+                  cookies: cookies, // Save cookies to JSONB field
+                  is_active: true,
+                  daily_dm_limit: 100,
+                  dms_sent_today: 0,
+                  fb_page_id: `cookie_auth_${igUserId}`,
+                  permissions: ["cookie_auth", "dm_send", "dm_read"],
+                },
+                {
+                  onConflict: "ig_user_id,workspace_id",
+                }
+              );
+
+            if (upsertError) {
+              console.error("Error upserting account:", upsertError);
+              saveError = "Failed to save account: " + upsertError.message;
+            } else {
+              saveSuccess = true;
+            }
+          } else {
+            saveError = data.error || "Failed to save account";
+          }
+        } catch (error: any) {
+          console.error("Error calling cookie connect API:", error);
+          saveError = "Failed to save account: " + (error.message || "Unknown error");
+        }
+      } else {
+        // No cookies found - save account metadata only (cookies will be added later)
+        console.warn(
+          `No cookies found in localStorage for ${igUserId}, saving account metadata only`
+        );
+        try {
+          const { error: upsertError } = await supabase
+            .from("instagram_accounts")
+            .upsert(
+              {
+                workspace_id: workspaceId,
+                ig_user_id: String(igUserId),
+                ig_username: accountMetadata.username || `user_${igUserId}`,
+                profile_picture_url: accountMetadata.profilePicUrl || null,
+                access_token: "cookie_auth", // Placeholder until cookies are available
+                access_token_expires_at: new Date(
+                  Date.now() + 30 * 24 * 60 * 60 * 1000
+                ).toISOString(),
+                is_active: true,
+                daily_dm_limit: 100,
+                dms_sent_today: 0,
+                fb_page_id: `cookie_auth_${igUserId}`,
+                permissions: ["cookie_auth", "dm_send", "dm_read"],
+              },
+              {
+                onConflict: "ig_user_id,workspace_id",
+              }
+            );
+
+          if (upsertError) {
+            console.error("Error upserting account:", upsertError);
+            saveError = "Failed to save account: " + upsertError.message;
+          } else {
+            saveSuccess = true;
+            console.log(
+              "✓ Account metadata saved (cookies will be added when available)"
+            );
+          }
+        } catch (error: any) {
+          console.error("Unexpected error:", error);
+          saveError =
+            "Failed to save account: " + (error.message || "Unknown error");
+        }
+      }
 
       // Show success message
       if (saveSuccess) {
@@ -890,87 +970,94 @@ export default function InstagramSettingsPage() {
           is_new_account: !existingAccount,
         });
 
-        // Also save to Supabase for UI with cookies
-        // Try saving with cookies first, retry without cookies if column doesn't exist
-        let savedAccount = null;
-        let saveError = null;
-
-        // First attempt: Try saving WITH cookies
-        const { data: accountWithCookies, error: errorWithCookies } =
-          await supabase
-            .from("instagram_accounts")
-            .upsert(
-              {
-                workspace_id: workspaceId,
-                ig_user_id: data.account.pk,
-                ig_username: data.account.username,
-                profile_picture_url: data.account.profilePicUrl,
-                access_token: "cookie_auth",
-                access_token_expires_at: new Date(
-                  Date.now() + 30 * 24 * 60 * 60 * 1000
-                ).toISOString(),
-                cookies: cookies, // Save cookies to Supabase
-                is_active: true,
-                daily_dm_limit: 100,
-                dms_sent_today: 0,
-              },
-              {
-                onConflict: "ig_user_id,workspace_id",
-              }
-            )
-            .select()
-            .single();
-
-        if (!errorWithCookies && accountWithCookies) {
-          savedAccount = accountWithCookies;
-        } else if (
-          errorWithCookies &&
-          errorWithCookies.message?.includes("cookies")
-        ) {
-          // Retry without cookies if column doesn't exist
-          console.warn(
-            "Cookies column not available, saving without cookies:",
-            errorWithCookies.message
-          );
-          const { data: accountWithoutCookies, error: errorWithoutCookies } =
-            await supabase
-              .from("instagram_accounts")
-              .upsert(
-                {
-                  workspace_id: workspaceId,
-                  ig_user_id: data.account.pk,
-                  ig_username: data.account.username,
-                  profile_picture_url: data.account.profilePicUrl,
-                  access_token: "cookie_auth",
-                  access_token_expires_at: new Date(
-                    Date.now() + 30 * 24 * 60 * 60 * 1000
-                  ).toISOString(),
-                  // cookies: cookies, // Omit cookies if column doesn't exist
-                  is_active: true,
-                  daily_dm_limit: 100,
-                  dms_sent_today: 0,
-                },
-                {
-                  onConflict: "ig_user_id,workspace_id",
-                }
-              )
-              .select()
-              .single();
-
-          if (!errorWithoutCookies && accountWithoutCookies) {
-            savedAccount = accountWithoutCookies;
-          } else {
-            saveError = errorWithoutCookies;
-          }
-        } else {
-          saveError = errorWithCookies;
-        }
-
-        // Always save cookies to localStorage for quick access (regardless of DB save result)
+        // Always save cookies to localStorage for quick access
         localStorage.setItem(
           `socialora_cookies_${data.account.pk}`,
           JSON.stringify(cookies)
         );
+
+        let savedAccount = null;
+
+        // If API already saved to database, fetch the account instead of upserting
+        if (data.savedToDatabase) {
+          console.log("API already saved account to database, fetching account data");
+          const { data: accountData, error: fetchError } = await supabase
+            .from("instagram_accounts")
+            .select("*")
+            .eq("ig_user_id", data.account.pk)
+            .eq("workspace_id", workspaceId)
+            .single();
+
+          if (!fetchError && accountData) {
+            savedAccount = accountData;
+          } else {
+            console.warn("Failed to fetch account after API save:", fetchError);
+          }
+        } else {
+          // API didn't save to database (no workspace ID), so we need to save it
+          // But we should NOT overwrite the encrypted access_token if it exists
+          // Only update if account doesn't exist or if we need to add cookies
+          console.log("API didn't save to database, checking if account exists");
+          
+          const { data: existingAccountData } = await supabase
+            .from("instagram_accounts")
+            .select("*")
+            .eq("ig_user_id", data.account.pk)
+            .eq("workspace_id", workspaceId)
+            .single();
+
+          if (existingAccountData) {
+            // Account exists - only update cookies JSONB field, don't touch access_token
+            const { data: updatedAccount, error: updateError } = await supabase
+              .from("instagram_accounts")
+              .update({
+                cookies: cookies, // Update cookies JSONB
+                ig_username: data.account.username, // Update username in case it changed
+                profile_picture_url: data.account.profilePicUrl,
+                is_active: true,
+              })
+              .eq("ig_user_id", data.account.pk)
+              .eq("workspace_id", workspaceId)
+              .select()
+              .single();
+
+            if (!updateError && updatedAccount) {
+              savedAccount = updatedAccount;
+            } else {
+              console.error("Failed to update account with cookies:", updateError);
+            }
+          } else {
+            // Account doesn't exist - create it with cookies
+            // Note: access_token will be placeholder, but cookies JSONB will be set
+            // The API endpoint should be called again later to properly encrypt cookies
+            const { data: newAccount, error: createError } = await supabase
+              .from("instagram_accounts")
+              .insert({
+                workspace_id: workspaceId,
+                ig_user_id: data.account.pk,
+                ig_username: data.account.username,
+                profile_picture_url: data.account.profilePicUrl,
+                access_token: "cookie_auth", // Placeholder - will be updated by API on next call
+                access_token_expires_at: new Date(
+                  Date.now() + 30 * 24 * 60 * 60 * 1000
+                ).toISOString(),
+                cookies: cookies, // Save cookies to JSONB field
+                is_active: true,
+                daily_dm_limit: 100,
+                dms_sent_today: 0,
+                fb_page_id: `cookie_auth_${data.account.pk}`,
+                permissions: ["cookie_auth", "dm_send", "dm_read"],
+              })
+              .select()
+              .single();
+
+            if (!createError && newAccount) {
+              savedAccount = newAccount;
+            } else {
+              console.error("Failed to create account:", createError);
+            }
+          }
+        }
 
         if (savedAccount) {
           const newAccount: InstagramAccount = {
@@ -994,10 +1081,6 @@ export default function InstagramSettingsPage() {
           setAccountsWithCookies(
             (prev) => new Set([...Array.from(prev), newAccount.id])
           );
-        } else if (saveError) {
-          // Only show error if both attempts failed
-          console.error("Failed to save account to database:", saveError);
-          // Don't show error to user - cookies are saved to localStorage, account functionality will work
         }
 
         toast.success("Account connected!", {

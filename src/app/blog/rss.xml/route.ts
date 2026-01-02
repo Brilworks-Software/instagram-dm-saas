@@ -1,4 +1,5 @@
 import { getAllBlogPosts } from '@/lib/blog-loader';
+import { SITE_LAUNCH_DATE } from '@/lib/constants';
 
 // Escape XML special characters
 function escapeXml(unsafe: string): string {
@@ -20,8 +21,13 @@ export async function GET() {
       return post.slug !== 'README' && post.slug !== 'example-post';
     });
 
-  const rssItems = blogPosts
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+  // Get latest blog post date for lastBuildDate and pubDate
+  const sortedPosts = blogPosts.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  const latestPostDate = sortedPosts.length > 0 
+    ? new Date(sortedPosts[0].date).toUTCString()
+    : SITE_LAUNCH_DATE.toUTCString();
+
+  const rssItems = sortedPosts
     .map((post) => {
       const postUrl = `${cleanBaseUrl}/blog/${post.slug}`;
       const pubDate = new Date(post.date).toUTCString();
@@ -46,9 +52,9 @@ export async function GET() {
     <link>${escapeXml(cleanBaseUrl)}/blog</link>
     <atom:link href="${escapeXml(cleanBaseUrl)}/blog/rss.xml" rel="self" type="application/rss+xml" />
     <language>en-US</language>
-    <lastBuildDate>${new Date().toUTCString()}</lastBuildDate>
-    <pubDate>${new Date().toUTCString()}</pubDate>
-    <managingEditor><![CDATA[${blogPosts[0]?.author || 'Dhaval Trivedi'}]]></managingEditor>
+    <lastBuildDate>${latestPostDate}</lastBuildDate>
+    <pubDate>${latestPostDate}</pubDate>
+    <managingEditor><![CDATA[${sortedPosts[0]?.author || 'Dhaval Trivedi'}]]></managingEditor>
     <webMaster>digital@socialora.com</webMaster>
     <category>Technology</category>
     <category>Social Media Marketing</category>

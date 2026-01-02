@@ -3,6 +3,7 @@ import { ArrowLeft } from 'lucide-react';
 import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
+import { PRIVACY_LAST_UPDATED } from '@/lib/constants';
 
 export const metadata: Metadata = {
   title: 'Privacy Policy - Instagram DM Automation | SocialOra',
@@ -61,7 +62,7 @@ export default function PrivacyPage() {
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="prose prose-invert max-w-none">
           <h1 className="text-4xl font-bold text-foreground mb-4">Privacy Policy</h1>
-          <p className="text-foreground-muted mb-8">Last updated: {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+          <p className="text-foreground-muted mb-8">Last updated: {PRIVACY_LAST_UPDATED}</p>
 
           <section className="mb-8">
             <h2 className="text-2xl font-semibold text-foreground mb-4">1. Introduction</h2>

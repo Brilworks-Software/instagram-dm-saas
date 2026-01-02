@@ -5,6 +5,7 @@ import { serialize } from 'next-mdx-remote/serialize';
 import type { MDXRemoteSerializeResult } from 'next-mdx-remote';
 import type { BlogPost, FAQ, Citation } from './blog-posts';
 import { DEFAULT_AUTHOR, DEFAULT_AUTHOR_ROLE, getAuthorWithRole } from './blog-posts';
+import { DEFAULT_BLOG_DATE } from './constants';
 
 const blogDirectory = path.join(process.cwd(), 'content', 'blog');
 
@@ -60,7 +61,7 @@ export async function getBlogPost(slug: string): Promise<BlogPost | null> {
       slug,
       title: data.title || '',
       description: data.description || '',
-      date: data.date || new Date().toISOString().split('T')[0],
+      date: data.date || DEFAULT_BLOG_DATE,
       readTime: data.readTime || '5 min',
       category: data.category || 'General',
       keywords: Array.isArray(data.keywords) ? data.keywords : [],
@@ -109,7 +110,7 @@ export function getAllBlogPosts(): BlogPost[] {
               slug,
               title: data.title || '',
               description: data.description || '',
-              date: data.date || new Date().toISOString().split('T')[0],
+              date: data.date || DEFAULT_BLOG_DATE,
               readTime: data.readTime || '5 min',
               category: data.category || 'General',
               keywords: Array.isArray(data.keywords) ? data.keywords : [],

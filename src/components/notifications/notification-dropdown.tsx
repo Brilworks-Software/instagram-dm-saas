@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Bell, Check, X } from 'lucide-react';
 import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
+import { cn } from "@/lib/utils";
 
 interface Notification {
   id: string;
@@ -43,7 +44,7 @@ export function NotificationDropdown() {
       const data = await api.getUnreadNotifications(10);
       setNotifications(data);
     } catch (error) {
-      console.error('Failed to fetch notifications:', error);
+      console.error("Failed to fetch notifications:", error);
     } finally {
       setIsLoading(false);
     }
@@ -54,29 +55,29 @@ export function NotificationDropdown() {
       const { count } = await api.getUnreadCount();
       setUnreadCount(count);
     } catch (error) {
-      console.error('Failed to fetch unread count:', error);
+      console.error("Failed to fetch unread count:", error);
     }
   };
 
   const handleMarkAsRead = async (notificationId: string) => {
     try {
       await api.markNotificationAsRead(notificationId);
-      setNotifications(prev =>
-        prev.map(n => n.id === notificationId ? { ...n, read: true } : n)
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === notificationId ? { ...n, read: true } : n))
       );
-      setUnreadCount(prev => Math.max(0, prev - 1));
+      setUnreadCount((prev) => Math.max(0, prev - 1));
     } catch (error) {
-      console.error('Failed to mark notification as read:', error);
+      console.error("Failed to mark notification as read:", error);
     }
   };
 
   const handleMarkAllAsRead = async () => {
     try {
       await api.markAllNotificationsAsRead();
-      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+      setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
       setUnreadCount(0);
     } catch (error) {
-      console.error('Failed to mark all as read:', error);
+      console.error("Failed to mark all as read:", error);
     }
   };
 
@@ -88,7 +89,7 @@ export function NotificationDropdown() {
     const hours = Math.floor(minutes / 60);
     const days = Math.floor(hours / 24);
 
-    if (minutes < 1) return 'Just now';
+    if (minutes < 1) return "Just now";
     if (minutes < 60) return `${minutes}m ago`;
     if (hours < 24) return `${hours}h ago`;
     if (days < 7) return `${days}d ago`;
@@ -98,14 +99,18 @@ export function NotificationDropdown() {
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
         setIsOpen(false);
       }
     };
 
     if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
+      document.addEventListener("mousedown", handleClickOutside);
+      return () =>
+        document.removeEventListener("mousedown", handleClickOutside);
     }
   }, [isOpen]);
 
@@ -118,70 +123,87 @@ export function NotificationDropdown() {
             fetchNotifications();
           }
         }}
-        className="relative p-2 rounded-lg text-foreground-muted hover:text-foreground hover:bg-background-elevated transition-colors"
-      >
+        className="relative p-2 rounded-lg text-foreground-muted hover:text-foreground hover:bg-background-elevated transition-colors">
         <Bell className="h-5 w-5" />
         {unreadCount > 0 && (
-          <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-pink-500" />
-        )}
-        {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-pink-500 text-white text-xs flex items-center justify-center font-semibold">
-            {unreadCount > 9 ? '9+' : unreadCount}
+          <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-accent text-white text-xs flex items-center justify-center font-semibold">
+            {unreadCount > 9 ? "9+" : unreadCount}
           </span>
         )}
       </button>
 
+      {/* Mobile Backdrop */}
       {isOpen && (
-        <div className="absolute right-0 top-12 w-96 bg-zinc-900 border border-zinc-800 rounded-xl shadow-xl z-50 max-h-[600px] flex flex-col">
+        <div
+          className="fixed inset-0 bg-black/60 z-40 lg:hidden"
+          onClick={() => setIsOpen(false)}
+        />
+      )}
+
+      {isOpen && (
+        <div
+          className={cn(
+            "absolute right-0 top-12 z-50 bg-background-secondary border border-border rounded-xl shadow-xl max-h-[600px] flex flex-col",
+            "w-[calc(100vw-2rem)] max-w-sm lg:w-96", // Full width on mobile with margins, fixed width on desktop
+            "lg:max-h-[600px] max-h-[80vh]" // Better max height on mobile
+          )}>
           {/* Header */}
-          <div className="px-4 py-3 border-b border-zinc-800 flex items-center justify-between">
-            <h3 className="font-semibold text-white">Notifications</h3>
-            {unreadCount > 0 && (
+          <div className="px-4 py-3 border-b border-border flex items-center justify-between">
+            <h3 className="font-semibold text-foreground">Notifications</h3>
+            <div className="flex items-center gap-3">
+              {unreadCount > 0 && (
+                <button
+                  onClick={handleMarkAllAsRead}
+                  className="text-sm text-accent hover:text-accent/80 font-medium">
+                  Mark all as read
+                </button>
+              )}
               <button
-                onClick={handleMarkAllAsRead}
-                className="text-sm text-pink-400 hover:text-pink-300"
-              >
-                Mark all as read
+                onClick={() => setIsOpen(false)}
+                className="lg:hidden p-1 rounded-lg hover:bg-background-elevated transition-colors"
+                aria-label="Close">
+                <X className="h-4 w-4 text-foreground-muted" />
               </button>
-            )}
+            </div>
           </div>
 
           {/* Notifications List */}
           <div className="overflow-y-auto flex-1">
             {isLoading ? (
-              <div className="p-8 text-center text-zinc-400">Loading...</div>
+              <div className="p-8 text-center text-foreground-muted">
+                Loading...
+              </div>
             ) : notifications.length === 0 ? (
-              <div className="p-8 text-center text-zinc-400">
+              <div className="p-8 text-center text-foreground-muted">
                 <Bell className="h-8 w-8 mx-auto mb-2 opacity-50" />
                 <p>No new notifications</p>
               </div>
             ) : (
-              <div className="divide-y divide-zinc-800">
+              <div className="divide-y divide-border">
                 {notifications.map((notification) => (
                   <div
                     key={notification.id}
-                    className={`p-4 hover:bg-zinc-800/50 transition-colors ${
-                      !notification.read ? 'bg-zinc-800/30' : ''
-                    }`}
-                  >
+                    className={cn(
+                      "p-4 hover:bg-background-elevated active:bg-background-elevated transition-colors",
+                      !notification.read && "bg-background-elevated/50"
+                    )}>
                     <div className="flex items-start gap-3">
                       <div className="flex-1 min-w-0">
-                        <p className="font-medium text-white text-sm">
+                        <p className="font-medium text-foreground text-sm">
                           {notification.title}
                         </p>
-                        <p className="text-sm text-zinc-400 mt-1 line-clamp-2">
+                        <p className="text-sm text-foreground-muted mt-1 line-clamp-2">
                           {notification.message}
                         </p>
-                        <p className="text-xs text-zinc-500 mt-2">
+                        <p className="text-xs text-foreground-subtle mt-2">
                           {formatTime(notification.createdAt)}
                         </p>
                       </div>
                       {!notification.read && (
                         <button
                           onClick={() => handleMarkAsRead(notification.id)}
-                          className="p-1 rounded hover:bg-zinc-700 text-zinc-400 hover:text-white transition-colors"
-                          title="Mark as read"
-                        >
+                          className="p-2 rounded-lg hover:bg-background-elevated text-foreground-muted hover:text-foreground transition-colors flex-shrink-0"
+                          title="Mark as read">
                           <X className="h-4 w-4" />
                         </button>
                       )}
@@ -194,11 +216,10 @@ export function NotificationDropdown() {
 
           {/* Footer */}
           {notifications.length > 0 && (
-            <div className="px-4 py-3 border-t border-zinc-800">
+            <div className="px-4 py-3 border-t border-border">
               <a
                 href="/settings/notifications"
-                className="text-sm text-pink-400 hover:text-pink-300 text-center block"
-              >
+                className="text-sm text-accent hover:text-accent/80 text-center block font-medium">
                 View all notifications
               </a>
             </div>

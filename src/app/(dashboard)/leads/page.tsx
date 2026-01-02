@@ -34,6 +34,7 @@ import { cn } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
 import { usePostHog } from '@/hooks/use-posthog';
 import { toast } from 'sonner';
+import { MobileLeadCard } from "@/components/leads/mobile-lead-card";
 
 // Use relative URLs since we're on the same domain (Next.js API routes)
 // All API calls use relative URLs since backend and frontend are on the same domain
@@ -1087,15 +1088,21 @@ export default function LeadsPage() {
         subtitle="Find and target potential customers on Instagram"
       />
 
-      <div className="p-6">
+      <div className="p-4 md:p-6">
         {/* No Accounts Warning */}
         {accounts.length === 0 && !isLoading && (
-          <div className="mb-6 p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center gap-3">
-            <AlertCircle className="h-5 w-5 text-amber-400" />
-            <div className="flex-1">
-              <p className="text-amber-400 font-medium">Connect an Instagram account first</p>
+          <div className="mb-6 p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 flex flex-col sm:flex-row items-start sm:items-center gap-3">
+            <AlertCircle className="h-5 w-5 text-amber-400 flex-shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-amber-400 font-medium">
+                Connect an Instagram account first
+              </p>
             </div>
-            <Button variant="secondary" size="sm" onClick={() => window.location.href = '/settings/instagram'}>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => (window.location.href = "/settings/instagram")}
+              className="w-full sm:w-auto">
               <Instagram className="h-4 w-4" />
               Connect
             </Button>
@@ -1103,7 +1110,7 @@ export default function LeadsPage() {
         )}
 
         {/* Search Section */}
-        <div className="bg-background-secondary rounded-xl border border-border p-6 mb-6">
+        <div className="bg-background-secondary rounded-xl border border-border p-4 md:p-6 mb-6">
           <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
             <Target className="h-5 w-5 text-accent" />
             Find Leads
@@ -1112,120 +1119,165 @@ export default function LeadsPage() {
           {/* Account Selector */}
           {accounts.length > 0 && (
             <div className="mb-4">
-              <label className="block text-sm font-medium text-foreground-muted mb-2">Using Account</label>
+              <label className="block text-sm font-medium text-foreground-muted mb-2">
+                Using Account
+              </label>
               <select
-                value={selectedAccount?.id || ''}
+                value={selectedAccount?.id || ""}
                 onChange={(e) => {
-                  const acc = accounts.find(a => a.id === e.target.value);
+                  const acc = accounts.find((a) => a.id === e.target.value);
                   if (acc) setSelectedAccount(acc);
                 }}
-                className="w-full max-w-xs px-3 py-2 rounded-lg bg-background border border-border text-foreground text-sm"
-              >
-                {accounts.map(acc => (
-                  <option key={acc.id} value={acc.id}>@{acc.igUsername}</option>
+                className="w-full max-w-xs px-3 py-2 rounded-lg bg-background border border-border text-foreground text-sm">
+                {accounts.map((acc) => (
+                  <option key={acc.id} value={acc.id}>
+                    @{acc.igUsername}
+                  </option>
                 ))}
               </select>
             </div>
           )}
 
           {/* Search Type Tabs */}
-          <div className="flex gap-2 mb-4">
+          <div className="flex flex-wrap gap-2 mb-4">
             {[
-              { type: 'username', icon: Search, label: 'Search Target Audience' },
-              { type: 'hashtag', icon: Hash, label: 'Hashtag' },
-              { type: 'followers', icon: Users, label: "User's Followers" },
+              {
+                type: "username",
+                icon: Search,
+                label: "Search Target Audience",
+              },
+              { type: "hashtag", icon: Hash, label: "Hashtag" },
+              { type: "followers", icon: Users, label: "User's Followers" },
             ].map(({ type, icon: Icon, label }) => (
               <button
                 key={type}
                 onClick={() => setSearchType(type as any)}
                 className={cn(
-                  'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors',
+                  "flex items-center gap-2 px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-medium transition-colors",
                   searchType === type
-                    ? 'bg-accent text-white'
-                    : 'bg-background-elevated text-foreground-muted hover:text-foreground'
-                )}
-              >
+                    ? "bg-accent text-white"
+                    : "bg-background-elevated text-foreground-muted hover:text-foreground"
+                )}>
                 <Icon className="h-4 w-4" />
-                {label}
+                <span className="hidden sm:inline">{label}</span>
+                <span className="sm:hidden">{label.split(" ")[0]}</span>
               </button>
             ))}
           </div>
 
           {/* Search Input */}
-          <div className="flex gap-3 mb-4">
+          <div className="flex flex-col sm:flex-row gap-3 mb-4">
             <div className="flex-1">
               <Input
                 placeholder={
-                  searchType === 'username' ? 'Search target audience by name or niche...' :
-                  searchType === 'hashtag' ? 'Enter hashtag (e.g., entrepreneur)' :
-                  'Enter username to get their followers/following'
+                  searchType === "username"
+                    ? "Search target audience by name or niche..."
+                    : searchType === "hashtag"
+                    ? "Enter hashtag (e.g., entrepreneur)"
+                    : "Enter username to get their followers/following"
                 }
                 value={searchQuery}
                 onChange={(e) => {
                   setSearchQuery(e.target.value);
                   // Reset target user when query changes for followers search
-                  if (searchType === 'followers') {
+                  if (searchType === "followers") {
                     setTargetUserProfile(null);
                   }
                 }}
-                onKeyDown={(e) => e.key === 'Enter' && (searchType === 'followers' ? handleLookupUser() : handleSearch())}
-                leftIcon={searchType === 'hashtag' ? <Hash className="h-4 w-4" /> : <Search className="h-4 w-4" />}
+                onKeyDown={(e) =>
+                  e.key === "Enter" &&
+                  (searchType === "followers"
+                    ? handleLookupUser()
+                    : handleSearch())
+                }
+                leftIcon={
+                  searchType === "hashtag" ? (
+                    <Hash className="h-4 w-4" />
+                  ) : (
+                    <Search className="h-4 w-4" />
+                  )
+                }
               />
             </div>
-            {searchType === 'followers' ? (
-              <Button 
-                onClick={handleLookupUser} 
+            {searchType === "followers" ? (
+              <Button
+                onClick={handleLookupUser}
                 disabled={isLoadingTargetUser || !searchQuery.trim()}
                 variant="secondary"
-              >
-                {isLoadingTargetUser ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Eye className="h-4 w-4" />}
-                Lookup User
+                className="w-full sm:w-auto">
+                {isLoadingTargetUser ? (
+                  <RefreshCw className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Eye className="h-4 w-4" />
+                )}
+                <span className="hidden sm:inline">Lookup User</span>
+                <span className="sm:hidden">Lookup</span>
               </Button>
             ) : (
-              <Button 
+              <Button
                 data-search-btn
-                onClick={() => handleSearch()} 
+                onClick={() => handleSearch()}
                 disabled={isSearching || !searchQuery.trim()}
-              >
-                {isSearching ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-                {isSearching ? 'Searching...' : 'Search'}
+                className="w-full sm:w-auto">
+                {isSearching ? (
+                  <RefreshCw className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Search className="h-4 w-4" />
+                )}
+                {isSearching ? "Searching..." : "Search"}
               </Button>
             )}
           </div>
 
-
           {/* Followers/Following User Card */}
-          {searchType === 'followers' && targetUserProfile && (
-            <div className={cn(
-              "mb-4 p-4 rounded-xl border",
-              targetUserProfile.isPrivate 
-                ? "bg-gradient-to-r from-amber-500/10 to-orange-500/10 border-amber-500/20"
-                : "bg-gradient-to-r from-accent/10 to-purple-500/10 border-accent/20"
-            )}>
+          {searchType === "followers" && targetUserProfile && (
+            <div
+              className={cn(
+                "mb-4 p-4 rounded-xl border",
+                targetUserProfile.isPrivate
+                  ? "bg-gradient-to-r from-amber-500/10 to-orange-500/10 border-amber-500/20"
+                  : "bg-gradient-to-r from-accent/10 to-purple-500/10 border-accent/20"
+              )}>
               <div className="flex items-center gap-4">
-                <Avatar src={targetUserProfile.profilePicUrl} name={targetUserProfile.username} size="lg" />
+                <Avatar
+                  src={targetUserProfile.profilePicUrl}
+                  name={targetUserProfile.username}
+                  size="lg"
+                />
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
-                    <h4 className="font-semibold text-foreground text-lg">@{targetUserProfile.username}</h4>
-                    {targetUserProfile.isVerified && <CheckCircle2 className="h-5 w-5 text-accent" />}
+                    <h4 className="font-semibold text-foreground text-lg">
+                      @{targetUserProfile.username}
+                    </h4>
+                    {targetUserProfile.isVerified && (
+                      <CheckCircle2 className="h-5 w-5 text-accent" />
+                    )}
                     {targetUserProfile.isPrivate && (
                       <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 text-xs font-medium">
                         🔒 Private
                       </span>
                     )}
                   </div>
-                  <p className="text-foreground-muted">{targetUserProfile.fullName}</p>
+                  <p className="text-foreground-muted">
+                    {targetUserProfile.fullName}
+                  </p>
                   {targetUserProfile.bio && (
-                    <p className="text-sm text-foreground-subtle mt-1 line-clamp-2">{targetUserProfile.bio}</p>
+                    <p className="text-sm text-foreground-subtle mt-1 line-clamp-2">
+                      {targetUserProfile.bio}
+                    </p>
                   )}
                 </div>
                 <div className="flex gap-6 text-center">
                   <div>
-                    <p className="text-2xl font-bold text-foreground">{targetUserProfile.followerCount?.toLocaleString() || 0}</p>
+                    <p className="text-2xl font-bold text-foreground">
+                      {targetUserProfile.followerCount?.toLocaleString() || 0}
+                    </p>
                     <p className="text-xs text-foreground-muted">Followers</p>
                   </div>
                   <div>
-                    <p className="text-2xl font-bold text-foreground">{targetUserProfile.followingCount?.toLocaleString() || 0}</p>
+                    <p className="text-2xl font-bold text-foreground">
+                      {targetUserProfile.followingCount?.toLocaleString() || 0}
+                    </p>
                     <p className="text-xs text-foreground-muted">Following</p>
                   </div>
                 </div>
@@ -1233,20 +1285,25 @@ export default function LeadsPage() {
 
               {/* Private Account Warning */}
               {targetUserProfile.isPrivate && (
-                <div className={cn(
-                  "mt-3 p-3 rounded-lg border",
-                  targetUserProfile.followedByViewer
-                    ? "bg-emerald-500/10 border-emerald-500/20"
-                    : "bg-amber-500/10 border-amber-500/20"
-                )}>
+                <div
+                  className={cn(
+                    "mt-3 p-3 rounded-lg border",
+                    targetUserProfile.followedByViewer
+                      ? "bg-emerald-500/10 border-emerald-500/20"
+                      : "bg-amber-500/10 border-amber-500/20"
+                  )}>
                   <div className="flex items-start gap-2">
                     {targetUserProfile.followedByViewer ? (
                       <>
                         <CheckCircle2 className="h-5 w-5 text-emerald-400 flex-shrink-0 mt-0.5" />
                         <div>
-                          <p className="text-sm font-medium text-emerald-400">Private Account - You Follow Them ✓</p>
+                          <p className="text-sm font-medium text-emerald-400">
+                            Private Account - You Follow Them ✓
+                          </p>
                           <p className="text-xs text-foreground-muted mt-1">
-                            Your account (@{selectedAccount?.igUsername}) follows this user, so you can access their followers/following list.
+                            Your account (@{selectedAccount?.igUsername})
+                            follows this user, so you can access their
+                            followers/following list.
                           </p>
                         </div>
                       </>
@@ -1254,12 +1311,17 @@ export default function LeadsPage() {
                       <>
                         <AlertCircle className="h-5 w-5 text-amber-400 flex-shrink-0 mt-0.5" />
                         <div>
-                          <p className="text-sm font-medium text-amber-400">Private Account - Access Restricted</p>
+                          <p className="text-sm font-medium text-amber-400">
+                            Private Account - Access Restricted
+                          </p>
                           <p className="text-xs text-foreground-muted mt-1">
-                            Your account (@{selectedAccount?.igUsername}) doesn't follow this user. 
-                            Instagram will block access to their followers/following list.
+                            Your account (@{selectedAccount?.igUsername})
+                            doesn't follow this user. Instagram will block
+                            access to their followers/following list.
                             <br />
-                            <span className="text-amber-400">Tip: Follow this account first to gain access.</span>
+                            <span className="text-amber-400">
+                              Tip: Follow this account first to gain access.
+                            </span>
                           </p>
                         </div>
                       </>
@@ -1267,43 +1329,56 @@ export default function LeadsPage() {
                   </div>
                 </div>
               )}
-              
+
               {/* Followers/Following Toggle */}
               <div className="mt-4 flex items-center gap-3">
                 <span className="text-sm text-foreground-muted">Get:</span>
                 <div className="flex gap-2">
                   <button
-                    onClick={() => setFollowListType('followers')}
+                    onClick={() => setFollowListType("followers")}
                     className={cn(
-                      'px-4 py-2 rounded-lg text-sm font-medium transition-all',
-                      followListType === 'followers'
-                        ? 'bg-accent text-white'
-                        : 'bg-background text-foreground-muted hover:text-foreground'
-                    )}
-                  >
+                      "px-4 py-2 rounded-lg text-sm font-medium transition-all",
+                      followListType === "followers"
+                        ? "bg-accent text-white"
+                        : "bg-background text-foreground-muted hover:text-foreground"
+                    )}>
                     <Users className="h-4 w-4 inline mr-1" />
-                    Followers ({targetUserProfile.followerCount?.toLocaleString() || 0})
+                    Followers (
+                    {targetUserProfile.followerCount?.toLocaleString() || 0})
                   </button>
                   <button
-                    onClick={() => setFollowListType('following')}
+                    onClick={() => setFollowListType("following")}
                     className={cn(
-                      'px-4 py-2 rounded-lg text-sm font-medium transition-all',
-                      followListType === 'following'
-                        ? 'bg-accent text-white'
-                        : 'bg-background text-foreground-muted hover:text-foreground'
-                    )}
-                  >
+                      "px-4 py-2 rounded-lg text-sm font-medium transition-all",
+                      followListType === "following"
+                        ? "bg-accent text-white"
+                        : "bg-background text-foreground-muted hover:text-foreground"
+                    )}>
                     <UserPlus className="h-4 w-4 inline mr-1" />
-                    Following ({targetUserProfile.followingCount?.toLocaleString() || 0})
+                    Following (
+                    {targetUserProfile.followingCount?.toLocaleString() || 0})
                   </button>
                 </div>
-                <Button 
-                  onClick={() => handleSearch()} 
-                  disabled={isSearching || (targetUserProfile.isPrivate && !targetUserProfile.followedByViewer)}
-                  className="ml-auto"
-                >
-                  {isSearching ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-                  {isSearching ? 'Loading...' : `Get ${followListType === 'followers' ? 'Followers' : 'Following'}`}
+                <Button
+                  onClick={() => handleSearch()}
+                  disabled={
+                    isSearching ||
+                    (targetUserProfile.isPrivate &&
+                      !targetUserProfile.followedByViewer)
+                  }
+                  className="ml-auto">
+                  {isSearching ? (
+                    <RefreshCw className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Download className="h-4 w-4" />
+                  )}
+                  {isSearching
+                    ? "Loading..."
+                    : `Get ${
+                        followListType === "followers"
+                          ? "Followers"
+                          : "Following"
+                      }`}
                 </Button>
               </div>
             </div>
@@ -1315,7 +1390,7 @@ export default function LeadsPage() {
               🎯 Quick Select Target Audience
             </label>
             <div className="flex flex-wrap gap-2 mb-3">
-              {KEYWORD_PRESETS.map(preset => (
+              {KEYWORD_PRESETS.map((preset) => (
                 <button
                   key={preset.name}
                   onClick={() => {
@@ -1324,20 +1399,22 @@ export default function LeadsPage() {
                     } else {
                       setSelectedPreset(preset.name);
                       // Auto-search with the first keyword as hashtag
-                      const firstKeyword = preset.keywords[0].replace(/\s+/g, '');
-                      setSearchType('hashtag');
+                      const firstKeyword = preset.keywords[0].replace(
+                        /\s+/g,
+                        ""
+                      );
+                      setSearchType("hashtag");
                       setSearchQuery(firstKeyword);
                       // Directly call search with the query
-                      handleSearch(false, firstKeyword, 'hashtag');
+                      handleSearch(false, firstKeyword, "hashtag");
                     }
                   }}
                   className={cn(
-                    'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all',
+                    "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all",
                     selectedPreset === preset.name
-                      ? 'bg-accent text-white shadow-lg shadow-accent/30'
-                      : 'bg-background-elevated text-foreground-muted hover:text-foreground hover:bg-background-elevated/80'
-                  )}
-                >
+                      ? "bg-accent text-white shadow-lg shadow-accent/30"
+                      : "bg-background-elevated text-foreground-muted hover:text-foreground hover:bg-background-elevated/80"
+                  )}>
                   <span>{preset.icon}</span>
                   {preset.name}
                 </button>
@@ -1349,7 +1426,11 @@ export default function LeadsPage() {
                   🎯 Target: {selectedPreset}
                 </p>
                 <p className="text-xs text-foreground-muted">
-                  Bio filter keywords: {KEYWORD_PRESETS.find(p => p.name === selectedPreset)?.keywords.slice(0, 5).join(', ')}...
+                  Bio filter keywords:{" "}
+                  {KEYWORD_PRESETS.find((p) => p.name === selectedPreset)
+                    ?.keywords.slice(0, 5)
+                    .join(", ")}
+                  ...
                 </p>
               </div>
             )}
@@ -1366,7 +1447,8 @@ export default function LeadsPage() {
               onChange={(e) => setBioKeywords(e.target.value)}
             />
             <p className="text-xs text-foreground-subtle mt-1">
-              Add custom keywords to combine with the selected preset (comma separated)
+              Add custom keywords to combine with the selected preset (comma
+              separated)
             </p>
           </div>
 
@@ -1377,12 +1459,11 @@ export default function LeadsPage() {
                 <AlertCircle className="h-5 w-5 flex-shrink-0" />
                 <p className="text-sm font-medium">{searchError}</p>
               </div>
-              {searchError.includes('session') && (
+              {searchError.includes("session") && (
                 <div className="mt-2 ml-7">
-                  <a 
-                    href="/settings/instagram" 
-                    className="text-xs text-red-300 hover:text-red-200 underline"
-                  >
+                  <a
+                    href="/settings/instagram"
+                    className="text-xs text-red-300 hover:text-red-200 underline">
                     Go to Instagram Settings to reconnect →
                   </a>
                 </div>
@@ -1395,16 +1476,26 @@ export default function LeadsPage() {
             <div className="border-t border-border pt-4">
               <div className="flex items-center justify-between mb-3">
                 <div>
-                  <h4 className="font-medium text-foreground">Found {searchResults.length} potential leads</h4>
+                  <h4 className="font-medium text-foreground">
+                    Found {searchResults.length} potential leads
+                  </h4>
                   <div className="flex gap-3 mt-1">
-                    {searchType === 'hashtag' && (
+                    {searchType === "hashtag" && (
                       <span className="text-xs text-foreground-muted flex items-center gap-1">
                         <Users className="h-3 w-3" />
-                        {searchResults.filter(u => u.source === 'bio_match' || u.source === 'hashtag').length} from bio search
+                        {
+                          searchResults.filter(
+                            (u) =>
+                              u.source === "bio_match" || u.source === "hashtag"
+                          ).length
+                        }{" "}
+                        from bio search
                       </span>
                     )}
                     {hasMoreResults && (
-                      <span className="text-xs text-accent">More available</span>
+                      <span className="text-xs text-accent">
+                        More available
+                      </span>
                     )}
                   </div>
                 </div>
@@ -1413,53 +1504,67 @@ export default function LeadsPage() {
                   Add All {searchResults.length} as Leads
                 </Button>
               </div>
-              
+
               {/* Results Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-[500px] overflow-y-auto">
                 {searchResults.map((user, i) => (
-                  <div 
-                    key={`${user.pk}-${i}`} 
+                  <div
+                    key={`${user.pk}-${i}`}
                     className={cn(
                       "p-3 rounded-lg border transition-colors",
-                      user.source === 'bio_match' 
+                      user.source === "bio_match"
                         ? "bg-emerald-500/5 border-emerald-500/20 hover:bg-emerald-500/10"
                         : "bg-background-elevated border-border hover:bg-background-elevated/80"
-                    )}
-                  >
+                    )}>
                     <div className="flex items-start gap-3">
-                      <Avatar src={user.profilePicUrl} name={user.username} size="md" />
+                      <Avatar
+                        src={user.profilePicUrl}
+                        name={user.username}
+                        size="md"
+                      />
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5">
-                          <p className="text-sm font-medium text-foreground truncate">@{user.username}</p>
-                          {user.isVerified && <CheckCircle2 className="h-3.5 w-3.5 text-accent flex-shrink-0" />}
-                          {user.isPrivate && <span className="text-xs text-amber-400">🔒</span>}
+                          <p className="text-sm font-medium text-foreground truncate">
+                            @{user.username}
+                          </p>
+                          {user.isVerified && (
+                            <CheckCircle2 className="h-3.5 w-3.5 text-accent flex-shrink-0" />
+                          )}
+                          {user.isPrivate && (
+                            <span className="text-xs text-amber-400">🔒</span>
+                          )}
                         </div>
-                        <p className="text-xs text-foreground-muted truncate">{user.fullName}</p>
-                        
+                        <p className="text-xs text-foreground-muted truncate">
+                          {user.fullName}
+                        </p>
+
                         {/* Follower count */}
                         {user.followerCount && (
                           <p className="text-xs text-foreground-subtle mt-1">
                             {user.followerCount.toLocaleString()} followers
                           </p>
                         )}
-                        
+
                         {/* Bio preview */}
                         {user.bio && (
                           <p className="text-xs text-foreground-muted mt-1 line-clamp-2">
                             {user.bio}
                           </p>
                         )}
-                        
+
                         {/* Source & Matched keyword badges */}
                         <div className="flex flex-wrap gap-1 mt-2">
                           {user.source && (
-                            <span className={cn(
-                              "px-1.5 py-0.5 rounded text-[10px] font-medium",
-                              user.source === 'bio_match' 
-                                ? "bg-emerald-500/20 text-emerald-400"
-                                : "bg-accent/20 text-accent"
-                            )}>
-                              {user.source === 'bio_match' ? '📝 Bio match' : '#️⃣ Hashtag'}
+                            <span
+                              className={cn(
+                                "px-1.5 py-0.5 rounded text-[10px] font-medium",
+                                user.source === "bio_match"
+                                  ? "bg-emerald-500/20 text-emerald-400"
+                                  : "bg-accent/20 text-accent"
+                              )}>
+                              {user.source === "bio_match"
+                                ? "📝 Bio match"
+                                : "#️⃣ Hashtag"}
                             </span>
                           )}
                           {user.matchedKeyword && (
@@ -1473,20 +1578,19 @@ export default function LeadsPage() {
                   </div>
                 ))}
               </div>
-              
+
               {/* Load More / Stats */}
               <div className="mt-4 flex items-center justify-between">
                 <p className="text-sm text-foreground-muted">
                   Showing {searchResults.length} users
-                  {searchType !== 'username' && ` • Limit: ${searchLimit}`}
+                  {searchType !== "username" && ` • Limit: ${searchLimit}`}
                 </p>
-                {searchType !== 'username' && hasMoreResults && (
-                  <Button 
-                    variant="secondary" 
-                    size="sm" 
+                {searchType !== "username" && hasMoreResults && (
+                  <Button
+                    variant="secondary"
+                    size="sm"
                     onClick={() => handleSearch(true)}
-                    disabled={isLoadingMore}
-                  >
+                    disabled={isLoadingMore}>
                     {isLoadingMore ? (
                       <>
                         <RefreshCw className="h-4 w-4 animate-spin" />
@@ -1501,7 +1605,9 @@ export default function LeadsPage() {
                   </Button>
                 )}
                 {!hasMoreResults && searchResults.length >= searchLimit && (
-                  <span className="text-sm text-emerald-400">✓ All available results loaded</span>
+                  <span className="text-sm text-emerald-400">
+                    ✓ All available results loaded
+                  </span>
                 )}
               </div>
             </div>
@@ -1516,12 +1622,16 @@ export default function LeadsPage() {
               <h3 className="text-lg font-semibold text-foreground">
                 Your Leads ({processedLeads.length})
               </h3>
-              
+
               {/* Actions */}
               {selectedLeads.size > 0 && (
                 <div className="flex items-center gap-2">
-                  <span className="text-sm text-foreground-muted">{selectedLeads.size} selected</span>
-                  <Button size="sm" onClick={() => setShowBulkActionsModal(true)}>
+                  <span className="text-sm text-foreground-muted">
+                    {selectedLeads.size} selected
+                  </span>
+                  <Button
+                    size="sm"
+                    onClick={() => setShowBulkActionsModal(true)}>
                     <Filter className="h-4 w-4" />
                     Bulk Actions
                   </Button>
@@ -1537,7 +1647,11 @@ export default function LeadsPage() {
                     <List className="h-4 w-4" />
                     Add to List
                   </Button>
-                  <Button size="sm" variant="ghost" onClick={handleDeleteLeads} className="text-error">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={handleDeleteLeads}
+                    className="text-error">
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
@@ -1545,9 +1659,9 @@ export default function LeadsPage() {
             </div>
 
             {/* Search and Filters Row */}
-            <div className="flex flex-wrap items-center gap-3">
+            <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-3">
               {/* Search Leads */}
-              <div className="flex-1 min-w-[200px] max-w-md">
+              <div className="flex-1 min-w-0 sm:min-w-[200px] sm:max-w-md">
                 <Input
                   placeholder="Search leads by name, username, or bio..."
                   value={leadsSearchQuery}
@@ -1560,8 +1674,7 @@ export default function LeadsPage() {
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as any)}
-                className="px-3 py-2 rounded-lg bg-background border border-border text-foreground text-sm"
-              >
+                className="px-3 py-2 rounded-lg bg-background border border-border text-foreground text-sm w-full sm:w-auto">
                 <option value="newest">Newest First</option>
                 <option value="oldest">Oldest First</option>
                 <option value="followers">Most Followers</option>
@@ -1569,36 +1682,39 @@ export default function LeadsPage() {
                 <option value="score">Lead Score</option>
                 <option value="engagement">Engagement Rate</option>
               </select>
-              
+
               {/* Advanced Filters Toggle */}
               <Button
                 size="sm"
                 variant="secondary"
                 onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-              >
+                className="w-full sm:w-auto">
                 <Filter className="h-4 w-4 mr-2" />
-                {showAdvancedFilters ? 'Hide' : 'Advanced'} Filters
+                {showAdvancedFilters ? "Hide" : "Advanced"} Filters
               </Button>
-              
+
               {/* Status Filter */}
-              <div className="flex gap-1">
-                {['all', 'new', 'contacted', 'replied', 'converted'].map(status => (
-                  <button
-                    key={status}
-                    onClick={() => setStatusFilter(status)}
-                    className={cn(
-                      'px-3 py-1.5 rounded-lg text-xs font-medium transition-colors',
-                      statusFilter === status
-                        ? 'bg-accent text-white'
-                        : 'bg-background-elevated text-foreground-muted hover:text-foreground'
-                    )}
-                  >
-                    {status === 'all' ? 'All' : status.charAt(0).toUpperCase() + status.slice(1)}
-                  </button>
-                ))}
+              <div className="flex flex-wrap gap-1">
+                {["all", "new", "contacted", "replied", "converted"].map(
+                  (status) => (
+                    <button
+                      key={status}
+                      onClick={() => setStatusFilter(status)}
+                      className={cn(
+                        "px-3 py-1.5 rounded-lg text-xs font-medium transition-colors",
+                        statusFilter === status
+                          ? "bg-accent text-white"
+                          : "bg-background-elevated text-foreground-muted hover:text-foreground"
+                      )}>
+                      {status === "all"
+                        ? "All"
+                        : status.charAt(0).toUpperCase() + status.slice(1)}
+                    </button>
+                  )
+                )}
               </div>
             </div>
-            
+
             {/* Advanced Filters Panel */}
             {showAdvancedFilters && (
               <div className="p-4 bg-background-elevated rounded-lg border border-border space-y-4">
@@ -1612,27 +1728,31 @@ export default function LeadsPage() {
                       <Input
                         type="number"
                         placeholder="Min"
-                        value={followerRange?.[0] || ''}
-                        onChange={(e) => setFollowerRange([
-                          e.target.value ? parseInt(e.target.value) : 0,
-                          followerRange?.[1] || 1000000
-                        ])}
+                        value={followerRange?.[0] || ""}
+                        onChange={(e) =>
+                          setFollowerRange([
+                            e.target.value ? parseInt(e.target.value) : 0,
+                            followerRange?.[1] || 1000000,
+                          ])
+                        }
                         className="w-full"
                       />
                       <span className="text-foreground-muted">-</span>
                       <Input
                         type="number"
                         placeholder="Max"
-                        value={followerRange?.[1] || ''}
-                        onChange={(e) => setFollowerRange([
-                          followerRange?.[0] || 0,
-                          e.target.value ? parseInt(e.target.value) : 1000000
-                        ])}
+                        value={followerRange?.[1] || ""}
+                        onChange={(e) =>
+                          setFollowerRange([
+                            followerRange?.[0] || 0,
+                            e.target.value ? parseInt(e.target.value) : 1000000,
+                          ])
+                        }
                         className="w-full"
                       />
                     </div>
                   </div>
-                  
+
                   {/* Engagement Rate Range */}
                   <div>
                     <label className="block text-xs font-medium text-foreground-muted mb-2">
@@ -1643,11 +1763,13 @@ export default function LeadsPage() {
                         type="number"
                         step="0.1"
                         placeholder="Min"
-                        value={engagementRateRange?.[0] || ''}
-                        onChange={(e) => setEngagementRateRange([
-                          e.target.value ? parseFloat(e.target.value) : 0,
-                          engagementRateRange?.[1] || 10
-                        ])}
+                        value={engagementRateRange?.[0] || ""}
+                        onChange={(e) =>
+                          setEngagementRateRange([
+                            e.target.value ? parseFloat(e.target.value) : 0,
+                            engagementRateRange?.[1] || 10,
+                          ])
+                        }
                         className="w-full"
                       />
                       <span className="text-foreground-muted">-</span>
@@ -1655,16 +1777,18 @@ export default function LeadsPage() {
                         type="number"
                         step="0.1"
                         placeholder="Max"
-                        value={engagementRateRange?.[1] || ''}
-                        onChange={(e) => setEngagementRateRange([
-                          engagementRateRange?.[0] || 0,
-                          e.target.value ? parseFloat(e.target.value) : 10
-                        ])}
+                        value={engagementRateRange?.[1] || ""}
+                        onChange={(e) =>
+                          setEngagementRateRange([
+                            engagementRateRange?.[0] || 0,
+                            e.target.value ? parseFloat(e.target.value) : 10,
+                          ])
+                        }
                         className="w-full"
                       />
                     </div>
                   </div>
-                  
+
                   {/* Account Age Range */}
                   <div>
                     <label className="block text-xs font-medium text-foreground-muted mb-2">
@@ -1674,27 +1798,31 @@ export default function LeadsPage() {
                       <Input
                         type="number"
                         placeholder="Min"
-                        value={accountAgeRange?.[0] || ''}
-                        onChange={(e) => setAccountAgeRange([
-                          e.target.value ? parseInt(e.target.value) : 0,
-                          accountAgeRange?.[1] || 3650
-                        ])}
+                        value={accountAgeRange?.[0] || ""}
+                        onChange={(e) =>
+                          setAccountAgeRange([
+                            e.target.value ? parseInt(e.target.value) : 0,
+                            accountAgeRange?.[1] || 3650,
+                          ])
+                        }
                         className="w-full"
                       />
                       <span className="text-foreground-muted">-</span>
                       <Input
                         type="number"
                         placeholder="Max"
-                        value={accountAgeRange?.[1] || ''}
-                        onChange={(e) => setAccountAgeRange([
-                          accountAgeRange?.[0] || 0,
-                          e.target.value ? parseInt(e.target.value) : 3650
-                        ])}
+                        value={accountAgeRange?.[1] || ""}
+                        onChange={(e) =>
+                          setAccountAgeRange([
+                            accountAgeRange?.[0] || 0,
+                            e.target.value ? parseInt(e.target.value) : 3650,
+                          ])
+                        }
                         className="w-full"
                       />
                     </div>
                   </div>
-                  
+
                   {/* Post Frequency Range */}
                   <div>
                     <label className="block text-xs font-medium text-foreground-muted mb-2">
@@ -1705,11 +1833,13 @@ export default function LeadsPage() {
                         type="number"
                         step="0.1"
                         placeholder="Min"
-                        value={postFrequencyRange?.[0] || ''}
-                        onChange={(e) => setPostFrequencyRange([
-                          e.target.value ? parseFloat(e.target.value) : 0,
-                          postFrequencyRange?.[1] || 10
-                        ])}
+                        value={postFrequencyRange?.[0] || ""}
+                        onChange={(e) =>
+                          setPostFrequencyRange([
+                            e.target.value ? parseFloat(e.target.value) : 0,
+                            postFrequencyRange?.[1] || 10,
+                          ])
+                        }
                         className="w-full"
                       />
                       <span className="text-foreground-muted">-</span>
@@ -1717,16 +1847,18 @@ export default function LeadsPage() {
                         type="number"
                         step="0.1"
                         placeholder="Max"
-                        value={postFrequencyRange?.[1] || ''}
-                        onChange={(e) => setPostFrequencyRange([
-                          postFrequencyRange?.[0] || 0,
-                          e.target.value ? parseFloat(e.target.value) : 10
-                        ])}
+                        value={postFrequencyRange?.[1] || ""}
+                        onChange={(e) =>
+                          setPostFrequencyRange([
+                            postFrequencyRange?.[0] || 0,
+                            e.target.value ? parseFloat(e.target.value) : 10,
+                          ])
+                        }
                         className="w-full"
                       />
                     </div>
                   </div>
-                  
+
                   {/* Minimum Lead Score */}
                   <div>
                     <label className="block text-xs font-medium text-foreground-muted mb-2">
@@ -1737,13 +1869,17 @@ export default function LeadsPage() {
                       placeholder="0-100"
                       min="0"
                       max="100"
-                      value={minLeadScore || ''}
-                      onChange={(e) => setMinLeadScore(e.target.value ? parseInt(e.target.value) : null)}
+                      value={minLeadScore || ""}
+                      onChange={(e) =>
+                        setMinLeadScore(
+                          e.target.value ? parseInt(e.target.value) : null
+                        )
+                      }
                       className="w-full"
                     />
                   </div>
                 </div>
-                
+
                 {/* Clear Filters */}
                 <div className="flex justify-end">
                   <Button
@@ -1755,8 +1891,7 @@ export default function LeadsPage() {
                       setAccountAgeRange(null);
                       setPostFrequencyRange(null);
                       setMinLeadScore(null);
-                    }}
-                  >
+                    }}>
                     Clear Filters
                   </Button>
                 </div>
@@ -1764,131 +1899,227 @@ export default function LeadsPage() {
             )}
           </div>
 
-          {/* Table */}
+          {/* Mobile Card View / Desktop Table */}
           {isLoading ? (
-            <div className="p-8 text-center text-foreground-muted">Loading leads...</div>
+            <div className="p-8 text-center text-foreground-muted">
+              Loading leads...
+            </div>
           ) : processedLeads.length === 0 ? (
             <div className="p-12 text-center">
               <Users className="h-12 w-12 text-foreground-subtle mx-auto mb-3" />
-              <p className="text-foreground-muted">No leads yet. Use the search above to find potential customers.</p>
+              <p className="text-foreground-muted">
+                No leads yet. Use the search above to find potential customers.
+              </p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-border text-left">
-                    <th className="p-4">
-                      <input
-                        type="checkbox"
-                        checked={selectedLeads.size === leads.length && leads.length > 0}
-                        onChange={toggleSelectAll}
-                        className="rounded border-border"
-                      />
-                    </th>
-                    <th className="p-4 text-xs font-medium text-foreground-muted uppercase">User</th>
-                    <th className="p-4 text-xs font-medium text-foreground-muted uppercase">Followers</th>
-                    <th className="p-4 text-xs font-medium text-foreground-muted uppercase">Score</th>
-                    <th className="p-4 text-xs font-medium text-foreground-muted uppercase">Engagement</th>
-                    <th className="p-4 text-xs font-medium text-foreground-muted uppercase">Bio Keywords</th>
-                    <th className="p-4 text-xs font-medium text-foreground-muted uppercase">Status</th>
-                    <th className="p-4 text-xs font-medium text-foreground-muted uppercase">Source</th>
-                    <th className="p-4 text-xs font-medium text-foreground-muted uppercase">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {displayedLeads.map(lead => (
-                    <tr key={lead.id} className="hover:bg-background-elevated/50">
-                      <td className="p-4">
+            <>
+              {/* Mobile Card View */}
+              <div className="md:hidden space-y-3 p-4">
+                {displayedLeads.map((lead) => (
+                  <MobileLeadCard
+                    key={lead.id}
+                    lead={lead}
+                    isSelected={selectedLeads.has(lead.id)}
+                    onSelect={toggleLeadSelection}
+                    onViewProfile={handleViewProfile}
+                  />
+                ))}
+                {hasMoreLeads && (
+                  <div className="pt-4">
+                    <Button
+                      variant="secondary"
+                      size="lg"
+                      onClick={handleLoadMore}
+                      className="w-full">
+                      <Plus className="h-4 w-4 mr-2" />
+                      Load{" "}
+                      {Math.min(
+                        leadsPerBatch,
+                        processedLeads.length - displayedLeads.length
+                      )}{" "}
+                      More
+                    </Button>
+                  </div>
+                )}
+              </div>
+
+              {/* Desktop Table View */}
+              <div className="hidden md:block overflow-x-auto -mx-4 md:mx-0">
+                <table className="w-full min-w-[800px]">
+                  <thead>
+                    <tr className="border-b border-border text-left">
+                      <th className="p-2 md:p-4">
                         <input
                           type="checkbox"
-                          checked={selectedLeads.has(lead.id)}
-                          onChange={() => toggleLeadSelection(lead.id)}
+                          checked={
+                            selectedLeads.size === leads.length &&
+                            leads.length > 0
+                          }
+                          onChange={toggleSelectAll}
                           className="rounded border-border"
                         />
-                      </td>
-                      <td className="p-4">
-                        <div className="flex items-center gap-3">
-                          <Avatar src={lead.profilePicUrl} name={lead.igUsername} size="md" />
-                          <div>
-                            <p className="font-medium text-foreground flex items-center gap-1">
-                              @{lead.igUsername}
-                              {lead.isVerified && <CheckCircle2 className="h-4 w-4 text-accent" />}
-                            </p>
-                            <p className="text-sm text-foreground-muted">{lead.fullName}</p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="p-4 text-foreground-muted">
-                        {lead.followerCount?.toLocaleString() || '-'}
-                      </td>
-                      <td className="p-4">
-                        {lead.leadScore !== undefined && lead.leadScore !== null ? (
-                          <div className="flex items-center gap-2">
-                            <span className={cn(
-                              'text-sm font-medium',
-                              lead.leadScore >= 70 ? 'text-emerald-400' :
-                              lead.leadScore >= 50 ? 'text-amber-400' : 'text-foreground-muted'
-                            )}>
-                              {lead.leadScore}
-                            </span>
-                          </div>
-                        ) : (
-                          <span className="text-foreground-subtle">-</span>
-                        )}
-                      </td>
-                      <td className="p-4">
-                        {lead.engagementRate !== undefined && lead.engagementRate !== null ? (
-                          <span className="text-sm text-foreground-muted">
-                            {lead.engagementRate.toFixed(1)}%
-                          </span>
-                        ) : (
-                          <span className="text-foreground-subtle">-</span>
-                        )}
-                      </td>
-                      <td className="p-4">
-                        {lead.matchedKeywords?.length > 0 ? (
-                          <div className="flex flex-wrap gap-1">
-                            {lead.matchedKeywords.slice(0, 3).map((kw, i) => (
-                              <Badge key={i} variant="accent" className="text-xs">{kw}</Badge>
-                            ))}
-                          </div>
-                        ) : (
-                          <span className="text-foreground-subtle">-</span>
-                        )}
-                      </td>
-                      <td className="p-4">
-                        <span className={cn(
-                          'px-2 py-1 rounded-full text-xs font-medium',
-                          statusColors[lead.status]?.bg,
-                          statusColors[lead.status]?.text
-                        )}>
-                          {lead.status}
-                        </span>
-                      </td>
-                      <td className="p-4 text-sm text-foreground-muted">
-                        {lead.source === 'hashtag' && <Hash className="h-3 w-3 inline mr-1" />}
-                        {lead.source === 'followers' && <Users className="h-3 w-3 inline mr-1" />}
-                        {lead.sourceQuery || lead.source}
-                      </td>
-                      <td className="p-4">
-                        <div className="flex items-center gap-1">
-                          <Button variant="ghost" size="sm" onClick={() => handleViewProfile(lead)}>
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => window.open(`https://instagram.com/${lead.igUsername}`, '_blank')}
-                          >
-                            <Instagram className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </td>
+                      </th>
+                      <th className="p-2 md:p-4 text-xs font-medium text-foreground-muted uppercase">
+                        User
+                      </th>
+                      <th className="p-2 md:p-4 text-xs font-medium text-foreground-muted uppercase hidden lg:table-cell">
+                        Followers
+                      </th>
+                      <th className="p-2 md:p-4 text-xs font-medium text-foreground-muted uppercase hidden md:table-cell">
+                        Score
+                      </th>
+                      <th className="p-2 md:p-4 text-xs font-medium text-foreground-muted uppercase hidden lg:table-cell">
+                        Engagement
+                      </th>
+                      <th className="p-2 md:p-4 text-xs font-medium text-foreground-muted uppercase hidden xl:table-cell">
+                        Bio Keywords
+                      </th>
+                      <th className="p-2 md:p-4 text-xs font-medium text-foreground-muted uppercase">
+                        Status
+                      </th>
+                      <th className="p-2 md:p-4 text-xs font-medium text-foreground-muted uppercase hidden md:table-cell">
+                        Source
+                      </th>
+                      <th className="p-2 md:p-4 text-xs font-medium text-foreground-muted uppercase">
+                        Actions
+                      </th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {displayedLeads.map((lead) => (
+                      <tr
+                        key={lead.id}
+                        className="hover:bg-background-elevated/50">
+                        <td className="p-2 md:p-4">
+                          <input
+                            type="checkbox"
+                            checked={selectedLeads.has(lead.id)}
+                            onChange={() => toggleLeadSelection(lead.id)}
+                            className="rounded border-border"
+                          />
+                        </td>
+                        <td className="p-2 md:p-4">
+                          <div className="flex items-center gap-2 md:gap-3">
+                            <Avatar
+                              src={lead.profilePicUrl}
+                              name={lead.igUsername}
+                              size="md"
+                            />
+                            <div className="min-w-0">
+                              <p className="font-medium text-foreground flex items-center gap-1 truncate">
+                                @{lead.igUsername}
+                                {lead.isVerified && (
+                                  <CheckCircle2 className="h-4 w-4 text-accent flex-shrink-0" />
+                                )}
+                              </p>
+                              <p className="text-xs md:text-sm text-foreground-muted truncate">
+                                {lead.fullName}
+                              </p>
+                              {/* Show followers on mobile in user cell */}
+                              <p className="text-xs text-foreground-subtle lg:hidden mt-0.5">
+                                {lead.followerCount?.toLocaleString() || "-"}{" "}
+                                followers
+                              </p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="p-2 md:p-4 text-foreground-muted hidden lg:table-cell">
+                          {lead.followerCount?.toLocaleString() || "-"}
+                        </td>
+                        <td className="p-2 md:p-4 hidden md:table-cell">
+                          {lead.leadScore !== undefined &&
+                          lead.leadScore !== null ? (
+                            <div className="flex items-center gap-2">
+                              <span
+                                className={cn(
+                                  "text-sm font-medium",
+                                  lead.leadScore >= 70
+                                    ? "text-emerald-400"
+                                    : lead.leadScore >= 50
+                                    ? "text-amber-400"
+                                    : "text-foreground-muted"
+                                )}>
+                                {lead.leadScore}
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="text-foreground-subtle">-</span>
+                          )}
+                        </td>
+                        <td className="p-2 md:p-4 hidden lg:table-cell">
+                          {lead.engagementRate !== undefined &&
+                          lead.engagementRate !== null ? (
+                            <span className="text-sm text-foreground-muted">
+                              {lead.engagementRate.toFixed(1)}%
+                            </span>
+                          ) : (
+                            <span className="text-foreground-subtle">-</span>
+                          )}
+                        </td>
+                        <td className="p-2 md:p-4 hidden xl:table-cell">
+                          {lead.matchedKeywords?.length > 0 ? (
+                            <div className="flex flex-wrap gap-1">
+                              {lead.matchedKeywords.slice(0, 3).map((kw, i) => (
+                                <Badge
+                                  key={i}
+                                  variant="accent"
+                                  className="text-xs">
+                                  {kw}
+                                </Badge>
+                              ))}
+                            </div>
+                          ) : (
+                            <span className="text-foreground-subtle">-</span>
+                          )}
+                        </td>
+                        <td className="p-2 md:p-4">
+                          <span
+                            className={cn(
+                              "px-2 py-1 rounded-full text-xs font-medium",
+                              statusColors[lead.status]?.bg,
+                              statusColors[lead.status]?.text
+                            )}>
+                            {lead.status}
+                          </span>
+                        </td>
+                        <td className="p-2 md:p-4 text-sm text-foreground-muted hidden md:table-cell">
+                          {lead.source === "hashtag" && (
+                            <Hash className="h-3 w-3 inline mr-1" />
+                          )}
+                          {lead.source === "followers" && (
+                            <Users className="h-3 w-3 inline mr-1" />
+                          )}
+                          <span className="truncate block max-w-[120px]">
+                            {lead.sourceQuery || lead.source}
+                          </span>
+                        </td>
+                        <td className="p-2 md:p-4">
+                          <div className="flex items-center gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleViewProfile(lead)}>
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() =>
+                                window.open(
+                                  `https://instagram.com/${lead.igUsername}`,
+                                  "_blank"
+                                )
+                              }>
+                              <Instagram className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
 
           {/* Load More Button */}
@@ -1896,21 +2127,26 @@ export default function LeadsPage() {
             <div className="p-4 border-t border-border flex items-center justify-center">
               <div className="text-center space-y-3">
                 <div className="text-sm text-foreground-muted">
-                  Showing {displayedLeads.length} of {processedLeads.length} leads
+                  Showing {displayedLeads.length} of {processedLeads.length}{" "}
+                  leads
                 </div>
                 <Button
                   variant="secondary"
                   size="lg"
                   onClick={handleLoadMore}
-                  className="min-w-[200px]"
-                >
+                  className="min-w-[200px]">
                   <Plus className="h-4 w-4 mr-2" />
-                  Load {Math.min(leadsPerBatch, processedLeads.length - displayedLeads.length)} More
+                  Load{" "}
+                  {Math.min(
+                    leadsPerBatch,
+                    processedLeads.length - displayedLeads.length
+                  )}{" "}
+                  More
                 </Button>
               </div>
             </div>
           )}
-          
+
           {!hasMoreLeads && processedLeads.length > 0 && (
             <div className="p-4 border-t border-border text-center text-sm text-foreground-muted">
               Showing all {processedLeads.length} leads
@@ -1924,36 +2160,42 @@ export default function LeadsPage() {
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
           <div className="bg-background-secondary rounded-2xl border border-border max-w-md w-full">
             <div className="p-6 border-b border-border">
-              <h2 className="text-lg font-semibold text-foreground">Bulk Actions</h2>
+              <h2 className="text-lg font-semibold text-foreground">
+                Bulk Actions
+              </h2>
               <p className="text-sm text-foreground-muted mt-1">
                 Apply action to {selectedLeads.size} selected leads
               </p>
             </div>
             <div className="p-6 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-foreground-muted mb-2">Action Type</label>
+                <label className="block text-sm font-medium text-foreground-muted mb-2">
+                  Action Type
+                </label>
                 <select
-                  value={bulkActionType || ''}
+                  value={bulkActionType || ""}
                   onChange={(e) => {
-                    setBulkActionType(e.target.value as 'status' | 'tags' | null);
-                    setBulkActionValue('');
+                    setBulkActionType(
+                      e.target.value as "status" | "tags" | null
+                    );
+                    setBulkActionValue("");
                   }}
-                  className="w-full px-3 py-2 rounded-lg bg-background border border-border text-foreground"
-                >
+                  className="w-full px-3 py-2 rounded-lg bg-background border border-border text-foreground">
                   <option value="">Select action...</option>
                   <option value="status">Update Status</option>
                   <option value="tags">Add Tags</option>
                 </select>
               </div>
-              
-              {bulkActionType === 'status' && (
+
+              {bulkActionType === "status" && (
                 <div>
-                  <label className="block text-sm font-medium text-foreground-muted mb-2">New Status</label>
+                  <label className="block text-sm font-medium text-foreground-muted mb-2">
+                    New Status
+                  </label>
                   <select
                     value={bulkActionValue}
                     onChange={(e) => setBulkActionValue(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg bg-background border border-border text-foreground"
-                  >
+                    className="w-full px-3 py-2 rounded-lg bg-background border border-border text-foreground">
                     <option value="">Select status...</option>
                     <option value="new">New</option>
                     <option value="contacted">Contacted</option>
@@ -1963,10 +2205,12 @@ export default function LeadsPage() {
                   </select>
                 </div>
               )}
-              
-              {bulkActionType === 'tags' && (
+
+              {bulkActionType === "tags" && (
                 <div>
-                  <label className="block text-sm font-medium text-foreground-muted mb-2">Tags (comma-separated)</label>
+                  <label className="block text-sm font-medium text-foreground-muted mb-2">
+                    Tags (comma-separated)
+                  </label>
                   <Input
                     value={bulkActionValue}
                     onChange={(e) => setBulkActionValue(e.target.value)}
@@ -1979,22 +2223,28 @@ export default function LeadsPage() {
               )}
             </div>
             <div className="p-6 border-t border-border flex gap-3">
-              <Button variant="secondary" className="flex-1" onClick={() => {
-                setShowBulkActionsModal(false);
-                setBulkActionType(null);
-                setBulkActionValue('');
-              }}>
+              <Button
+                variant="secondary"
+                className="flex-1"
+                onClick={() => {
+                  setShowBulkActionsModal(false);
+                  setBulkActionType(null);
+                  setBulkActionValue("");
+                }}>
                 Cancel
               </Button>
-              <Button 
-                className="flex-1" 
+              <Button
+                className="flex-1"
                 onClick={handleBulkAction}
-                disabled={!bulkActionType || !bulkActionValue.trim() || isPerformingBulkAction}
-              >
+                disabled={
+                  !bulkActionType ||
+                  !bulkActionValue.trim() ||
+                  isPerformingBulkAction
+                }>
                 {isPerformingBulkAction ? (
                   <RefreshCw className="h-4 w-4 animate-spin" />
                 ) : (
-                  'Apply'
+                  "Apply"
                 )}
               </Button>
             </div>
@@ -2007,14 +2257,18 @@ export default function LeadsPage() {
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
           <div className="bg-background-secondary rounded-2xl border border-border max-w-md w-full">
             <div className="p-6 border-b border-border">
-              <h2 className="text-lg font-semibold text-foreground">Send Bulk DM</h2>
+              <h2 className="text-lg font-semibold text-foreground">
+                Send Bulk DM
+              </h2>
               <p className="text-sm text-foreground-muted mt-1">
                 Send a message to {selectedLeads.size} selected leads
               </p>
             </div>
             <div className="p-6 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-foreground-muted mb-2">Message</label>
+                <label className="block text-sm font-medium text-foreground-muted mb-2">
+                  Message
+                </label>
                 <textarea
                   value={bulkDmMessage}
                   onChange={(e) => setBulkDmMessage(e.target.value)}
@@ -2023,25 +2277,29 @@ export default function LeadsPage() {
                   className="w-full px-4 py-2.5 rounded-lg bg-background border border-border text-foreground placeholder-foreground-subtle focus:border-accent outline-none resize-none"
                 />
                 <p className="text-xs text-foreground-subtle mt-1">
-                  Use {'{{name}}'} to personalize with their name
+                  Use {"{{name}}"} to personalize with their name
                 </p>
               </div>
             </div>
             <div className="p-6 border-t border-border flex gap-3">
-              <Button variant="secondary" className="flex-1" onClick={() => setShowBulkDmModal(false)}>
+              <Button
+                variant="secondary"
+                className="flex-1"
+                onClick={() => setShowBulkDmModal(false)}>
                 Cancel
               </Button>
-              <Button 
-                className="flex-1" 
+              <Button
+                className="flex-1"
                 onClick={handleSendBulkDm}
-                disabled={!bulkDmMessage.trim() || isSendingBulkDm}
-              >
+                disabled={!bulkDmMessage.trim() || isSendingBulkDm}>
                 {isSendingBulkDm ? (
                   <RefreshCw className="h-4 w-4 animate-spin" />
                 ) : (
                   <Send className="h-4 w-4" />
                 )}
-                {isSendingBulkDm ? 'Sending...' : `Send to ${selectedLeads.size} leads`}
+                {isSendingBulkDm
+                  ? "Sending..."
+                  : `Send to ${selectedLeads.size} leads`}
               </Button>
             </div>
           </div>
@@ -2054,7 +2312,9 @@ export default function LeadsPage() {
           <div className="bg-background-secondary rounded-2xl border border-border max-w-md w-full">
             <div className="p-6 border-b border-border flex items-center justify-between">
               <div>
-                <h2 className="text-lg font-semibold text-foreground">Add to List</h2>
+                <h2 className="text-lg font-semibold text-foreground">
+                  Add to List
+                </h2>
                 <p className="text-sm text-foreground-muted mt-1">
                   Add {selectedLeads.size} selected leads to a list
                 </p>
@@ -2065,23 +2325,25 @@ export default function LeadsPage() {
                 onClick={() => {
                   setShowLeadListsModal(false);
                   setShowCreateListModal(true);
-                }}
-              >
+                }}>
                 <Plus className="h-4 w-4" />
                 New List
               </Button>
             </div>
             <div className="p-6 max-h-[400px] overflow-y-auto">
               {isLoadingLists ? (
-                <div className="text-center py-4 text-foreground-muted">Loading lists...</div>
+                <div className="text-center py-4 text-foreground-muted">
+                  Loading lists...
+                </div>
               ) : leadLists.length === 0 ? (
                 <div className="text-center py-8">
                   <List className="h-12 w-12 text-foreground-subtle mx-auto mb-3" />
                   <p className="text-foreground-muted mb-4">No lists yet</p>
-                  <Button onClick={() => {
-                    setShowLeadListsModal(false);
-                    setShowCreateListModal(true);
-                  }}>
+                  <Button
+                    onClick={() => {
+                      setShowLeadListsModal(false);
+                      setShowCreateListModal(true);
+                    }}>
                     <Plus className="h-4 w-4 mr-2" />
                     Create First List
                   </Button>
@@ -2092,13 +2354,16 @@ export default function LeadsPage() {
                     <button
                       key={list.id}
                       onClick={() => handleAddToList(list.id)}
-                      className="w-full p-3 rounded-lg bg-background-elevated hover:bg-background border border-border text-left transition-colors"
-                    >
+                      className="w-full p-3 rounded-lg bg-background-elevated hover:bg-background border border-border text-left transition-colors">
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="font-medium text-foreground">{list.name}</p>
+                          <p className="font-medium text-foreground">
+                            {list.name}
+                          </p>
                           {list.description && (
-                            <p className="text-xs text-foreground-muted mt-1">{list.description}</p>
+                            <p className="text-xs text-foreground-muted mt-1">
+                              {list.description}
+                            </p>
                           )}
                           <p className="text-xs text-foreground-subtle mt-1">
                             {list.members?.length || 0} leads
@@ -2112,7 +2377,10 @@ export default function LeadsPage() {
               )}
             </div>
             <div className="p-6 border-t border-border">
-              <Button variant="secondary" className="w-full" onClick={() => setShowLeadListsModal(false)}>
+              <Button
+                variant="secondary"
+                className="w-full"
+                onClick={() => setShowLeadListsModal(false)}>
                 Cancel
               </Button>
             </div>
@@ -2125,22 +2393,25 @@ export default function LeadsPage() {
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
           <div className="bg-background-secondary rounded-2xl border border-border max-w-md w-full">
             <div className="p-6 border-b border-border flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-foreground">Create Lead List</h2>
+              <h2 className="text-lg font-semibold text-foreground">
+                Create Lead List
+              </h2>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => {
                   setShowCreateListModal(false);
-                  setNewListName('');
-                  setNewListDescription('');
-                }}
-              >
+                  setNewListName("");
+                  setNewListDescription("");
+                }}>
                 <X className="h-4 w-4" />
               </Button>
             </div>
             <div className="p-6 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-foreground-muted mb-2">List Name</label>
+                <label className="block text-sm font-medium text-foreground-muted mb-2">
+                  List Name
+                </label>
                 <Input
                   value={newListName}
                   onChange={(e) => setNewListName(e.target.value)}
@@ -2148,7 +2419,9 @@ export default function LeadsPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-foreground-muted mb-2">Description (optional)</label>
+                <label className="block text-sm font-medium text-foreground-muted mb-2">
+                  Description (optional)
+                </label>
                 <textarea
                   value={newListDescription}
                   onChange={(e) => setNewListDescription(e.target.value)}
@@ -2159,18 +2432,20 @@ export default function LeadsPage() {
               </div>
             </div>
             <div className="p-6 border-t border-border flex gap-3">
-              <Button variant="secondary" className="flex-1" onClick={() => {
-                setShowCreateListModal(false);
-                setNewListName('');
-                setNewListDescription('');
-              }}>
+              <Button
+                variant="secondary"
+                className="flex-1"
+                onClick={() => {
+                  setShowCreateListModal(false);
+                  setNewListName("");
+                  setNewListDescription("");
+                }}>
                 Cancel
               </Button>
-              <Button 
-                className="flex-1" 
+              <Button
+                className="flex-1"
                 onClick={handleCreateList}
-                disabled={!newListName.trim()}
-              >
+                disabled={!newListName.trim()}>
                 Create List
               </Button>
             </div>
@@ -2183,89 +2458,134 @@ export default function LeadsPage() {
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
           <div className="bg-background-secondary rounded-2xl border border-border max-w-lg w-full max-h-[80vh] overflow-y-auto">
             <div className="p-6 border-b border-border flex items-center gap-4">
-              <Avatar src={selectedProfile.profilePicUrl} name={selectedProfile.igUsername} size="xl" />
+              <Avatar
+                src={selectedProfile.profilePicUrl}
+                name={selectedProfile.igUsername}
+                size="xl"
+              />
               <div>
                 <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
                   @{selectedProfile.igUsername}
-                  {selectedProfile.isVerified && <CheckCircle2 className="h-5 w-5 text-accent" />}
+                  {selectedProfile.isVerified && (
+                    <CheckCircle2 className="h-5 w-5 text-accent" />
+                  )}
                 </h2>
-                <p className="text-foreground-muted">{selectedProfile.fullName}</p>
+                <p className="text-foreground-muted">
+                  {selectedProfile.fullName}
+                </p>
               </div>
             </div>
             <div className="p-6 space-y-4">
               {isLoadingProfile ? (
-                <div className="text-center py-4 text-foreground-muted">Loading profile...</div>
+                <div className="text-center py-4 text-foreground-muted">
+                  Loading profile...
+                </div>
               ) : (
                 <>
                   {/* Stats */}
                   <div className="grid grid-cols-3 gap-4">
                     <div className="text-center p-3 rounded-lg bg-background-elevated">
-                      <p className="text-xl font-bold text-foreground">{selectedProfile.followerCount?.toLocaleString() || '-'}</p>
+                      <p className="text-xl font-bold text-foreground">
+                        {selectedProfile.followerCount?.toLocaleString() || "-"}
+                      </p>
                       <p className="text-xs text-foreground-muted">Followers</p>
                     </div>
                     <div className="text-center p-3 rounded-lg bg-background-elevated">
-                      <p className="text-xl font-bold text-foreground">{selectedProfile.followingCount?.toLocaleString() || '-'}</p>
+                      <p className="text-xl font-bold text-foreground">
+                        {selectedProfile.followingCount?.toLocaleString() ||
+                          "-"}
+                      </p>
                       <p className="text-xs text-foreground-muted">Following</p>
                     </div>
                     <div className="text-center p-3 rounded-lg bg-background-elevated">
-                      <p className="text-xl font-bold text-foreground">{selectedProfile.postCount?.toLocaleString() || '-'}</p>
+                      <p className="text-xl font-bold text-foreground">
+                        {selectedProfile.postCount?.toLocaleString() || "-"}
+                      </p>
                       <p className="text-xs text-foreground-muted">Posts</p>
                     </div>
                   </div>
 
                   {/* Lead Score & Engagement */}
-                  {((selectedProfile.leadScore !== undefined && selectedProfile.leadScore !== null) || (selectedProfile.engagementRate !== undefined && selectedProfile.engagementRate !== null)) && (
+                  {((selectedProfile.leadScore !== undefined &&
+                    selectedProfile.leadScore !== null) ||
+                    (selectedProfile.engagementRate !== undefined &&
+                      selectedProfile.engagementRate !== null)) && (
                     <div className="grid grid-cols-2 gap-4">
-                      {selectedProfile.leadScore !== undefined && selectedProfile.leadScore !== null && (
-                        <div className="p-3 rounded-lg bg-background-elevated">
-                          <p className="text-sm text-foreground-muted mb-1">Lead Score</p>
-                          <p className={cn(
-                            'text-2xl font-bold',
-                            selectedProfile.leadScore >= 70 ? 'text-emerald-400' :
-                            selectedProfile.leadScore >= 50 ? 'text-amber-400' : 'text-foreground-muted'
-                          )}>
-                            {selectedProfile.leadScore}/100
-                          </p>
-                        </div>
-                      )}
-                      {selectedProfile.engagementRate !== undefined && selectedProfile.engagementRate !== null && (
-                        <div className="p-3 rounded-lg bg-background-elevated">
-                          <p className="text-sm text-foreground-muted mb-1">Engagement Rate</p>
-                          <p className="text-2xl font-bold text-foreground">
-                            {selectedProfile.engagementRate.toFixed(1)}%
-                          </p>
-                        </div>
-                      )}
+                      {selectedProfile.leadScore !== undefined &&
+                        selectedProfile.leadScore !== null && (
+                          <div className="p-3 rounded-lg bg-background-elevated">
+                            <p className="text-sm text-foreground-muted mb-1">
+                              Lead Score
+                            </p>
+                            <p
+                              className={cn(
+                                "text-2xl font-bold",
+                                selectedProfile.leadScore >= 70
+                                  ? "text-emerald-400"
+                                  : selectedProfile.leadScore >= 50
+                                  ? "text-amber-400"
+                                  : "text-foreground-muted"
+                              )}>
+                              {selectedProfile.leadScore}/100
+                            </p>
+                          </div>
+                        )}
+                      {selectedProfile.engagementRate !== undefined &&
+                        selectedProfile.engagementRate !== null && (
+                          <div className="p-3 rounded-lg bg-background-elevated">
+                            <p className="text-sm text-foreground-muted mb-1">
+                              Engagement Rate
+                            </p>
+                            <p className="text-2xl font-bold text-foreground">
+                              {selectedProfile.engagementRate.toFixed(1)}%
+                            </p>
+                          </div>
+                        )}
                     </div>
                   )}
 
                   {/* Lead History */}
-                  {(selectedProfile.timesContacted || selectedProfile.lastContactedAt || selectedProfile.lastInteractionAt) && (
+                  {(selectedProfile.timesContacted ||
+                    selectedProfile.lastContactedAt ||
+                    selectedProfile.lastInteractionAt) && (
                     <div className="p-4 rounded-lg bg-background-elevated border border-border">
                       <h4 className="text-sm font-medium text-foreground-muted mb-3 flex items-center gap-2">
                         <Clock className="h-4 w-4" />
                         Interaction History
                       </h4>
                       <div className="space-y-2">
-                        {selectedProfile.timesContacted !== undefined && selectedProfile.timesContacted > 0 && (
-                          <div className="flex items-center justify-between text-sm">
-                            <span className="text-foreground-muted">Times Contacted</span>
-                            <span className="font-medium text-foreground">{selectedProfile.timesContacted}</span>
-                          </div>
-                        )}
+                        {selectedProfile.timesContacted !== undefined &&
+                          selectedProfile.timesContacted > 0 && (
+                            <div className="flex items-center justify-between text-sm">
+                              <span className="text-foreground-muted">
+                                Times Contacted
+                              </span>
+                              <span className="font-medium text-foreground">
+                                {selectedProfile.timesContacted}
+                              </span>
+                            </div>
+                          )}
                         {selectedProfile.lastContactedAt && (
                           <div className="flex items-center justify-between text-sm">
-                            <span className="text-foreground-muted">Last Contacted</span>
+                            <span className="text-foreground-muted">
+                              Last Contacted
+                            </span>
                             <span className="font-medium text-foreground">
-                              {new Date(selectedProfile.lastContactedAt).toLocaleDateString()}
+                              {new Date(
+                                selectedProfile.lastContactedAt
+                              ).toLocaleDateString()}
                             </span>
                           </div>
                         )}
                         {selectedProfile.lastInteractionAt && (
                           <div className="flex items-center justify-between text-sm">
-                            <span className="text-foreground-muted">Last Interaction</span>
+                            <span className="text-foreground-muted">
+                              Last Interaction
+                            </span>
                             <span className="font-medium text-foreground">
-                              {new Date(selectedProfile.lastInteractionAt).toLocaleDateString()}
+                              {new Date(
+                                selectedProfile.lastInteractionAt
+                              ).toLocaleDateString()}
                             </span>
                           </div>
                         )}
@@ -2276,7 +2596,9 @@ export default function LeadsPage() {
                               DM Sent
                             </span>
                             <span className="font-medium text-foreground">
-                              {new Date(selectedProfile.dmSentAt).toLocaleDateString()}
+                              {new Date(
+                                selectedProfile.dmSentAt
+                              ).toLocaleDateString()}
                             </span>
                           </div>
                         )}
@@ -2287,7 +2609,9 @@ export default function LeadsPage() {
                               Replied
                             </span>
                             <span className="font-medium text-emerald-400">
-                              {new Date(selectedProfile.dmRepliedAt).toLocaleDateString()}
+                              {new Date(
+                                selectedProfile.dmRepliedAt
+                              ).toLocaleDateString()}
                             </span>
                           </div>
                         )}
@@ -2296,33 +2620,50 @@ export default function LeadsPage() {
                   )}
 
                   {/* Enrichment Data */}
-                  {(selectedProfile.email || selectedProfile.phone || selectedProfile.website || selectedProfile.location) && (
+                  {(selectedProfile.email ||
+                    selectedProfile.phone ||
+                    selectedProfile.website ||
+                    selectedProfile.location) && (
                     <div>
-                      <h4 className="text-sm font-medium text-foreground-muted mb-2">Contact Information</h4>
+                      <h4 className="text-sm font-medium text-foreground-muted mb-2">
+                        Contact Information
+                      </h4>
                       <div className="space-y-1 text-sm">
                         {selectedProfile.email && (
                           <p className="text-foreground">
-                            <span className="text-foreground-muted">Email: </span>
+                            <span className="text-foreground-muted">
+                              Email:{" "}
+                            </span>
                             {selectedProfile.email}
                           </p>
                         )}
                         {selectedProfile.phone && (
                           <p className="text-foreground">
-                            <span className="text-foreground-muted">Phone: </span>
+                            <span className="text-foreground-muted">
+                              Phone:{" "}
+                            </span>
                             {selectedProfile.phone}
                           </p>
                         )}
                         {selectedProfile.website && (
                           <p className="text-foreground">
-                            <span className="text-foreground-muted">Website: </span>
-                            <a href={selectedProfile.website} target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">
+                            <span className="text-foreground-muted">
+                              Website:{" "}
+                            </span>
+                            <a
+                              href={selectedProfile.website}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-accent hover:underline">
                               {selectedProfile.website}
                             </a>
                           </p>
                         )}
                         {selectedProfile.location && (
                           <p className="text-foreground">
-                            <span className="text-foreground-muted">Location: </span>
+                            <span className="text-foreground-muted">
+                              Location:{" "}
+                            </span>
                             {selectedProfile.location}
                           </p>
                         )}
@@ -2333,40 +2674,63 @@ export default function LeadsPage() {
                   {/* Bio */}
                   {selectedProfile.bio && (
                     <div>
-                      <h4 className="text-sm font-medium text-foreground-muted mb-2">Bio</h4>
-                      <p className="text-foreground whitespace-pre-wrap">{selectedProfile.bio}</p>
+                      <h4 className="text-sm font-medium text-foreground-muted mb-2">
+                        Bio
+                      </h4>
+                      <p className="text-foreground whitespace-pre-wrap">
+                        {selectedProfile.bio}
+                      </p>
                     </div>
                   )}
 
                   {/* Matched Keywords */}
                   {selectedProfile.matchedKeywords?.length > 0 && (
                     <div>
-                      <h4 className="text-sm font-medium text-foreground-muted mb-2">Matched Keywords</h4>
+                      <h4 className="text-sm font-medium text-foreground-muted mb-2">
+                        Matched Keywords
+                      </h4>
                       <div className="flex flex-wrap gap-2">
-                        {selectedProfile.matchedKeywords.map((kw: string, i: number) => (
-                          <Badge key={i} variant="success">{kw}</Badge>
-                        ))}
+                        {selectedProfile.matchedKeywords.map(
+                          (kw: string, i: number) => (
+                            <Badge key={i} variant="success">
+                              {kw}
+                            </Badge>
+                          )
+                        )}
                       </div>
                     </div>
                   )}
 
                   {/* Tags */}
                   <div className="flex flex-wrap gap-2">
-                    {selectedProfile.isPrivate && <Badge variant="warning">Private</Badge>}
-                    {selectedProfile.isBusiness && <Badge variant="accent">Business</Badge>}
-                    {selectedProfile.isVerified && <Badge variant="success">Verified</Badge>}
+                    {selectedProfile.isPrivate && (
+                      <Badge variant="warning">Private</Badge>
+                    )}
+                    {selectedProfile.isBusiness && (
+                      <Badge variant="accent">Business</Badge>
+                    )}
+                    {selectedProfile.isVerified && (
+                      <Badge variant="success">Verified</Badge>
+                    )}
                   </div>
                 </>
               )}
             </div>
             <div className="p-6 border-t border-border flex gap-3">
-              <Button variant="secondary" className="flex-1" onClick={() => setShowProfileModal(false)}>
+              <Button
+                variant="secondary"
+                className="flex-1"
+                onClick={() => setShowProfileModal(false)}>
                 Close
               </Button>
-              <Button 
-                className="flex-1" 
-                onClick={() => window.open(`https://instagram.com/${selectedProfile.igUsername}`, '_blank')}
-              >
+              <Button
+                className="flex-1"
+                onClick={() =>
+                  window.open(
+                    `https://instagram.com/${selectedProfile.igUsername}`,
+                    "_blank"
+                  )
+                }>
                 <Instagram className="h-4 w-4" />
                 View on Instagram
               </Button>

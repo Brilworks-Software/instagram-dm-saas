@@ -6,6 +6,7 @@ import { cn, formatRelativeTime } from '@/lib/utils';
 import { Avatar } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { MobileMessageThreadHeader } from '@/components/inbox/mobile-message-thread-header';
 import type { Conversation, Message } from '@/types';
 
 interface MessageThreadProps {
@@ -13,9 +14,10 @@ interface MessageThreadProps {
   messages: Message[];
   onSendMessage: (content: string) => void;
   isLoading?: boolean;
+  onBack?: () => void;
 }
 
-export function MessageThread({ conversation, messages, onSendMessage, isLoading }: MessageThreadProps) {
+export function MessageThread({ conversation, messages, onSendMessage, isLoading, onBack }: MessageThreadProps) {
   const [newMessage, setNewMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -68,8 +70,18 @@ export function MessageThread({ conversation, messages, onSendMessage, isLoading
 
   return (
     <div className="flex flex-col h-full">
-      {/* Header */}
-      <div className="h-16 px-6 flex items-center justify-between border-b border-border bg-background-secondary/50 backdrop-blur-sm">
+      {/* Mobile/Tablet Header */}
+      <div className="lg:hidden">
+        <MobileMessageThreadHeader
+          conversation={conversation}
+          onBack={onBack}
+          onInfo={() => {/* Handle info click */}}
+          onMenu={() => {/* Handle menu click */}}
+        />
+      </div>
+
+      {/* Desktop Header */}
+      <div className="hidden lg:flex h-16 px-6 items-center justify-between border-b border-border bg-background-secondary/50 backdrop-blur-sm">
         <div className="flex items-center gap-3">
           <Avatar
             src={conversation.contact.profilePictureUrl}
@@ -79,7 +91,7 @@ export function MessageThread({ conversation, messages, onSendMessage, isLoading
           <div>
             <div className="flex items-center gap-2">
               <h2 className="font-semibold text-foreground">
-                @{conversation.contact.igUsername || 'Unknown'}
+                {conversation.contact.name || `@${conversation.contact.igUsername || 'Unknown'}`}
               </h2>
               {conversation.contact.isVerified && (
                 <svg className="h-4 w-4 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
@@ -117,7 +129,7 @@ export function MessageThread({ conversation, messages, onSendMessage, isLoading
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-4">
+      <div className="flex-1 overflow-y-auto p-3 md:p-6 space-y-3 md:space-y-4">
         {isLoading ? (
           <div className="flex items-center justify-center h-full">
             <div className="animate-pulse-subtle text-foreground-muted">Loading messages...</div>
@@ -151,12 +163,12 @@ export function MessageThread({ conversation, messages, onSendMessage, isLoading
                   )}
                   
                   <div className={cn(
-                    'max-w-[70%] group',
+                    'max-w-[85%] md:max-w-[70%] group',
                     isOutbound ? 'items-end' : 'items-start'
                   )}>
                     <div
                       className={cn(
-                        'px-4 py-2.5 rounded-2xl',
+                        'px-3 md:px-4 py-2 md:py-2.5 rounded-2xl',
                         isOutbound
                           ? 'bg-accent text-white rounded-br-md'
                           : 'bg-background-elevated text-foreground rounded-bl-md'
@@ -231,9 +243,9 @@ export function MessageThread({ conversation, messages, onSendMessage, isLoading
       </div>
 
       {/* Input */}
-      <div className="p-4 border-t border-border bg-background-secondary/50">
-        <div className="flex items-end gap-3">
-          <button className="p-2 rounded-lg text-foreground-muted hover:text-accent hover:bg-accent/10 transition-colors">
+      <div className="p-3 md:p-4 border-t border-border bg-background-secondary/50">
+        <div className="flex items-end gap-2 md:gap-3">
+          <button className="p-2 rounded-lg text-foreground-muted hover:text-accent hover:bg-accent/10 transition-colors hidden sm:block">
             <Sparkles className="h-5 w-5" />
           </button>
           
@@ -246,12 +258,12 @@ export function MessageThread({ conversation, messages, onSendMessage, isLoading
               placeholder="Type a message..."
               rows={1}
               className={cn(
-                'w-full px-4 py-3 rounded-xl bg-background-elevated border border-border',
-                'text-foreground placeholder:text-foreground-subtle',
+                'w-full px-3 md:px-4 py-2 md:py-3 rounded-xl bg-background-elevated border border-border',
+                'text-foreground placeholder:text-foreground-subtle text-sm md:text-base',
                 'focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent',
                 'resize-none max-h-32 transition-colors'
               )}
-              style={{ minHeight: '48px' }}
+              style={{ minHeight: '44px' }}
             />
           </div>
           
@@ -259,9 +271,9 @@ export function MessageThread({ conversation, messages, onSendMessage, isLoading
             onClick={handleSend}
             disabled={!newMessage.trim() || isSending}
             isLoading={isSending}
-            className="h-12 w-12 p-0"
+            className="h-11 md:h-12 w-11 md:w-12 p-0 flex-shrink-0"
           >
-            <Send className="h-5 w-5" />
+            <Send className="h-4 w-4 md:h-5 md:w-5" />
           </Button>
         </div>
       </div>
