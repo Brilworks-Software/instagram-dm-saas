@@ -58,6 +58,7 @@ export default function InboxPage() {
   const [isAccountDropdownOpen, setIsAccountDropdownOpen] = useState(false);
   const accountDropdownRef = useRef<HTMLDivElement>(null);
   const isFetchingMessagesRef = useRef(false);
+  const hasAutoSelectedRef = useRef(false);
 
   // Fetch Instagram accounts first
   const fetchAccounts = useCallback(async () => {
