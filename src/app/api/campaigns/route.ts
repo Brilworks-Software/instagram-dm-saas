@@ -195,6 +195,7 @@ export async function POST(request: NextRequest) {
               igUserId: lead.igUserId,
               igUsername: lead.igUsername,
               name: lead.fullName,
+              bio: lead.bio,
               profilePictureUrl: lead.profilePicUrl,
             },
           });

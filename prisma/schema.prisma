@@ -118,6 +118,7 @@ model Contact {
   igUserId          String   @map("ig_user_id") // Instagram user ID of the contact
   igUsername        String?  @map("ig_username")
   name              String?
+  bio               String?
   profilePictureUrl String?  @map("profile_picture_url")
   followerCount     Int?     @map("follower_count")
   isVerified        Boolean  @default(false) @map("is_verified")

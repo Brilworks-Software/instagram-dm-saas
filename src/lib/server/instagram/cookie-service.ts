@@ -628,7 +628,7 @@ export class InstagramCookieService {
       const followersFeed = ig.feed.accountFollowers(userId);
       const followers: any[] = [];
       let page = await followersFeed.items();
-      
+
       while (followers.length < limit && page.length > 0) {
         for (const follower of page) {
           if (followers.length >= limit) break;
@@ -641,12 +641,13 @@ export class InstagramCookieService {
             isVerified: (follower as any).is_verified || false,
           });
         }
-        
-        if (!followersFeed.isMoreAvailable() || followers.length >= limit) break;
+
+        if (!followersFeed.isMoreAvailable() || followers.length >= limit)
+          break;
         page = await followersFeed.items();
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise((resolve) => setTimeout(resolve, 500));
       }
-      
+
       return followers;
     } catch (error) {
       console.error('Failed to get followers:', error);
@@ -663,7 +664,7 @@ export class InstagramCookieService {
       const followingFeed = ig.feed.accountFollowing(userId);
       const following: any[] = [];
       let page = await followingFeed.items();
-      
+
       while (following.length < limit && page.length > 0) {
         for (const user of page) {
           if (following.length >= limit) break;
@@ -676,12 +677,13 @@ export class InstagramCookieService {
             isVerified: (user as any).is_verified || false,
           });
         }
-        
-        if (!followingFeed.isMoreAvailable() || following.length >= limit) break;
+
+        if (!followingFeed.isMoreAvailable() || following.length >= limit)
+          break;
         page = await followingFeed.items();
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise((resolve) => setTimeout(resolve, 500));
       }
-      
+
       return following;
     } catch (error) {
       console.error('Failed to get following:', error);
@@ -695,25 +697,28 @@ export class InstagramCookieService {
   async getHashtagUsers(cookies: InstagramCookies, hashtag: string, limit = 50): Promise<any[]> {
     try {
       const ig = await this.getClient(cookies);
-      const cleanHashtag = hashtag.replace(/^#/, '');
-      
+      const cleanHashtag = hashtag.replace(/^#/, "");
+
       console.log(`Searching for hashtag: #${cleanHashtag}`);
-      
+
       const hashtagFeed = ig.feed.tag(cleanHashtag);
       const users: any[] = [];
       const seenUsers = new Set<string>();
-      
+
       // Try to get initial page
       let page: any[] = [];
       try {
         page = await hashtagFeed.items();
         console.log(`Found ${page.length} posts for hashtag #${cleanHashtag}`);
       } catch (feedError: any) {
-        console.warn(`Hashtag feed error for #${cleanHashtag}:`, feedError.message);
+        console.warn(
+          `Hashtag feed error for #${cleanHashtag}:`,
+          feedError.message
+        );
         // If hashtag doesn't exist or has no posts, return empty array
         return [];
       }
-      
+
       while (users.length < limit && page.length > 0) {
         for (const item of page) {
           if (users.length >= limit) break;
@@ -731,19 +736,21 @@ export class InstagramCookieService {
             });
           }
         }
-        
+
         if (!hashtagFeed.isMoreAvailable() || users.length >= limit) break;
-        
+
         try {
           page = await hashtagFeed.items();
-          await new Promise(resolve => setTimeout(resolve, 500));
+          await new Promise((resolve) => setTimeout(resolve, 500));
         } catch (e) {
-          console.warn('Error fetching more hashtag items:', e);
+          console.warn("Error fetching more hashtag items:", e);
           break;
         }
       }
-      
-      console.log(`Extracted ${users.length} unique users from hashtag #${cleanHashtag}`);
+
+      console.log(
+        `Extracted ${users.length} unique users from hashtag #${cleanHashtag}`
+      );
       return users;
     } catch (error: any) {
       console.error('Failed to get hashtag users:', error.message || error);
