@@ -61,6 +61,13 @@ export default function InboxPage() {
   const accountDropdownRef = useRef<HTMLDivElement>(null);
   const isFetchingMessagesRef = useRef(false);
   const hasAutoSelectedRef = useRef(false);
+  // Keep a ref copy of conversations to avoid re-creating fetchMessages when
+  // `conversations` state updates (prevents infinite re-trigger loops)
+  const conversationsRef = useRef<Conversation[]>([]);
+
+  useEffect(() => {
+    conversationsRef.current = conversations;
+  }, [conversations]);
 
   // Fetch Instagram accounts first
   const fetchAccounts = useCallback(async () => {
@@ -219,8 +226,9 @@ export default function InboxPage() {
         return;
       }
 
-      // Get conversation details to find thread ID
-      const conversation = conversations.find(c => c.id === conversationId);
+  // Get conversation details to find thread ID (use ref to avoid changing
+  // fetchMessages identity when the conversations state updates)
+  const conversation = conversationsRef.current.find(c => c.id === conversationId);
       if (!conversation) {
         console.error('Conversation not found');
         if (!silent) setMessages([]);
@@ -355,7 +363,7 @@ export default function InboxPage() {
         setIsLoadingMessages(false);
       }
     }
-  }, [selectedAccount, conversations]);
+  }, [selectedAccount]);
 
   // Load accounts on mount
   useEffect(() => {
