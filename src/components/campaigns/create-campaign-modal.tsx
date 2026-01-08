@@ -22,6 +22,8 @@ interface CreateCampaignModalProps {
 export interface NewCampaignData {
   name: string;
   description: string;
+  schedule_type: "IMMEDIATE" | "SPECIFIC_TIME";
+  scheduled_at?: string; // ISO datetime string
   sendStartTime: string;
   sendEndTime: string;
   timezone: string;
@@ -35,6 +37,8 @@ export interface NewCampaignData {
 const INITIAL_CAMPAIGN: Omit<NewCampaignData, "timezone"> & { timezone: string } = {
   name: "",
   description: "",
+  schedule_type: "IMMEDIATE",
+  scheduled_at: undefined,
   sendStartTime: "08:00:00",
   sendEndTime: "22:00:00",
   timezone: "America/New_York",
@@ -53,7 +57,7 @@ export function CreateCampaignModal({
   contacts,
   leads,
 }: CreateCampaignModalProps) {
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(0); // Start at step 0 (scheduling)
   const [isCreating, setIsCreating] = useState(false);
   const [campaign, setCampaign] = useState<NewCampaignData>(INITIAL_CAMPAIGN);
 
@@ -68,13 +72,17 @@ export function CreateCampaignModal({
   // Reset form when modal closes
   useEffect(() => {
     if (!isOpen) {
-      setStep(1);
+      setStep(0);
       setCampaign(INITIAL_CAMPAIGN);
     }
   }, [isOpen]);
 
   const validateStep = (stepNumber: number): boolean => {
     switch (stepNumber) {
+      case 0:
+        // Scheduling step: if SPECIFIC_TIME, scheduled_at must be set
+        return campaign.schedule_type === "IMMEDIATE" || 
+               (campaign.schedule_type === "SPECIFIC_TIME" && !!campaign.scheduled_at);
       case 1:
         return !!campaign.name?.trim();
       case 2:
@@ -116,6 +124,7 @@ export function CreateCampaignModal({
   const handleNext = () => {
     if (!validateStep(step)) {
       const messages: Record<number, string> = {
+        0: "Please select a schedule time",
         1: "Please enter a campaign name",
         2: "Please select at least one recipient",
         3: "Please select at least one Instagram account",
@@ -143,7 +152,7 @@ export function CreateCampaignModal({
               Create Campaign
             </h2>
             <p className="text-sm text-foreground-muted mt-1">
-              Step {step} of 5
+              Step {step + 1} of 6
             </p>
           </div>
           <button
@@ -155,7 +164,108 @@ export function CreateCampaignModal({
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-6">
-          {/* Step 1: Scheduling & Rate Limits */}
+          {/* Step 0: Schedule Campaign */}
+          {step === 0 && (
+            <div className="space-y-8 max-w-3xl mx-auto">
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="h-8 w-8 rounded-lg bg-accent/10 flex items-center justify-center">
+                    <span className="text-accent font-semibold text-sm">1</span>
+                  </div>
+                  <h3 className="text-base font-semibold text-foreground">
+                    Schedule Campaign
+                  </h3>
+                </div>
+
+                <div className="bg-background-elevated rounded-xl border border-border p-5 space-y-5">
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-4">
+                      When should this campaign start?
+                    </label>
+                    <div className="space-y-3">
+                      <label className="flex items-center gap-3 p-4 rounded-lg border border-border hover:bg-background cursor-pointer">
+                        <input
+                          type="radio"
+                          name="schedule_type"
+                          value="IMMEDIATE"
+                          checked={campaign.schedule_type === "IMMEDIATE"}
+                          onChange={(e) =>
+                            setCampaign((prev) => ({
+                              ...prev,
+                              schedule_type: e.target.value as "IMMEDIATE" | "SPECIFIC_TIME",
+                              scheduled_at: undefined,
+                            }))
+                          }
+                          className="text-accent"
+                        />
+                        <div>
+                          <div className="font-medium text-foreground">Start Immediately</div>
+                          <div className="text-sm text-foreground-muted">
+                            Campaign will begin as soon as it's created
+                          </div>
+                        </div>
+                      </label>
+
+                      <label className="flex items-center gap-3 p-4 rounded-lg border border-border hover:bg-background cursor-pointer">
+                        <input
+                          type="radio"
+                          name="schedule_type"
+                          value="SPECIFIC_TIME"
+                          checked={campaign.schedule_type === "SPECIFIC_TIME"}
+                          onChange={(e) =>
+                            setCampaign((prev) => ({
+                              ...prev,
+                              schedule_type: e.target.value as "IMMEDIATE" | "SPECIFIC_TIME",
+                            }))
+                          }
+                          className="text-accent"
+                        />
+                        <div>
+                          <div className="font-medium text-foreground">Schedule for Later</div>
+                          <div className="text-sm text-foreground-muted">
+                            Choose a specific date and time to start
+                          </div>
+                        </div>
+                      </label>
+                    </div>
+                  </div>
+
+                  {campaign.schedule_type === "SPECIFIC_TIME" && (
+                    <div>
+                      <label className="block text-sm font-medium text-foreground mb-2">
+                        Scheduled Date & Time
+                      </label>
+                      <input
+                        type="datetime-local"
+                        value={
+                          campaign.scheduled_at
+                            ? new Date(campaign.scheduled_at).toISOString().slice(0, 16)
+                            : ""
+                        }
+                        onChange={(e) => {
+                          const dateTime = e.target.value;
+                          if (dateTime) {
+                            const isoString = new Date(dateTime).toISOString();
+                            setCampaign((prev) => ({
+                              ...prev,
+                              scheduled_at: isoString,
+                            }));
+                          }
+                        }}
+                        min={new Date().toISOString().slice(0, 16)}
+                        className="w-full px-4 py-3 rounded-lg bg-background border border-border text-foreground focus:border-accent focus:ring-2 focus:ring-accent/20 outline-none transition-all"
+                      />
+                      <p className="text-xs text-foreground-subtle mt-1.5">
+                        Select when you want the campaign to start
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Step 1: Campaign Details & Scheduling */}
           {step === 1 && (
             <div className="space-y-8 max-w-3xl mx-auto">
               {/* Campaign Basic Info */}
@@ -339,9 +449,9 @@ export function CreateCampaignModal({
           )}
         </div>
 
-        {/* Footer */}
+          {/* Footer */}
         <div className="p-6 border-t border-border flex gap-3">
-          {step > 1 && (
+          {step > 0 && (
             <Button variant="secondary" className="flex-1" onClick={handleBack}>
               Back
             </Button>

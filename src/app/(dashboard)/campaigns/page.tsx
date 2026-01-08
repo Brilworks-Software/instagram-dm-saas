@@ -24,6 +24,19 @@ export default function CampaignsPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
 
   const handleCreateCampaign = async (campaignData: NewCampaignData) => {
+    // Convert time format from HH:mm:ss to HH:mm for time_frame
+    const formatTimeForFrame = (time: string): string => {
+      // If already in HH:mm format, return as is
+      if (time.match(/^\d{2}:\d{2}$/)) {
+        return time;
+      }
+      // If in HH:mm:ss format, remove seconds
+      if (time.match(/^\d{2}:\d{2}:\d{2}$/)) {
+        return time.substring(0, 5);
+      }
+      return time;
+    };
+
     const response = await fetch("/api/campaigns", {
       method: "POST",
       headers: {
@@ -32,27 +45,35 @@ export default function CampaignsPage() {
       body: JSON.stringify({
         name: campaignData.name,
         description: campaignData.description,
-        sendStartTime: campaignData.sendStartTime,
-        sendEndTime: campaignData.sendEndTime,
+        schedule_type: campaignData.schedule_type || "IMMEDIATE",
+        scheduled_at: campaignData.scheduled_at,
+        messages_per_day: campaignData.messagesPerDay,
         timezone: campaignData.timezone,
-        messagesPerDay: campaignData.messagesPerDay,
-        accountIds: campaignData.accountIds,
-        contactIds: campaignData.contactIds,
-        leadIds: campaignData.leadIds,
+        time_frame: {
+          start: formatTimeForFrame(campaignData.sendStartTime),
+          end: formatTimeForFrame(campaignData.sendEndTime),
+        },
+        account_ids: campaignData.accountIds,
+        contact_ids: campaignData.contactIds,
+        lead_ids:
+          campaignData.leadIds && campaignData.leadIds.length > 0
+            ? campaignData.leadIds
+            : undefined,
         steps: campaignData.messageSteps.map((step) => {
-          const primaryTemplate =
-            step.variants && step.variants.length > 0
-              ? step.variants[0].template
-              : step.messageTemplate || "";
+          // Extract variants as string array
+          const variants: string[] = step.variants
+            ? step.variants
+                .map((v) => v.template)
+                .filter((t) => t.trim().length > 0)
+            : step.messageTemplate
+            ? [step.messageTemplate]
+            : [];
 
           return {
-            messageTemplate: primaryTemplate,
-            variants: step.variants || undefined,
-            delayDays: step.delayDays,
-            condition:
-              step.condition === "on_reply"
-                ? { type: "on_reply", enabled: true }
-                : { type: "time_based", enabled: false },
+            order: step.stepOrder,
+            variants: variants,
+            delay_days:
+              step.delayDays ?? (step.delayHours ? step.delayHours / 24 : 0),
           };
         }),
       }),

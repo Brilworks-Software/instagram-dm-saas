@@ -118,6 +118,7 @@ model Contact {
   igUserId          String   @map("ig_user_id") // Instagram user ID of the contact
   igUsername        String?  @map("ig_username")
   name              String?
+  bio               String?
   profilePictureUrl String?  @map("profile_picture_url")
   followerCount     Int?     @map("follower_count")
   isVerified        Boolean  @default(false) @map("is_verified")
@@ -276,19 +277,32 @@ model CampaignStep {
   id              String   @id @default(uuid())
   stepOrder       Int      @map("step_order")
   name            String?
-  messageTemplate String   @map("message_template") // Supports {{variable}} placeholders
-  delayMinutes    Int      @default(0) @map("delay_minutes") // Delay after previous step
-  condition       Json? // Conditional logic (e.g., only if replied)
+  messageTemplate String?  @map("message_template") // Deprecated: Use StepVariant instead. Kept for backward compatibility
+  delayMinutes    Int      @default(0) @map("delay_minutes") // Deprecated: Use delayDays. Kept for backward compatibility
+  delayDays       Int      @default(0) @map("delay_days") // Delay after previous step in days (follow-up only if no reply)
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
 
   campaignId String   @map("campaign_id")
   campaign   Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
 
-  messages Message[]
+  messages    Message[]
+  variants    StepVariant[]
 
   @@index([campaignId])
   @@map("campaign_steps")
+}
+
+model StepVariant {
+  id              String   @id @default(uuid())
+  stepId          String   @map("step_id")
+  messageTemplate String   @map("message_template") // Supports {{variable}} placeholders
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  step CampaignStep @relation(fields: [stepId], references: [id], onDelete: Cascade)
+
+  @@index([stepId])
+  @@map("step_variants")
 }
 
 model CampaignRecipient {
@@ -296,7 +310,8 @@ model CampaignRecipient {
   status           CampaignRecipientStatus @default(PENDING)
   currentStepOrder Int                     @default(0) @map("current_step_order")
   lastProcessedAt  DateTime?               @map("last_processed_at")
-  nextProcessAt    DateTime?               @map("next_process_at")
+  nextProcessAt    DateTime?               @map("next_process_at") // Deprecated: Use nextActionAt. Kept for backward compatibility
+  nextActionAt     DateTime?               @map("next_action_at") // When to process next action
   errorMessage     String?                 @map("error_message")
   assignedAccountId String?                @map("assigned_account_id")
   createdAt        DateTime                @default(now()) @map("created_at")
@@ -315,6 +330,7 @@ model CampaignRecipient {
   @@index([contactId])
   @@index([status])
   @@index([nextProcessAt])
+  @@index([nextActionAt])
   @@index([assignedAccountId])
   @@map("campaign_recipients")
 }

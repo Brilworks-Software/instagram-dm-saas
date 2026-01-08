@@ -53,44 +53,16 @@ export async function POST(request: NextRequest) {
     const {
       name,
       description,
-      sendStartTime,
-      sendEndTime,
+      schedule_type, // "IMMEDIATE" | "SPECIFIC_TIME"
+      scheduled_at, // ISO datetime string (optional if IMMEDIATE)
+      messages_per_day,
       timezone,
-      messagesPerDay,
-      accountIds, // Array of Instagram account IDs
-      contactIds, // Array of contact IDs
-      leadIds, // Array of lead IDs (will be converted to contacts)
-      steps, // Array of message steps
+      time_frame, // { start: "09:00", end: "18:00" }
+      account_ids, // Array of Instagram account IDs
+      contact_ids, // Array of contact IDs
+      lead_ids, // Array of lead IDs (will be converted to contacts) - optional for backward compatibility
+      steps, // Array of { order: number, variants: string[], delay_hours?: number }
     } = body;
-
-    // Normalize and validate time values
-    let normalizedStartTime: string | null = null;
-    let normalizedEndTime: string | null = null;
-
-    try {
-      normalizedStartTime = normalizeTime(sendStartTime);
-      normalizedEndTime = normalizeTime(sendEndTime);
-
-      // Ensure we don't send empty strings - convert to null
-      if (normalizedStartTime === "" || normalizedStartTime === null) {
-        normalizedStartTime = null;
-      }
-      if (normalizedEndTime === "" || normalizedEndTime === null) {
-        normalizedEndTime = null;
-      }
-
-      // Log for debugging
-      console.log("Time normalization:", {
-        original: { sendStartTime, sendEndTime },
-        normalized: { normalizedStartTime, normalizedEndTime },
-      });
-    } catch (error: any) {
-      console.error("Time normalization error:", error);
-      return Response.json(
-        { success: false, error: error.message || "Invalid time format" },
-        { status: 400 }
-      );
-    }
 
     // Validation
     if (!name || !name.trim()) {
@@ -100,7 +72,34 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!accountIds || !Array.isArray(accountIds) || accountIds.length === 0) {
+    if (
+      !schedule_type ||
+      !["IMMEDIATE", "SPECIFIC_TIME"].includes(schedule_type)
+    ) {
+      return Response.json(
+        {
+          success: false,
+          error: "schedule_type must be IMMEDIATE or SPECIFIC_TIME",
+        },
+        { status: 400 }
+      );
+    }
+
+    if (schedule_type === "SPECIFIC_TIME" && !scheduled_at) {
+      return Response.json(
+        {
+          success: false,
+          error: "scheduled_at is required when schedule_type is SPECIFIC_TIME",
+        },
+        { status: 400 }
+      );
+    }
+
+    if (
+      !account_ids ||
+      !Array.isArray(account_ids) ||
+      account_ids.length === 0
+    ) {
       return Response.json(
         {
           success: false,
@@ -111,8 +110,8 @@ export async function POST(request: NextRequest) {
     }
 
     if (
-      (!contactIds || contactIds.length === 0) &&
-      (!leadIds || leadIds.length === 0)
+      (!contact_ids || contact_ids.length === 0) &&
+      (!lead_ids || lead_ids.length === 0)
     ) {
       return Response.json(
         {
@@ -130,16 +129,33 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Validate each step has variants
+    for (const step of steps) {
+      if (
+        !step.variants ||
+        !Array.isArray(step.variants) ||
+        step.variants.length === 0
+      ) {
+        return Response.json(
+          {
+            success: false,
+            error: `Step ${step.order} must have at least one variant`,
+          },
+          { status: 400 }
+        );
+      }
+    }
+
     // Validate accounts belong to workspace and are active
     const accounts = await prisma.instagramAccount.findMany({
       where: {
-        id: { in: accountIds },
+        id: { in: account_ids },
         workspaceId: auth.workspaceId,
         isActive: true,
       },
     });
 
-    if (accounts.length !== accountIds.length) {
+    if (accounts.length !== account_ids.length) {
       return Response.json(
         {
           success: false,
@@ -149,13 +165,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get or create contacts from leads
-    const allContactIds: string[] = [...(contactIds || [])];
+    // Get or create contacts from leads (if lead_ids provided)
+    const allContactIds: string[] = [...(contact_ids || [])];
 
-    if (leadIds && leadIds.length > 0) {
+    if (lead_ids && lead_ids.length > 0) {
       const leads = await prisma.lead.findMany({
         where: {
-          id: { in: leadIds },
+          id: { in: lead_ids },
           workspaceId: auth.workspaceId,
         },
       });
@@ -179,6 +195,7 @@ export async function POST(request: NextRequest) {
               igUserId: lead.igUserId,
               igUsername: lead.igUsername,
               name: lead.fullName,
+              bio: lead.bio,
               profilePictureUrl: lead.profilePicUrl,
             },
           });
@@ -188,35 +205,73 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Validate contacts belong to workspace
+    if (allContactIds.length > 0) {
+      const contacts = await prisma.contact.findMany({
+        where: {
+          id: { in: allContactIds },
+          workspaceId: auth.workspaceId,
+        },
+      });
+
+      if (contacts.length !== allContactIds.length) {
+        return Response.json(
+          {
+            success: false,
+            error: "One or more selected contacts are invalid",
+          },
+          { status: 400 }
+        );
+      }
+    }
+
     // Remove duplicates
     const uniqueContactIds = Array.from(new Set(allContactIds));
     const totalRecipients = uniqueContactIds.length;
 
-    // Create campaign - use raw SQL for TIME fields to ensure proper casting
-    // Prisma sometimes has issues with String to TIME conversion, so we'll use a transaction
-    // First create the campaign without time fields, then update with raw SQL
+    // Normalize time frame values
+    let normalizedStartTime: string | null = null;
+    let normalizedEndTime: string | null = null;
+
+    if (time_frame) {
+      try {
+        normalizedStartTime = normalizeTime(time_frame.start);
+        normalizedEndTime = normalizeTime(time_frame.end);
+      } catch (error: any) {
+        console.error("Time normalization error:", error);
+        return Response.json(
+          { success: false, error: error.message || "Invalid time format" },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Determine scheduled_at datetime
+    const scheduledDateTime =
+      schedule_type === "IMMEDIATE" ? new Date() : new Date(scheduled_at!);
+
+    // ============================================
+    // Step 1: Create Campaign Container
+    // ============================================
     const campaign = await prisma.campaign.create({
       data: {
         name: name.trim(),
         description: description?.trim() || null,
         workspaceId: auth.workspaceId,
-        status: "DRAFT",
-        // Set time fields to null initially, update with raw SQL below
-        sendStartTime: null,
-        sendEndTime: null,
+        status: "SCHEDULED", // New campaigns start as SCHEDULED
+        scheduledAt: scheduledDateTime,
         timezone: timezone || "America/New_York",
-        messagesPerDay: messagesPerDay || 10,
+        messagesPerDay: messages_per_day || 10,
         totalRecipients,
         sentCount: 0,
         failedCount: 0,
         replyCount: 0,
         // Keep instagram_account_id for backward compatibility (use first account)
-        instagramAccountId: accountIds[0] || null,
+        instagramAccountId: account_ids[0] || null,
       },
     });
 
     // Update time fields with explicit TIME casting using raw SQL
-    // This ensures PostgreSQL properly interprets the time strings
     if (normalizedStartTime || normalizedEndTime) {
       if (normalizedStartTime && normalizedEndTime) {
         await prisma.$executeRaw`
@@ -239,125 +294,107 @@ export async function POST(request: NextRequest) {
           WHERE id = ${campaign.id}::uuid
         `;
       }
-
-      // Assign the normalized time values directly since Prisma has issues
-      // reading TIME columns as strings (it tries to convert them to timestamps)
-      // We use type assertion here because these are only for in-memory use
-      // and won't affect the database (which is already updated via raw SQL above)
-      (campaign as any).sendStartTime = normalizedStartTime;
-      (campaign as any).sendEndTime = normalizedEndTime;
     }
 
-    // Create campaign_accounts junction table entries
+    // ============================================
+    // Step 2: Link the Sending Accounts
+    // ============================================
     await prisma.campaignAccount.createMany({
-      data: accountIds.map((accountId: string) => ({
+      data: account_ids.map((accountId: string) => ({
         campaignId: campaign.id,
         instagramAccountId: accountId,
       })),
     });
 
-    // Create campaign steps
+    // ============================================
+    // Step 3: Store the Message Content
+    // ============================================
     const createdSteps = await Promise.all(
-      steps.map((step: any, index: number) => {
-        // First step (index 0) should have no delay
-        const delayMinutes =
-          index === 0 ? 0 : step.delayDays ? step.delayDays * 1440 : 0;
+      steps.map(async (step: any) => {
+        // Create the step using raw SQL to support delayDays field
+        const stepResult = await prisma.$queryRaw<Array<{ id: string }>>`
+          INSERT INTO campaign_steps (campaign_id, step_order, delay_days, message_template)
+          VALUES (${campaign.id}::uuid, ${step.order}, ${
+          step.delay_days || 0
+        }, '')
+          RETURNING id
+        `;
+        const createdStepId = stepResult[0].id;
 
-        // Handle condition - can be object or string
-        let conditionValue = null;
-        if (step.condition) {
-          if (typeof step.condition === "object") {
-            conditionValue = step.condition;
-          } else if (step.condition === "on_reply") {
-            conditionValue = { type: "on_reply", enabled: true };
-          } else {
-            conditionValue = { type: "time_based", enabled: false };
-          }
+        // Create variants for this step
+        if (step.variants && step.variants.length > 0) {
+          await Promise.all(
+            step.variants.map(
+              (variant: string) =>
+                prisma.$executeRaw`
+                INSERT INTO step_variants (step_id, message_template)
+                VALUES (${createdStepId}::uuid, ${variant})
+              `
+            )
+          );
         }
 
-        // Handle variants - store first variant in messageTemplate, others in condition JSON for now
-        // TODO: Add messageVariants JSON field to CampaignStep schema
-        let messageTemplate = step.messageTemplate || step.message || "";
-        let variantsData = null;
-
-        if (
-          step.variants &&
-          Array.isArray(step.variants) &&
-          step.variants.length > 0
-        ) {
-          // Use first variant as primary template
-          messageTemplate = step.variants[0].template || messageTemplate;
-          // Store all variants in condition JSON (temporary solution)
-          // In production, add a messageVariants JSON field to the schema
-          variantsData = {
-            variants: step.variants.map((v: any) => ({
-              id: v.id,
-              template: v.template,
-            })),
-          };
-        }
-
-        // Merge variants into condition if variants exist
-        const finalCondition = variantsData
-          ? { ...conditionValue, ...variantsData }
-          : conditionValue;
-
-        return prisma.campaignStep.create({
-          data: {
-            campaignId: campaign.id,
-            stepOrder: index + 1,
-            messageTemplate,
-            delayMinutes,
-            condition: finalCondition,
-          },
-        });
+        return { id: createdStepId };
       })
     );
 
-    // Assign recipients to accounts (round-robin)
-    const recipientAssignments = uniqueContactIds.map((contactId, index) => {
-      const accountIndex = index % accountIds.length;
+    // ============================================
+    // Step 4: Distribute the Leads (Round-Robin Assignment)
+    // ============================================
+    // Use raw SQL to insert recipients with nextActionAt field
+    // (Prisma client needs regeneration to recognize nextActionAt)
+    const recipientValues = uniqueContactIds.map((contactId, index) => {
+      const accountIndex = index % account_ids.length;
       return {
         campaignId: campaign.id,
         contactId,
-        assignedAccountId: accountIds[accountIndex],
-        status: "PENDING" as const,
-        currentStepOrder: 0,
+        assignedAccountId: account_ids[accountIndex],
+        scheduledAt: scheduledDateTime,
       };
     });
 
-    // Generate random send times for recipients
-    const recipientsWithTimes =
-      await campaignService.assignRecipientsAndSchedule(
-        campaign.id,
-        recipientAssignments,
-        {
-          sendStartTime: normalizedStartTime || "09:00:00",
-          sendEndTime: normalizedEndTime || "17:00:00",
-          timezone: timezone || "America/New_York",
-          messagesPerDay: messagesPerDay || 10,
-          accountIds,
-        }
+    // Insert recipients using raw SQL to support nextActionAt
+    // Using individual inserts in parallel for simplicity
+    if (recipientValues.length > 0) {
+      await Promise.all(
+        recipientValues.map(
+          (r) =>
+            prisma.$executeRaw`
+            INSERT INTO campaign_recipients (
+              id,
+              campaign_id,
+              contact_id,
+              assigned_account_id,
+              status,
+              current_step_order,
+              next_action_at,
+              next_process_at,
+              created_at,
+              updated_at
+            )
+            VALUES (
+              gen_random_uuid(),
+              ${r.campaignId}::uuid,
+              ${r.contactId}::uuid,
+              ${r.assignedAccountId}::uuid,
+              'PENDING',
+              1,
+              ${r.scheduledAt}::timestamp with time zone,
+              ${r.scheduledAt}::timestamp with time zone,
+              NOW(),
+              NOW()
+            )
+          `
+        )
       );
+    }
 
-    // Create campaign recipients with scheduled times
-    await Promise.all(
-      recipientsWithTimes.map((recipient: any) =>
-        prisma.campaignRecipient.create({
-          data: {
-            campaignId: recipient.campaignId,
-            contactId: recipient.contactId,
-            assignedAccountId: recipient.assignedAccountId,
-            status: recipient.status,
-            currentStepOrder: recipient.currentStepOrder,
-            nextProcessAt: recipient.nextProcessAt,
-          },
-        })
-      )
-    );
-
+    // ============================================
+    // Step 5: API Response
+    // ============================================
     return Response.json({
       success: true,
+      campaign_id: campaign.id,
       campaign: {
         id: campaign.id,
         name: campaign.name,

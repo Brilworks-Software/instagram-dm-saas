@@ -113,8 +113,29 @@ export interface CampaignStep {
   id: string;
   stepOrder: number;
   name: string | null;
-  messageTemplate: string;
+  messageTemplate: string | null;
   delayMinutes: number;
+  delayHours: number;
+}
+
+export interface CreateCampaignPayload {
+  name: string;
+  description?: string;
+  schedule_type: "IMMEDIATE" | "SPECIFIC_TIME";
+  scheduled_at?: string; // ISO datetime string
+  messages_per_day: number;
+  timezone: string;
+  time_frame: {
+    start: string; // "09:00"
+    end: string;   // "18:00"
+  };
+  account_ids: string[];
+  contact_ids: string[];
+  steps: Array<{
+    order: number;
+    variants: string[]; // Array of message templates
+    delay_days?: number; // Optional delay in days (follow-up only sends if no reply)
+  }>;
 }
 
 // ============================================================================

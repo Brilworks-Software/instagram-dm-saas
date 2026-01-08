@@ -25,9 +25,10 @@ export interface MessageStep {
   id: string;
   stepOrder: number;
   messageTemplate: string; // Keep for backward compatibility, but variants take precedence
-  variants?: MessageVariant[]; // Array of message variants
-  delayDays: number;
-  condition: "on_reply" | "time_based";
+  variants?: MessageVariant[]; // Array of message variants (for UI compatibility)
+  delayHours?: number; // Delay in hours (new)
+  delayDays?: number; // Keep for backward compatibility
+  condition?: "on_reply" | "time_based"; // Optional condition
 }
 
 interface MessageSequenceBuilderProps {
@@ -47,8 +48,7 @@ export function MessageSequenceBuilder({
       stepOrder: steps.length + 1,
       messageTemplate: "",
       variants: [{ id: `variant-${Date.now()}`, template: "" }],
-      delayDays: steps.length === 0 ? 0 : 1, // First step has no delay
-      condition: "time_based",
+      delayDays: steps.length === 0 ? 0 : 1, // First step has no delay, subsequent steps default to 1 day
     };
     onChange([...steps, newStep]);
   };
@@ -429,7 +429,7 @@ export function MessageSequenceBuilder({
                     <h5 className="text-sm font-medium text-foreground mb-4">
                       Follow-up Settings
                     </h5>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-4">
                       {/* Delay */}
                       <div className="space-y-2">
                         <label className="block text-sm font-medium text-foreground-muted">
@@ -437,45 +437,20 @@ export function MessageSequenceBuilder({
                         </label>
                         <input
                           type="number"
-                          min="1"
-                          value={step.delayDays}
+                          min="0"
+                          value={step.delayDays ?? (step.delayHours ? step.delayHours / 24 : 0)}
                           onChange={(e) =>
                             updateStep(step.id, {
                               delayDays: Math.max(
-                                1,
-                                parseInt(e.target.value) || 1
+                                0,
+                                parseInt(e.target.value) || 0
                               ),
                             })
                           }
                           className="w-full px-4 py-2.5 rounded-lg bg-background border border-border text-foreground focus:border-accent focus:ring-2 focus:ring-accent/20 outline-none transition-all"
                         />
                         <p className="text-xs text-foreground-subtle">
-                          Days to wait after previous message
-                        </p>
-                      </div>
-
-                      {/* Condition */}
-                      <div className="space-y-2">
-                        <label className="block text-sm font-medium text-foreground-muted">
-                          Send Condition
-                        </label>
-                        <select
-                          value={step.condition}
-                          onChange={(e) =>
-                            updateStep(step.id, {
-                              condition: e.target.value as
-                                | "on_reply"
-                                | "time_based",
-                            })
-                          }
-                          className="w-full px-4 py-2.5 rounded-lg bg-background border border-border text-foreground focus:border-accent focus:ring-2 focus:ring-accent/20 outline-none transition-all">
-                          <option value="time_based">
-                            Always send (time-based)
-                          </option>
-                          <option value="on_reply">Only if they reply</option>
-                        </select>
-                        <p className="text-xs text-foreground-subtle">
-                          When to send this follow-up
+                          Days to wait after previous message. Follow-up will only send if recipient hasn't replied.
                         </p>
                       </div>
                     </div>
@@ -483,20 +458,12 @@ export function MessageSequenceBuilder({
                     {/* Step Summary Badge */}
                     <div className="flex items-center gap-3 mt-4 p-3 rounded-lg bg-background border border-border">
                       <div className="flex items-center gap-2">
-                        <span
-                          className={cn(
-                            "text-xs font-medium px-2.5 py-1 rounded-md",
-                            step.condition === "on_reply"
-                              ? "bg-success/20 text-success border border-success/30"
-                              : "bg-accent/20 text-accent border border-accent/30"
-                          )}>
-                          {step.condition === "on_reply"
-                            ? "Conditional"
-                            : "Automatic"}
+                        <span className="text-xs font-medium px-2.5 py-1 rounded-md bg-accent/20 text-accent border border-accent/30">
+                          Auto Follow-up
                         </span>
                         <span className="text-xs text-foreground-muted">
-                          Sends after {step.delayDays} day
-                          {step.delayDays !== 1 ? "s" : ""}
+                          Sends after {step.delayDays ?? (step.delayHours ? step.delayHours / 24 : 0)} day
+                          {(step.delayDays ?? (step.delayHours ? step.delayHours / 24 : 0)) !== 1 ? "s" : ""} (if no reply)
                         </span>
                       </div>
                     </div>

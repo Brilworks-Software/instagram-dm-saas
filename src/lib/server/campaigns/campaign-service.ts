@@ -15,26 +15,85 @@ export class CampaignService {
    * Now supports multiple accounts.
    */
   async processCampaign(campaignId: string): Promise<void> {
-    // Use select to explicitly exclude sendStartTime and sendEndTime (TIME columns)
-    // that cause Prisma conversion errors. These fields are not needed for processing.
-    const campaign = await prisma.campaign.findUnique({
-      where: { id: campaignId },
-      select: {
-        id: true,
-        status: true,
-        messagesPerDay: true,
-        steps: {
-          orderBy: { stepOrder: "asc" },
-        },
-        recipients: {
-          where: {
-            status: { in: ["PENDING", "IN_PROGRESS"] },
-          },
-          include: {
-            contact: true,
-            assignedAccount: true,
-          },
-        },
+    // Fetch campaign with steps and recipients
+    // Using raw query to avoid Prisma type issues until client is regenerated
+    const campaignData = await prisma.$queryRaw<
+      Array<{
+        id: string;
+        status: string;
+        scheduledAt: Date | null;
+        messagesPerDay: number;
+      }>
+    >`
+      SELECT id, status, scheduled_at as "scheduledAt", messages_per_day as "messagesPerDay"
+      FROM campaigns
+      WHERE id = ${campaignId}::uuid
+    `;
+
+    if (!campaignData || campaignData.length === 0) {
+      throw new Error(`Campaign ${campaignId} not found`);
+    }
+
+    const campaign = campaignData[0];
+
+    // Fetch steps with variants
+    const steps = await prisma.$queryRaw<
+      Array<{
+        id: string;
+        stepOrder: number;
+        delayDays: number | null;
+        delayHours: number | null;
+        delayMinutes: number | null;
+        messageTemplate: string | null;
+      }>
+    >`
+      SELECT 
+        id,
+        step_order as "stepOrder",
+        delay_days as "delayDays",
+        delay_hours as "delayHours",
+        delay_minutes as "delayMinutes",
+        message_template as "messageTemplate"
+      FROM campaign_steps
+      WHERE campaign_id = ${campaignId}::uuid
+      ORDER BY step_order ASC
+    `;
+
+    // Fetch variants for each step
+    const stepIds = steps.map((s) => s.id);
+    const variants =
+      stepIds.length > 0
+        ? await prisma.$queryRaw<
+            Array<{
+              stepId: string;
+              messageTemplate: string;
+            }>
+          >`
+      SELECT 
+        step_id as "stepId",
+        message_template as "messageTemplate"
+      FROM step_variants
+      WHERE step_id = ANY(${stepIds}::uuid[])
+    `
+        : [];
+
+    // Group variants by step
+    const stepsWithVariants = steps.map((step) => ({
+      ...step,
+      variants: variants
+        .filter((v) => v.stepId === step.id)
+        .map((v) => ({ messageTemplate: v.messageTemplate })),
+    }));
+
+    // Fetch recipients
+    const recipients = await prisma.campaignRecipient.findMany({
+      where: {
+        campaignId: campaignId,
+        status: { in: ["PENDING", "IN_PROGRESS"] },
+      },
+      include: {
+        contact: true,
+        assignedAccount: true,
       },
     });
 
@@ -42,12 +101,36 @@ export class CampaignService {
       throw new Error(`Campaign ${campaignId} not found`);
     }
 
+    // Check if campaign is SCHEDULED and scheduledAt has passed, then update to RUNNING
+    const now = new Date();
+    if (campaign.status === "SCHEDULED" && campaign.scheduledAt) {
+      if (campaign.scheduledAt <= now) {
+        await prisma.campaign.update({
+          where: { id: campaignId },
+          data: {
+            status: "RUNNING",
+            startedAt: now,
+          },
+        });
+        // Update campaign status in memory
+        campaign.status = "RUNNING";
+      } else {
+        // Campaign is scheduled but not yet time to start
+        console.log(
+          `Campaign ${campaignId} is scheduled for ${campaign.scheduledAt}, waiting...`
+        );
+        return;
+      }
+    }
+
     if (campaign.status !== "RUNNING") {
-      console.warn(`Campaign ${campaignId} is not in RUNNING status`);
+      console.warn(
+        `Campaign ${campaignId} is not in RUNNING status (current: ${campaign.status})`
+      );
       return;
     }
 
-    if (campaign.steps.length === 0) {
+    if (stepsWithVariants.length === 0) {
       console.warn(`Campaign ${campaignId} has no steps`);
       return;
     }
@@ -59,13 +142,12 @@ export class CampaignService {
       throw new Error("No accounts assigned to campaign");
     }
 
-    const now = new Date();
     let processedCount = 0;
 
     // Process recipients assigned to each account separately
     for (const account of campaignAccounts) {
-      const accountRecipients = campaign.recipients.filter(
-        (r) => r.assignedAccountId === account.id
+      const accountRecipients = recipients.filter(
+        (r: any) => r.assignedAccountId === account.id
       );
 
       if (accountRecipients.length === 0) continue;
@@ -90,12 +172,15 @@ export class CampaignService {
       for (const recipient of accountRecipients) {
         try {
           // Check if it's time to process this recipient
-          if (recipient.nextProcessAt && recipient.nextProcessAt > now) {
+          // Support both nextActionAt (new) and nextProcessAt (backward compatibility)
+          const nextActionTime =
+            (recipient as any).nextActionAt || recipient.nextProcessAt;
+          if (nextActionTime && nextActionTime > now) {
             continue;
           }
 
-          const currentStep = campaign.steps.find(
-            (s) => s.stepOrder === recipient.currentStepOrder + 1
+          const currentStep = stepsWithVariants.find(
+            (s: any) => s.stepOrder === recipient.currentStepOrder + 1
           );
 
           if (!currentStep) {
@@ -110,27 +195,47 @@ export class CampaignService {
             continue;
           }
 
-          // Get message template (use variants if available, otherwise use messageTemplate)
-          let messageTemplate = currentStep.messageTemplate;
+          // For follow-up steps (stepOrder > 1), check if recipient has replied
+          // Only send follow-up if no reply within delay days
+          if (currentStep.stepOrder > 1 && recipient.lastProcessedAt) {
+            const hasReplied = await this.hasRecipientReplied(
+              account.id,
+              recipient.contact.id,
+              recipient.lastProcessedAt
+            );
 
-          // Check if variants exist in condition JSON
-          if (
-            currentStep.condition &&
-            typeof currentStep.condition === "object"
-          ) {
-            const condition = currentStep.condition as any;
-            if (
-              condition.variants &&
-              Array.isArray(condition.variants) &&
-              condition.variants.length > 0
-            ) {
-              // Randomly select a variant
-              const randomIndex = Math.floor(
-                Math.random() * condition.variants.length
-              );
-              messageTemplate =
-                condition.variants[randomIndex].template || messageTemplate;
+            if (hasReplied) {
+              // Recipient replied, mark as REPLIED and skip follow-up
+              await prisma.campaignRecipient.update({
+                where: { id: recipient.id },
+                data: {
+                  status: "REPLIED",
+                },
+              });
+              continue;
             }
+          }
+
+          // Get message template from variants (new approach)
+          let messageTemplate: string | null = null;
+
+          // Load variants from StepVariant table (new approach)
+          if (currentStep.variants && currentStep.variants.length > 0) {
+            // Randomly select a variant
+            const randomIndex = Math.floor(
+              Math.random() * currentStep.variants.length
+            );
+            messageTemplate = currentStep.variants[randomIndex].messageTemplate;
+          } else if (currentStep.messageTemplate) {
+            // Fallback to messageTemplate for backward compatibility
+            messageTemplate = currentStep.messageTemplate;
+          }
+
+          if (!messageTemplate) {
+            console.error(
+              `No message template found for step ${currentStep.id}`
+            );
+            continue;
           }
 
           // Personalize message template
@@ -147,22 +252,48 @@ export class CampaignService {
 
           if (result.success) {
             // Calculate next process time (delay for next step)
-            const nextStep = campaign.steps.find(
-              (s) => s.stepOrder === recipient.currentStepOrder + 2
+            const nextStep = stepsWithVariants.find(
+              (s: any) => s.stepOrder === recipient.currentStepOrder + 2
             );
-            const delayMinutes = nextStep?.delayMinutes || 0;
-            const nextProcessAt = new Date(
-              now.getTime() + delayMinutes * 60 * 1000
-            );
+            // Use delayDays (new) or fallback to delayMinutes/delayHours (backward compatibility)
+            let delayDays = 0;
+            if (nextStep) {
+              if (
+                (nextStep as any).delayDays !== null &&
+                (nextStep as any).delayDays !== undefined
+              ) {
+                delayDays = (nextStep as any).delayDays;
+              } else if (
+                (nextStep as any).delayHours !== null &&
+                (nextStep as any).delayHours !== undefined
+              ) {
+                delayDays = (nextStep as any).delayHours / 24;
+              } else if (
+                (nextStep as any).delayMinutes !== null &&
+                (nextStep as any).delayMinutes !== undefined
+              ) {
+                delayDays = (nextStep as any).delayMinutes / 1440;
+              }
+            }
+            const nextActionAt = nextStep
+              ? new Date(now.getTime() + delayDays * 24 * 60 * 60 * 1000)
+              : null;
+
+            const updateData: any = {
+              status: "IN_PROGRESS",
+              currentStepOrder: currentStep.stepOrder,
+              lastProcessedAt: now,
+              nextProcessAt: nextActionAt, // Keep for backward compatibility
+            };
+
+            // Add nextActionAt if the column exists
+            if (nextActionAt) {
+              updateData.nextActionAt = nextActionAt;
+            }
 
             await prisma.campaignRecipient.update({
               where: { id: recipient.id },
-              data: {
-                status: "IN_PROGRESS",
-                currentStepOrder: currentStep.stepOrder,
-                lastProcessedAt: now,
-                nextProcessAt: nextStep ? nextProcessAt : null,
-              },
+              data: updateData,
             });
 
             // Create message record
@@ -259,21 +390,21 @@ export class CampaignService {
       where: { campaignId },
       include: { instagramAccount: true },
     });
-    
+
     if (junctionAccounts.length > 0) {
-      return junctionAccounts.map(ca => ca.instagramAccount);
+      return junctionAccounts.map((ca) => ca.instagramAccount);
     }
-    
+
     // Fallback to legacy single account
     const campaign = await prisma.campaign.findUnique({
       where: { id: campaignId },
       include: { instagramAccount: true },
     });
-    
+
     if (campaign?.instagramAccount) {
       return [campaign.instagramAccount];
     }
-    
+
     return [];
   }
 
@@ -286,7 +417,7 @@ export class CampaignService {
       campaignId: string;
       contactId: string;
       assignedAccountId: string;
-      status: 'PENDING';
+      status: "PENDING";
       currentStepOrder: number;
     }>,
     config: ScheduleConfig
@@ -350,8 +481,8 @@ export class CampaignService {
     endTime: string,
     date: Date
   ): Date {
-    const [startHour, startMin] = startTime.split(':').map(Number);
-    const [endHour, endMin] = endTime.split(':').map(Number);
+    const [startHour, startMin] = startTime.split(":").map(Number);
+    const [endHour, endMin] = endTime.split(":").map(Number);
 
     const startMinutes = startHour * 60 + startMin;
     const endMinutes = endHour * 60 + endMin;
@@ -364,7 +495,9 @@ export class CampaignService {
 
     // Use weighted random (more messages in middle of range)
     const randomFactor = Math.random() * 0.6 + 0.2; // 0.2 to 0.8 (weighted toward middle)
-    const randomMinutes = Math.floor(startMinutes + rangeMinutes * randomFactor);
+    const randomMinutes = Math.floor(
+      startMinutes + rangeMinutes * randomFactor
+    );
 
     const scheduledTime = new Date(date);
     scheduledTime.setHours(Math.floor(randomMinutes / 60));
@@ -404,7 +537,7 @@ export class CampaignService {
    * Gets daily message count for an account
    */
   async getAccountDailyCount(accountId: string, date: Date): Promise<number> {
-    const dateStr = date.toISOString().split('T')[0]; // YYYY-MM-DD format
+    const dateStr = date.toISOString().split("T")[0]; // YYYY-MM-DD format
 
     const count = await prisma.accountDailyMessageCount.findUnique({
       where: {
@@ -421,8 +554,11 @@ export class CampaignService {
   /**
    * Increments daily message count for an account
    */
-  async incrementAccountDailyCount(accountId: string, date: Date): Promise<void> {
-    const dateStr = date.toISOString().split('T')[0]; // YYYY-MM-DD format
+  async incrementAccountDailyCount(
+    accountId: string,
+    date: Date
+  ): Promise<void> {
+    const dateStr = date.toISOString().split("T")[0]; // YYYY-MM-DD format
 
     await prisma.accountDailyMessageCount.upsert({
       where: {
@@ -448,14 +584,14 @@ export class CampaignService {
    */
   private personalizeMessage(template: string, contact: any): string {
     let message = template;
-    
+
     // Replace {{name}} with contact name or username
-    const name = contact.name || contact.igUsername || 'there';
+    const name = contact.name || contact.igUsername || "there";
     message = message.replace(/\{\{name\}\}/g, name);
-    
+
     // Replace {{username}} with Instagram username
-    message = message.replace(/\{\{username\}\}/g, contact.igUsername || '');
-    
+    message = message.replace(/\{\{username\}\}/g, contact.igUsername || "");
+
     return message;
   }
 
@@ -480,12 +616,47 @@ export class CampaignService {
         data: {
           instagramAccountId,
           contactId,
-          status: 'OPEN',
+          status: "OPEN",
         },
       });
     }
 
     return conversation.id;
+  }
+
+  /**
+   * Checks if a recipient has replied after the last campaign message was sent.
+   */
+  private async hasRecipientReplied(
+    instagramAccountId: string,
+    contactId: string,
+    lastProcessedAt: Date
+  ): Promise<boolean> {
+    const conversation = await prisma.conversation.findUnique({
+      where: {
+        instagramAccountId_contactId: {
+          instagramAccountId,
+          contactId,
+        },
+      },
+    });
+
+    if (!conversation) {
+      return false;
+    }
+
+    // Check if there are any inbound messages after the last processed time
+    const reply = await prisma.message.findFirst({
+      where: {
+        conversationId: conversation.id,
+        direction: "INBOUND",
+        sentAt: {
+          gt: lastProcessedAt,
+        },
+      },
+    });
+
+    return !!reply;
   }
 
   /**
@@ -502,16 +673,22 @@ export class CampaignService {
 
     // Decrypt cookies from accessToken field
     try {
-      const decryptedCookies = instagramCookieService.decryptCookies(account.accessToken);
+      const decryptedCookies = instagramCookieService.decryptCookies(
+        account.accessToken
+      );
       return decryptedCookies;
     } catch (error) {
-      console.error(`Failed to decrypt cookies for account ${accountId}: ${(error as Error).message}`);
+      console.error(
+        `Failed to decrypt cookies for account ${accountId}: ${
+          (error as Error).message
+        }`
+      );
       return null;
     }
   }
 
   private delay(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 }
 
