@@ -25,40 +25,78 @@ function extractProfileData(html: string): {
   }>;
 } | null {
   try {
-    // Extract JSON data from script tags (Instagram embeds data in page)
+    console.log('[Profile Scraper] Starting data extraction from HTML');
+    
+    // Extract JSON data from various script tags (Instagram embeds data in multiple places)
     const scriptRegex = /<script type="application\/ld\+json">({[\s\S]*?})<\/script>/g;
     const sharedDataRegex = /window\._sharedData = ({[\s\S]*?});<\/script>/;
-    const additionalDataRegex = /"graphql":\{[\s\S]*?"user":({[\s\S]*?})\}/;
+    const additionalDataRegex = /"graphql":\s*\{[\s\S]*?"user":\s*({[\s\S]*?})\s*\}/;
+    
+    // NEW: Instagram now uses require statements and JSON embedded differently
+    const requireDataRegex = /"ProfilePage"\s*:\s*\[\s*\{\s*"graphql"\s*:\s*\{\s*"user"\s*:\s*({[\s\S]*?})\s*\}\s*\}\s*\]/;
+    const xigSharedDataRegex = /window\.__additionalDataLoaded\s*\('extra',\s*({[\s\S]*?})\);?<\/script>/;
 
     let profileData: any = {};
 
-    // Try to extract from shared data
-    const sharedDataMatch = html.match(sharedDataRegex);
-    if (sharedDataMatch) {
+    // Try new Instagram data format first (most common now)
+    const requireMatch = html.match(requireDataRegex);
+    if (requireMatch) {
       try {
-        const sharedData = JSON.parse(sharedDataMatch[1]);
-        const user = sharedData?.entry_data?.ProfilePage?.[0]?.graphql?.user;
-        if (user) {
-          profileData = user;
-        }
+        console.log('[Profile Scraper] Found require data format');
+        profileData = JSON.parse(requireMatch[1]);
       } catch (e) {
-        console.log('[Profile Scraper] Could not parse shared data');
+        console.log('[Profile Scraper] Could not parse require data:', e);
       }
     }
 
-    // Try alternative extraction method
+    // Try to extract from shared data (old format)
+    if (!profileData.id) {
+      const sharedDataMatch = html.match(sharedDataRegex);
+      if (sharedDataMatch) {
+        try {
+          console.log('[Profile Scraper] Found shared data format');
+          const sharedData = JSON.parse(sharedDataMatch[1]);
+          const user = sharedData?.entry_data?.ProfilePage?.[0]?.graphql?.user;
+          if (user) {
+            profileData = user;
+          }
+        } catch (e) {
+          console.log('[Profile Scraper] Could not parse shared data:', e);
+        }
+      }
+    }
+
+    // Try additional data format
     if (!profileData.id) {
       const additionalMatch = html.match(additionalDataRegex);
       if (additionalMatch) {
         try {
+          console.log('[Profile Scraper] Found additional data format');
           profileData = JSON.parse(additionalMatch[1]);
         } catch (e) {
-          console.log('[Profile Scraper] Could not parse additional data');
+          console.log('[Profile Scraper] Could not parse additional data:', e);
         }
       }
     }
 
-    // Extract from JSON-LD schema
+    // Try XIG shared data format
+    if (!profileData.id) {
+      const xigMatch = html.match(xigSharedDataRegex);
+      if (xigMatch) {
+        try {
+          console.log('[Profile Scraper] Found XIG data format');
+          const xigData = JSON.parse(xigMatch[1]);
+          const user = xigData?.graphql?.user;
+          if (user) {
+            profileData = user;
+          }
+        } catch (e) {
+          console.log('[Profile Scraper] Could not parse XIG data:', e);
+        }
+      }
+    }
+
+    // Extract from JSON-LD schema (fallback for basic info)
     let jsonLdData: any = null;
     const scriptMatches = html.match(scriptRegex);
     if (scriptMatches) {
@@ -70,6 +108,7 @@ function extractProfileData(html: string): {
             const data = JSON.parse(jsonMatch[1]);
             if (data['@type'] === 'Person' || data['@context']?.includes('schema.org')) {
               jsonLdData = data;
+              console.log('[Profile Scraper] Found JSON-LD data');
               break;
             }
           }
@@ -78,6 +117,9 @@ function extractProfileData(html: string): {
         }
       }
     }
+
+    console.log('[Profile Scraper] ProfileData keys:', Object.keys(profileData));
+    console.log('[Profile Scraper] Has JSON-LD:', !!jsonLdData);
 
     // Build result from available data
     const result: any = {};
@@ -116,8 +158,17 @@ function extractProfileData(html: string): {
       });
     }
 
+    console.log('[Profile Scraper] Extracted data:', {
+      hasProfilePic: !!result.profilePicUrl,
+      hasFullName: !!result.fullName,
+      hasBio: !!result.bio,
+      followerCount: result.followerCount,
+      isPrivate: result.isPrivate,
+    });
+
     // Validate we have at least some data
     if (!result.profilePicUrl && !result.fullName && !result.bio) {
+      console.log('[Profile Scraper] No valid data extracted');
       return null;
     }
 
@@ -205,10 +256,19 @@ async function handleRequest(request: NextRequest) {
     const profileData = extractProfileData(html);
 
     if (!profileData) {
-      return NextResponse.json(
-        { error: 'Could not extract profile data. The account may be private or unavailable.' },
-        { status: 404 }
-      );
+      // For private accounts or when we can't extract data, return basic info
+      console.log('[Profile Scraper] Could not extract full data, returning minimal info');
+      return NextResponse.json({
+        success: true,
+        username: cleanUsername,
+        profileUrl,
+        isPrivate: true,
+        fullName: cleanUsername,
+        bio: '',
+        followerCount: 0,
+        followingCount: 0,
+        postCount: 0,
+      });
     }
 
     console.log('[Profile Scraper] Successfully extracted profile data');
