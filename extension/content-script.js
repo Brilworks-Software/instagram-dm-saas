@@ -3,6 +3,14 @@
 
 console.log('Socialora content script loaded');
 
+// Announce to the page that the content script is present (helps debug injection)
+try {
+  window.postMessage({ type: 'SOCIALORA_CONTENT_SCRIPT_LOADED', timestamp: Date.now() }, window.location.origin);
+  console.log('Content script: announced presence to page via window.postMessage');
+} catch (e) {
+  console.warn('Content script: could not announce presence to page', e);
+}
+
 // Signal that content script is ready (send to background, which can notify popup)
 chrome.runtime.sendMessage({ type: 'CONTENT_SCRIPT_READY', tabId: null }, (response) => {
   if (chrome.runtime.lastError) {
@@ -16,6 +24,21 @@ chrome.runtime.sendMessage({ type: 'CONTENT_SCRIPT_READY', tabId: null }, (respo
 window.addEventListener('message', (event) => {
   // Only accept messages from same origin
   if (event.origin !== window.location.origin) {
+    return;
+  }
+
+  // Respond to pings from the page (debug helper to verify content script injection)
+  if (event.data && event.data.type === 'SOCIALORA_PING') {
+    console.log('Content script: received PING from page', { origin: event.origin });
+    try {
+      const resp = { type: 'SOCIALORA_PONG', timestamp: Date.now() };
+      window.postMessage(resp, window.location.origin);
+      // Also dispatch a DOM event for page listeners
+      window.dispatchEvent(new CustomEvent('socialora_pong', { detail: resp }));
+      console.log('Content script: replied PONG to page');
+    } catch (err) {
+      console.warn('Content script: failed to reply PONG', err);
+    }
     return;
   }
   
@@ -57,6 +80,64 @@ window.addEventListener('message', (event) => {
         console.warn('Content script: Cookies not found in chrome.storage.local for key:', key);
       }
     });
+  }
+
+  // Handle DM job sent from the web app -> forward to extension background for execution
+  // Expected shape from page: { type: 'SOCIALORA_RUN_DM_JOB', job: { id, recipientUsername, message, ... } }
+  if (event.data && event.data.type === 'SOCIALORA_RUN_DM_JOB') {
+    const job = event.data.job || {};
+    const jobId = job.id || null;
+    const username = job.recipientUsername || job.recipient || job.recipient_username || job.recipientUserId || '';
+    const dmMessage = job.message || '';
+
+    console.log('Content script: Received DM job from page', { jobId, username, msgLen: (dmMessage || '').length, job });
+
+    // Notify page that we accepted the job and will attempt to run it
+    try {
+      const acceptedPayload = { type: 'SOCIALORA_JOB_STATUS', jobId, status: 'accepted', detail: 'Forwarding to extension' };
+      window.postMessage(acceptedPayload, window.location.origin);
+      // Also dispatch a DOM event for page listeners
+      window.dispatchEvent(new CustomEvent('socialora_job_status', { detail: acceptedPayload }));
+    } catch (err) {
+      console.warn('Content script: Failed to post accepted status to page', err);
+    }
+
+    // Forward to background to run the cold-DM automation
+    try {
+      console.log('Content script: Forwarding job to background RUN_COLD_DM', { jobId, username });
+      chrome.runtime.sendMessage({ type: 'RUN_COLD_DM', username, dmMessage, jobId }, (response) => {
+        if (chrome.runtime.lastError) {
+          console.error('Content script: chrome.runtime.sendMessage lastError', chrome.runtime.lastError);
+        }
+
+        // Compose a friendly status payload to send back to the page
+        const statusPayload = {
+          type: 'SOCIALORA_JOB_STATUS',
+          jobId,
+          status: response && (response.status === 'success' || response.success) ? 'sent' : 'failed',
+          response: response || null,
+        };
+
+        console.log('Content script: RUN_COLD_DM response -> posting back to page', statusPayload);
+
+        try {
+          window.postMessage(statusPayload, window.location.origin);
+        } catch (postErr) {
+          console.warn('Content script: Failed to post RUN_COLD_DM response to page', postErr);
+        }
+
+        try {
+          window.dispatchEvent(new CustomEvent('socialora_job_status', { detail: statusPayload }));
+        } catch (evErr) {
+          console.warn('Content script: Failed to dispatch socialora_job_status event', evErr);
+        }
+      });
+    } catch (sendErr) {
+      console.error('Content script: Failed to send RUN_COLD_DM to background', sendErr);
+      const failPayload = { type: 'SOCIALORA_JOB_STATUS', jobId, status: 'failed', response: { error: sendErr && sendErr.message } };
+      try { window.postMessage(failPayload, window.location.origin); } catch (_) {}
+      try { window.dispatchEvent(new CustomEvent('socialora_job_status', { detail: failPayload })); } catch (_) {}
+    }
   }
 });
 
@@ -138,6 +219,20 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       console.error('Error details:', e.message, e.stack);
       sendResponse({ success: false, error: e.message });
       return true;
+    }
+
+    // Forward RUN_COLD_DM_STATUS messages from background to the page for debugging
+    if (message.type === 'RUN_COLD_DM_STATUS') {
+      try {
+        console.log('Content script: forwarding RUN_COLD_DM_STATUS to page', message);
+        const payload = Object.assign({}, message);
+        window.postMessage(payload, window.location.origin);
+        try { window.dispatchEvent(new CustomEvent('socialora_job_status', { detail: payload })); } catch (e) { console.warn('Content script: dispatch error', e); }
+      } catch (e) {
+        console.warn('Content script: failed to forward RUN_COLD_DM_STATUS', e);
+      }
+      // No response expected
+      return false;
     }
   }
   

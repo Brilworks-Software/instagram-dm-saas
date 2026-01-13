@@ -389,6 +389,39 @@ if (stopBtn) {
   stopBtn.addEventListener("click", stopConnection);
 }
 
+// Quick DM test (debug) — triggers the background RUN_COLD_DM flow
+const sendDmBtn = document.getElementById('send-dm-btn');
+if (sendDmBtn) {
+  sendDmBtn.addEventListener('click', () => {
+    const usernameEl = document.getElementById('dm-username');
+    const messageEl = document.getElementById('dm-message');
+    const username = usernameEl ? usernameEl.value.trim() : '';
+    const dmMessage = messageEl ? messageEl.value : '';
+
+    if (!username) {
+      alert('Please enter a target username to test DM.');
+      return;
+    }
+
+    // Send message to background to run the automation script
+    chrome.runtime.sendMessage({ type: 'RUN_COLD_DM', username, dmMessage }, (response) => {
+      if (chrome.runtime.lastError) {
+        console.error('RUN_COLD_DM error:', chrome.runtime.lastError);
+        alert('Error: ' + chrome.runtime.lastError.message);
+        return;
+      }
+      console.log('RUN_COLD_DM response:', response);
+      if (response && response.status === 'success') {
+        alert('Automation started — check Instagram tab and extension console for logs.');
+      } else if (response && response.error) {
+        alert('Failed: ' + response.error);
+      } else {
+        alert('Command sent; check console for details.');
+      }
+    });
+  });
+}
+
 
 // ---------------------------------------------------------------------------
 // Statistics fetching

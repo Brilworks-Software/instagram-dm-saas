@@ -532,6 +532,112 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   }
 
+  // Run the cold-DM automation script on the Instagram tab.
+  // Expects: { type: 'RUN_COLD_DM', username: string, message: string }
+  if (message.type === 'RUN_COLD_DM') {
+    (async () => {
+      console.log('Background: RUN_COLD_DM received', { username: message.username, jobId: message.jobId, dmMessageLen: (message.dmMessage || message.message || '').length });
+      try {
+        // Get stored Instagram tab id (if any)
+        const stored = await new Promise((resolve) => {
+          chrome.storage.local.get(['socialora_instagram_tab_id'], resolve);
+        });
+
+        let tabId = stored.socialora_instagram_tab_id;
+
+        // If no tab exists, create a background Instagram tab
+        if (!tabId) {
+          const tab = await chrome.tabs.create({ url: 'https://www.instagram.com/', active: false });
+          tabId = tab.id;
+          chrome.storage.local.set({ socialora_instagram_tab_id: tabId });
+        }
+
+        // If a username was provided, navigate the Instagram tab to that profile
+        if (message.username) {
+          try {
+            // Notify listeners that navigation is starting
+            try { chrome.runtime.sendMessage({ type: 'RUN_COLD_DM_STATUS', jobId: message.jobId, status: 'navigating', username: message.username }); } catch (_) {}
+            const profileUrl = `https://www.instagram.com/${encodeURIComponent(message.username)}/`;
+            await chrome.tabs.update(tabId, { url: profileUrl, active: false });
+
+            // Wait for navigation to complete (best-effort, timeout after ~8s)
+            await new Promise((resolve) => {
+              const timeout = setTimeout(() => {
+                chrome.tabs.onUpdated.removeListener(listener);
+                resolve();
+              }, 8000);
+
+              const listener = (updatedTabId, changeInfo) => {
+                if (updatedTabId === tabId && changeInfo.status === 'complete') {
+                  clearTimeout(timeout);
+                  chrome.tabs.onUpdated.removeListener(listener);
+                  resolve();
+                }
+              };
+
+              chrome.tabs.onUpdated.addListener(listener);
+            });
+          } catch (e) {
+            // Non-fatal; proceed to inject script anyway
+            console.warn('Failed to navigate to profile:', e && e.message);
+            try { chrome.runtime.sendMessage({ type: 'RUN_COLD_DM_STATUS', jobId: message.jobId, status: 'navigation_failed', error: e && e.message }); } catch (_) {}
+          }
+        }
+
+        // Inject the automation script into the Instagram page
+        try { chrome.runtime.sendMessage({ type: 'RUN_COLD_DM_STATUS', jobId: message.jobId, status: 'injecting' }); } catch (_) {}
+        await chrome.scripting.executeScript({
+          target: { tabId },
+          files: ['automation-script.js'],
+        });
+
+        // Small delay to allow the injected script to register its message listener
+        await new Promise((resolve) => setTimeout(resolve, 250));
+
+        // Send the execution command to the injected script
+        try { chrome.runtime.sendMessage({ type: 'RUN_COLD_DM_STATUS', jobId: message.jobId, status: 'executing' }); } catch (_) {}
+        chrome.tabs.sendMessage(
+          tabId,
+          {
+            action: 'EXECUTE_COLD_DM',
+            username: message.username,
+            message: message.dmMessage || message.message || '',
+            jobId: message.jobId || null,
+          },
+          (response) => {
+            if (chrome.runtime.lastError) {
+              const errMsg = chrome.runtime.lastError.message || '';
+              // In some cases the receiver doesn't call sendResponse and the port closes
+              // with this message. Treat that as a non-fatal warning (message was
+              // likely delivered) but surface other errors.
+              console.error('Background: chrome.tabs.sendMessage error:', errMsg);
+              if (errMsg.includes('closed before a response')) {
+                try { chrome.runtime.sendMessage({ type: 'RUN_COLD_DM_STATUS', jobId: message.jobId, status: 'warning', warning: errMsg }); } catch (_) {}
+                sendResponse({ success: true, warning: errMsg });
+              } else if (errMsg.includes('Could not establish connection')) {
+                try { chrome.runtime.sendMessage({ type: 'RUN_COLD_DM_STATUS', jobId: message.jobId, status: 'failed', error: errMsg }); } catch (_) {}
+                // No receiver at all — likely injection failed or content script
+                // couldn't run in time.
+                sendResponse({ success: false, error: errMsg });
+              } else {
+                try { chrome.runtime.sendMessage({ type: 'RUN_COLD_DM_STATUS', jobId: message.jobId, status: 'failed', error: errMsg }); } catch (_) {}
+                sendResponse({ success: false, error: errMsg });
+              }
+            } else {
+              try { chrome.runtime.sendMessage({ type: 'RUN_COLD_DM_STATUS', jobId: message.jobId, status: 'script_response', response }); } catch (_) {}
+              console.log('Background: automation script response', { response });
+              sendResponse(response || { success: true });
+            }
+          }
+        );
+      } catch (err) {
+        console.error('Background: RUN_COLD_DM top-level error', err);
+        sendResponse({ success: false, error: err.message });
+      }
+    })();
+    return true; // keep channel open for async sendResponse
+  }
+
   return false;
 });
 
