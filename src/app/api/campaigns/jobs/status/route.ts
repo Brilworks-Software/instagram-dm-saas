@@ -6,9 +6,9 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { jobId, igMessageId, sentAt } = body;
 
-    if (!jobId || !igMessageId) {
+    if (!jobId) {
       return NextResponse.json(
-        { success: false, error: "jobId and igMessageId are required" },
+        { success: false, error: "jobId is required" },
         { status: 400 }
       );
     }
@@ -74,13 +74,26 @@ export async function POST(req: NextRequest) {
       });
 
       // ----------------------------------------------
-      // 2.3 CONVERSATION (UPSERT)
+      // 2.3 CONVERSATION (UPSERT) - Ensure contactId is UUID
       // ----------------------------------------------
+      // Fetch the Contact record using the Instagram user ID (job.recipientUserId)
+      if (!job.recipientUserId) {
+        throw new Error("recipientUserId is required and must be a string");
+      }
+      const contact = await tx.contact.findFirst({
+        where: {
+          igUserId: job.recipientUserId,
+          workspaceId: job.workspaceId,
+        },
+      });
+      if (!contact) {
+        throw new Error("Contact not found for given Instagram user ID");
+      }
       const conversation = await tx.conversation.upsert({
         where: {
           instagramAccountId_contactId: {
             instagramAccountId: job.senderInstagramAccountId!,
-            contactId: job.recipientUserId!,
+            contactId: contact.id,
           },
         },
         update: {
@@ -88,7 +101,7 @@ export async function POST(req: NextRequest) {
         },
         create: {
           instagramAccountId: job.senderInstagramAccountId!,
-          contactId: job.recipientUserId!,
+          contactId: contact.id,
           status: "OPEN",
           lastMessageAt: now,
         },
@@ -109,7 +122,7 @@ export async function POST(req: NextRequest) {
 
       await tx.message.create({
         data: {
-          igMessageId: igMessageId,
+          igMessageId: igMessageId ?? null,
           content: messageContent ?? "",
           direction: "OUTBOUND",
           status: "SENT",
