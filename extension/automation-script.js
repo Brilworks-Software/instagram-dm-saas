@@ -616,7 +616,7 @@ function waitForElement(selector, predicate = null, timeout = 10000) {
                 }
             }
             if (Date.now() - startTime > timeout) resolve(null);
-            else requestAnimationFrame(check);
+            else setTimeout(check, 100); // Use setTimeout instead of requestAnimationFrame for background tab compatibility
         };
         check();
     });

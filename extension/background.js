@@ -911,7 +911,7 @@ async function processNextDMJob() {
     console.log(`📝 Recipient: ${currentJob.recipient}`);
     console.log(`💬 Message: ${currentJob.message}`);
     
-    // Find or create Instagram DM tab (in background, not focused)
+    // Find or create Instagram DM tab
     const tab = await getOrCreateInstagramTab();
     
     if (!tab) {
@@ -921,6 +921,17 @@ async function processNextDMJob() {
     }
     
     console.log(`📱 Using tab ID: ${tab.id} (${tab.url})`);
+    
+    // Activate the tab temporarily to ensure Instagram's React app is fully initialized
+    // This is necessary because background tabs may have throttled JavaScript execution
+    try {
+      await chrome.tabs.update(tab.id, { active: true });
+      console.log('   Tab activated for processing');
+      // Wait a bit for the tab to fully initialize
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    } catch (e) {
+      console.warn('   Could not activate tab, continuing anyway:', e);
+    }
     
     // Send EXECUTE_COLD_DM to automation-script.js
     const messageSuccess = await sendMessageWithRetry(
@@ -937,6 +948,12 @@ async function processNextDMJob() {
     
     if (!messageSuccess) {
       console.error('❌ Content script not responding after retries');
+      // Ensure tab is deactivated
+      try {
+        await chrome.tabs.update(tab.id, { active: false });
+      } catch (e) {
+        // Ignore errors
+      }
       console.log('🔁 Retrying job in', RETRY_DELAY_MINS, 'minute(s)...');
       scheduleNextJob(RETRY_DELAY_MINS);
       return;
@@ -1072,6 +1089,14 @@ async function sendMessageWithRetry(tabId, message, maxRetries, retryDelay) {
           dmProcessedCount: newProcessedCount
         });
         
+        // Deactivate the tab after processing to keep it in background
+        try {
+          await chrome.tabs.update(tabId, { active: false });
+          console.log('   Tab deactivated after processing');
+        } catch (e) {
+          // Ignore errors when deactivating
+        }
+        
         // Calculate random delay for next job (human-like behavior)
         const randomDelay = MIN_DELAY_MINS + (Math.random() * JITTER_MINS);
         console.log(`⏰ Next job scheduled in ${randomDelay.toFixed(2)} minutes`);
@@ -1080,7 +1105,13 @@ async function sendMessageWithRetry(tabId, message, maxRetries, retryDelay) {
         scheduleNextJob(randomDelay);
         return true;
       } else {
-        // Error from content script
+        // Error from content script - deactivate tab before retrying
+        try {
+          await chrome.tabs.update(tabId, { active: false });
+        } catch (e) {
+          // Ignore errors
+        }
+        
         console.error('❌ Content script reported error:', response.message || 'Unknown error');
         console.log('🔁 Retrying in', RETRY_DELAY_MINS, 'minute(s)...');
         scheduleNextJob(RETRY_DELAY_MINS);
@@ -1095,17 +1126,30 @@ async function sendMessageWithRetry(tabId, message, maxRetries, retryDelay) {
         await new Promise(resolve => setTimeout(resolve, retryDelay));
       } else {
         console.error('❌ All retry attempts exhausted');
+        // Deactivate tab before returning
+        try {
+          await chrome.tabs.update(tabId, { active: false });
+        } catch (e) {
+          // Ignore errors
+        }
         return false;
       }
     }
+  }
+  
+  // If we get here, all retries failed - deactivate tab
+  try {
+    await chrome.tabs.update(tabId, { active: false });
+  } catch (e) {
+    // Ignore errors
   }
   
   return false;
 }
 
 /**
- * Find existing Instagram tab or create new one in background
- * Uses active: false to keep tab unfocused and pinned: true to persist it
+ * Find existing Instagram tab or create new one
+ * Tab will be activated when needed for processing
  */
 async function getOrCreateInstagramTab() {
   try {
@@ -1119,7 +1163,7 @@ async function getOrCreateInstagramTab() {
       // Check if tab is on the inbox URL
       if (!tab.url || !tab.url.includes('/direct/inbox/')) {
         console.log('   Tab not on inbox URL, redirecting to:', INSTAGRAM_DM_URL);
-        await chrome.tabs.update(tab.id, { url: INSTAGRAM_DM_URL, active: false, pinned: true });
+        await chrome.tabs.update(tab.id, { url: INSTAGRAM_DM_URL, pinned: true });
         await waitForTabLoad(tab.id);
       } else if (tab.status !== 'complete') {
         console.log('   Tab still loading, waiting...');
@@ -1129,11 +1173,10 @@ async function getOrCreateInstagramTab() {
       return tab;
     }
     
-    // No Instagram tab found, create one in background
-    console.log('📱 Creating new Instagram tab in background...');
+    // No Instagram tab found, create one
+    console.log('📱 Creating new Instagram tab...');
     const tab = await chrome.tabs.create({
       url: INSTAGRAM_DM_URL,
-      active: false, // Don't focus the tab
       pinned: true   // Pin it to keep it persistent
     });
     
