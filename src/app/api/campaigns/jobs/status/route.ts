@@ -38,9 +38,7 @@ export async function POST(req: NextRequest) {
     await prisma.$transaction(async (tx) => {
       const now = sentAt ? new Date(sentAt) : new Date();
 
-      // ----------------------------------------------
       // 2.1 MARK JOB COMPLETED
-      // ----------------------------------------------
       await tx.jobQueue.update({
         where: { id: job.id },
         data: {
@@ -49,12 +47,9 @@ export async function POST(req: NextRequest) {
         },
       });
 
-      // ----------------------------------------------
       // 2.2 DAILY MESSAGE COUNT
-      // ----------------------------------------------
       const today = new Date(now);
       today.setHours(0, 0, 0, 0);
-
       await tx.accountDailyMessageCount.upsert({
         where: {
           instagramAccountId_date: {
@@ -73,10 +68,7 @@ export async function POST(req: NextRequest) {
         },
       });
 
-      // ----------------------------------------------
-      // 2.3 CONVERSATION (UPSERT) - Ensure contactId is UUID
-      // ----------------------------------------------
-      // Fetch the Contact record using the Instagram user ID (job.recipientUserId)
+      // 2.3 CONVERSATION (UPSERT)
       if (!job.recipientUserId) {
         throw new Error("recipientUserId is required and must be a string");
       }
@@ -107,10 +99,7 @@ export async function POST(req: NextRequest) {
         },
       });
 
-      // ----------------------------------------------
       // 2.4 INSERT MESSAGE
-      // ----------------------------------------------
-      // Safely extract message and step_id from job.payload
       let messageContent: string | undefined = undefined;
       let campaignStepId: string | undefined = undefined;
       if (job.payload && typeof job.payload === "object" && job.payload !== null) {
@@ -119,7 +108,6 @@ export async function POST(req: NextRequest) {
         // @ts-ignore
         campaignStepId = job.payload.step_id;
       }
-
       await tx.message.create({
         data: {
           igMessageId: igMessageId ?? null,
@@ -132,9 +120,7 @@ export async function POST(req: NextRequest) {
         },
       });
 
-      // ----------------------------------------------
       // 2.5 UPDATE RECIPIENT
-      // ----------------------------------------------
       await tx.campaignRecipient.update({
         where: { id: job.leadId },
         data: {
@@ -142,9 +128,7 @@ export async function POST(req: NextRequest) {
         },
       });
 
-      // ----------------------------------------------
       // 2.6 UPDATE CAMPAIGN COUNTERS
-      // ----------------------------------------------
       await tx.campaign.update({
         where: { id: job.campaignId },
         data: {
@@ -152,6 +136,24 @@ export async function POST(req: NextRequest) {
           updatedAt: now,
         },
       });
+
+      // 2.7 CHECK IF ALL JOBS ARE COMPLETED FOR THIS CAMPAIGN
+      const remainingJobs = await tx.jobQueue.count({
+        where: {
+          campaignId: job.campaignId,
+          status: { not: "COMPLETED" },
+        },
+      });
+      if (remainingJobs === 0) {
+        await tx.campaign.update({
+          where: { id: job.campaignId },
+          data: {
+            status: "COMPLETED",
+            completedAt: now,
+            updatedAt: now,
+          },
+        });
+      }
     });
 
     return NextResponse.json({ success: true });

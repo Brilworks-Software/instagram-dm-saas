@@ -3,6 +3,7 @@
 export const dynamic = 'force-dynamic';
 
 import { useState } from "react";
+import { toast } from "sonner";
 import { Plus, Send, Instagram, AlertCircle } from "lucide-react";
 import { Header } from '@/components/layout/header';
 import { Button } from "@/components/ui/button";
@@ -17,11 +18,12 @@ import { CampaignStats } from "@/components/campaigns/campaign-stats";
 import { CampaignListItem } from "@/components/campaigns/campaign-list-item";
 import { getUserTimezone } from "@/lib/campaigns/timezones";
 
+
 export default function CampaignsPage() {
   const { capture } = usePostHog();
-  const { campaigns, accounts, contacts, leads, isLoading, refetch } =
-    useCampaignsData();
+  const { campaigns, accounts, contacts, leads, isLoading, refetch } = useCampaignsData();
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const handleCreateCampaign = async (campaignData: NewCampaignData) => {
     // Convert time format from HH:mm:ss to HH:mm for time_frame
@@ -100,7 +102,7 @@ export default function CampaignsPage() {
     });
 
     refetch();
-    alert(
+    toast.success(
       `Campaign "${campaignData.name}" created successfully with ${totalRecipients} recipients!`
     );
   };
@@ -225,14 +227,20 @@ export default function CampaignsPage() {
 
   const handleDeleteCampaign = async (campaignId: string) => {
     if (!confirm("Are you sure you want to delete this campaign?")) return;
-
+    setDeletingId(campaignId);
     try {
-      const { createClient } = await import("@/lib/supabase/client");
-      const supabase = createClient();
-      await supabase.from("campaigns").delete().eq("id", campaignId);
+      const response = await fetch(`/api/campaigns?id=${campaignId}`, {
+        method: "DELETE",
+      });
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || "Failed to delete campaign");
+      }
       refetch();
     } catch (error) {
       console.error("Error deleting campaign:", error);
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -295,15 +303,27 @@ export default function CampaignsPage() {
         ) : campaigns?.length ? (
           <div className="space-y-4">
             {campaigns.map((campaign, index) => (
-              <CampaignListItem
-                key={campaign.id}
-                campaign={
-                  campaign as Campaign & { instagramUsername?: string | null }
-                }
-                onStatusUpdate={handleUpdateStatus}
-                onDelete={handleDeleteCampaign}
-                index={index}
-              />
+              <div key={campaign.id} className="relative">
+                <CampaignListItem
+                  campaign={
+                    campaign as Campaign & { instagramUsername?: string | null }
+                  }
+                  onStatusUpdate={handleUpdateStatus}
+                  onDelete={handleDeleteCampaign}
+                  index={index}
+                />
+                {deletingId === campaign.id && (
+                  <div className="absolute inset-0 bg-background/70 flex items-center justify-center z-10 rounded-xl">
+                    <div className="flex flex-col items-center gap-2">
+                      <svg className="animate-spin h-8 w-8 text-accent" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                      </svg>
+                      <span className="text-sm text-foreground-muted">Deleting...</span>
+                    </div>
+                  </div>
+                )}
+              </div>
             ))}
           </div>
         ) : (
