@@ -1,7 +1,54 @@
-import { NextRequest } from 'next/server';
-import { requireAuth } from '@/lib/server/auth';
-import { prisma } from '@/lib/server/prisma/client';
-import { campaignService } from '@/lib/server/campaigns/campaign-service';
+import { NextRequest } from "next/server";
+import { prisma } from "@/lib/server/prisma/client";
+import { requireAuth } from "@/lib/server/auth";
+
+// DELETE /api/campaigns?id=campaignId
+export async function DELETE(request: NextRequest) {
+  try {
+    const auth = await requireAuth(request);
+    if (auth instanceof Response) return auth;
+
+    const { searchParams } = new URL(request.url);
+    const campaignId = searchParams.get("id");
+    if (!campaignId) {
+      return Response.json({ success: false, error: "Campaign id is required" }, { status: 400 });
+    }
+
+    // Check campaign belongs to workspace
+    const campaign = await prisma.campaign.findUnique({
+      where: { id: campaignId },
+      select: { id: true, workspaceId: true },
+    });
+    if (!campaign || campaign.workspaceId !== auth.workspaceId) {
+      return Response.json({ success: false, error: "Campaign not found or unauthorized" }, { status: 404 });
+    }
+
+    // Delete all related data (order matters due to FKs)
+    // 1. campaign_accounts
+    await prisma.campaignAccount.deleteMany({ where: { campaignId } });
+    // 2. campaign_steps and step_variants
+    const steps = await prisma.campaignStep.findMany({ where: { campaignId }, select: { id: true } });
+    const stepIds = steps.map((s: { id: string }) => s.id);
+    if (stepIds.length > 0) {
+      await prisma.stepVariant.deleteMany({ where: { stepId: { in: stepIds } } });
+      await prisma.campaignStep.deleteMany({ where: { id: { in: stepIds } } });
+    }
+    // 3. campaign_recipients (and job_queue)
+    const recipients = await prisma.campaignRecipient.findMany({ where: { campaignId }, select: { id: true } });
+    const recipientIds = recipients.map((r: { id: string }) => r.id);
+    if (recipientIds.length > 0) {
+      await prisma.jobQueue.deleteMany({ where: { leadId: { in: recipientIds } } });
+      await prisma.campaignRecipient.deleteMany({ where: { id: { in: recipientIds } } });
+    }
+    // 4. campaign itself
+    await prisma.campaign.delete({ where: { id: campaignId } });
+
+    return Response.json({ success: true });
+  } catch (error: any) {
+    console.error("Failed to delete campaign:", error);
+    return Response.json({ success: false, error: error?.message || "Failed to delete campaign" }, { status: 500 });
+  }
+}
 
 /**
  * Validates and normalizes a time string to PostgreSQL TIME format (HH:mm:ss)
@@ -258,7 +305,7 @@ export async function POST(request: NextRequest) {
         name: name.trim(),
         description: description?.trim() || null,
         workspaceId: auth.workspaceId,
-        status: "SCHEDULED", // New campaigns start as SCHEDULED
+        status: schedule_type === "IMMEDIATE" ? "RUNNING" : "SCHEDULED", // New campaigns start as RUNNING if immediate, otherwise SCHEDULED
         scheduledAt: scheduledDateTime,
         timezone: timezone || "America/New_York",
         messagesPerDay: messages_per_day || 10,
@@ -460,8 +507,8 @@ export async function GET(request: NextRequest) {
 
     // Get account usernames for campaigns
     const accountIds = campaigns
-      .map((c) => c.instagram_account_id)
-      .filter((id): id is string => id !== null);
+  .map((c: { instagram_account_id: string | null }) => c.instagram_account_id)
+  .filter((id: string | null): id is string => id !== null);
 
     const accounts =
       accountIds.length > 0
@@ -476,10 +523,10 @@ export async function GET(request: NextRequest) {
           })
         : [];
 
-    const accountMap = new Map(accounts.map((a) => [a.id, a.igUsername]));
+  const accountMap = new Map(accounts.map((a: { id: string, igUsername: string }) => [a.id, a.igUsername]));
 
     // Transform campaigns to match frontend expectations
-    const transformedCampaigns = campaigns.map((campaign) => ({
+  const transformedCampaigns = campaigns.map((campaign: any) => ({
       id: campaign.id,
       name: campaign.name,
       description: campaign.description,

@@ -571,3 +571,38 @@ model ToolUsage {
   @@index([createdAt])
   @@map("tool_usage")
 }
+
+model JobQueue {
+  id        String   @id @default(uuid())
+
+  workspaceId String @map("workspace_id")
+  campaignId  String @map("campaign_id")
+  leadId      String @map("lead_id")
+
+  // Required (matches NOT NULL)
+  senderUsername String @map("sender_username")
+  jobType        String @map("job_type")
+  payload        Json
+  scheduledAt    DateTime @map("scheduled_at")
+  status         String   @default("QUEUED")
+
+  // Optional snapshots (NULLABLE in Supabase)
+  senderInstagramAccountId String? @map("sender_instagram_account_id")
+  senderIgUserId           String? @map("sender_ig_user_id")
+  senderIgUsername         String? @map("sender_ig_username")
+
+  recipientUserId   String? @map("recipient_user_id")
+  recipientUsername String? @map("recipient_username")
+  recipientName     String? @map("recipient_name")
+
+  campaignName String? @map("campaign_name")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([campaignId])
+  @@index([workspaceId])
+  @@index([status, scheduledAt])
+  @@index([senderIgUserId])
+  @@map("job_queue")
+}

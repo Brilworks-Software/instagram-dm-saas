@@ -582,7 +582,7 @@ export class CampaignService {
   /**
    * Personalizes a message template with contact data.
    */
-  private personalizeMessage(template: string, contact: any): string {
+  public personalizeMessage(template: string, contact: any): string {
     let message = template;
 
     // Replace {{name}} with contact name or username

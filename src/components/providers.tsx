@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { PostHogProvider } from '@/lib/posthog';
 import { Toaster } from '@/components/ui/toast';
+import JobPoller from '@/components/JobPoller';
 
 // Load and apply appearance preferences on app startup
 function AppearanceLoader() {
@@ -78,6 +79,7 @@ function AppearanceLoader() {
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <PostHogProvider>
+      <JobPoller />
       <AppearanceLoader />
       {children}
       <Toaster />

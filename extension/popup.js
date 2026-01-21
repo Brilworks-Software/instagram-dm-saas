@@ -122,7 +122,7 @@ function setButtonsDisabled(disabled) {
   if (stopBtn) stopBtn.disabled = disabled;
 }
 
-function applyStateToUI(state, user, error, tabOpen = false) {
+function applyStateToUI(state, user, error, tabOpen = false, isQueueActive = false) {
   hideAllStatus();
 
   if (state === STATE_IDLE) {
@@ -140,11 +140,13 @@ function applyStateToUI(state, user, error, tabOpen = false) {
     showStatus(statusConnecting);
     instructions.classList.add("hidden");
   } else if (state === STATE_CONNECTED) {
-    // If tab is open, show "PRESS TO STOP", otherwise show "PRESS TO START"
-    if (tabOpen) {
+    // If queue is active, show STOP button; otherwise show START button
+    if (isQueueActive) {
       grabBtn.classList.add("hidden");
-      if (stopBtn) stopBtn.classList.remove("hidden");
-      stopBtn.textContent = "PRESS TO STOP";
+      if (stopBtn) {
+        stopBtn.classList.remove("hidden");
+        stopBtn.textContent = "PRESS TO STOP";
+      }
     } else {
       grabBtn.classList.remove("hidden");
       if (stopBtn) stopBtn.classList.add("hidden");
@@ -176,11 +178,12 @@ function applyStateToUI(state, user, error, tabOpen = false) {
 
 function loadStateAndRender() {
   chrome.storage.local.get(
-    ["socialora_connection_state", "socialora_connected_user", "socialora_instagram_tab_id"],
+    ["socialora_connection_state", "socialora_connected_user", "socialora_instagram_tab_id", "isDMQueueActive"],
     async (result) => {
       const state = result.socialora_connection_state || STATE_IDLE;
       const user = result.socialora_connected_user || null;
       const tabId = result.socialora_instagram_tab_id || null;
+      const isQueueActive = result.isDMQueueActive || false;
       
       // Check if tab is still open
       let tabOpen = false;
@@ -201,7 +204,7 @@ function loadStateAndRender() {
         }
       }
       
-      applyStateToUI(state, user, null, tabOpen);
+      applyStateToUI(state, user, null, tabOpen, isQueueActive);
 
       // Load profile picture if user is connected
       if (user && user.profilePicUrl) {
@@ -268,17 +271,80 @@ async function ensureConsent() {
 
 async function startConnection() {
   const ok = await ensureConsent();
-  if (!ok) return;
+  if (!ok) {
+    // Re-enable buttons if consent was declined
+    setButtonsDisabled(false);
+    return;
+  }
 
+  // Check if user is already connected
+  const storageData = await new Promise((resolve) => {
+    chrome.storage.local.get(['socialora_connection_state', 'socialora_connected_user', 'isDMQueueActive'], resolve);
+  });
+  
+  // If user is already connected, just start job polling
+  if (storageData.socialora_connection_state === STATE_CONNECTED && storageData.socialora_connected_user) {
+    // Check if polling is already active
+    if (storageData.isDMQueueActive) {
+      console.log('Job polling is already active');
+      setButtonsDisabled(false);
+      return;
+    }
+    
+    setButtonsDisabled(true);
+    
+    // Set timeout to re-enable buttons if no response
+    const timeoutId = setTimeout(() => {
+      console.warn('START_JOB_POLLING timeout - re-enabling buttons');
+      setButtonsDisabled(false);
+    }, 5000);
+    
+    chrome.runtime.sendMessage({ type: "START_JOB_POLLING" }, (pollResponse) => {
+      clearTimeout(timeoutId);
+      setButtonsDisabled(false);
+      
+      if (chrome.runtime.lastError) {
+        console.error('Failed to start job polling:', chrome.runtime.lastError.message);
+        // Reload state to sync UI
+        loadStateAndRender();
+        return;
+      }
+      
+      if (pollResponse && pollResponse.success) {
+        console.log('Job polling started');
+        // Update storage and reload state
+        chrome.storage.local.set({ isDMQueueActive: true }, () => {
+          loadStateAndRender();
+        });
+      } else {
+        console.warn('Failed to start job polling:', pollResponse?.error || 'Unknown error');
+        loadStateAndRender();
+      }
+    });
+    return;
+  }
+
+  // Otherwise, proceed with connection process
   setButtonsDisabled(true);
   applyStateToUI(STATE_CONNECTING, null, null, false);
 
-  chrome.runtime.sendMessage({ type: "START_CONNECTION" }, (response) => {
+  // Set timeout to re-enable buttons if no response
+  const timeoutId = setTimeout(() => {
+    console.warn('START_CONNECTION timeout - re-enabling buttons');
     setButtonsDisabled(false);
+    loadStateAndRender();
+  }, 10000);
+
+  chrome.runtime.sendMessage({ type: "START_CONNECTION" }, (response) => {
+    clearTimeout(timeoutId);
+    setButtonsDisabled(false);
+    
     if (chrome.runtime.lastError) {
+      console.error('START_CONNECTION error:', chrome.runtime.lastError.message);
       applyStateToUI(STATE_IDLE, null, chrome.runtime.lastError.message, false);
       return;
     }
+    
     if (!response || !response.success) {
       applyStateToUI(
         STATE_IDLE,
@@ -288,26 +354,51 @@ async function startConnection() {
       );
       return;
     }
-    chrome.storage.local.set({ socialora_connection_state: STATE_CONNECTING });
-    applyStateToUI(STATE_CONNECTING, null, null, false);
+    
+    chrome.storage.local.set({ socialora_connection_state: STATE_CONNECTING }, () => {
+      applyStateToUI(STATE_CONNECTING, null, null, false);
+    });
   });
 }
 
 function stopConnection() {
   setButtonsDisabled(true);
-  chrome.runtime.sendMessage({ type: "STOP_CONNECTION" }, (response) => {
+  
+  // Set timeout to re-enable buttons if no response
+  const timeoutId = setTimeout(() => {
+    console.warn('STOP_CONNECTION timeout - re-enabling buttons');
     setButtonsDisabled(false);
+    loadStateAndRender();
+  }, 10000);
+  
+  // Stop job polling when user clicks PRESS TO STOP
+  chrome.runtime.sendMessage({ type: "STOP_JOB_POLLING" }, (pollResponse) => {
     if (chrome.runtime.lastError) {
+      console.error('Failed to stop job polling:', chrome.runtime.lastError.message);
+    } else if (pollResponse && pollResponse.success) {
+      console.log('Job polling stopped');
+      // Update storage
+      chrome.storage.local.set({ isDMQueueActive: false });
+    }
+  });
+  
+  chrome.runtime.sendMessage({ type: "STOP_CONNECTION" }, (response) => {
+    clearTimeout(timeoutId);
+    setButtonsDisabled(false);
+    
+    if (chrome.runtime.lastError) {
+      console.error('STOP_CONNECTION error:', chrome.runtime.lastError.message);
       applyStateToUI(STATE_IDLE, null, chrome.runtime.lastError.message, false);
       return;
     }
+    
     const state = response?.state || STATE_IDLE;
     const user = response?.user || null;
-    const tabClosed = response?.tabClosed !== undefined ? response.tabClosed : true;
     chrome.storage.local.set(
       {
         socialora_connection_state: state,
         socialora_connected_user: user || null,
+        isDMQueueActive: false, // Ensure queue is stopped
       },
       () => {
         // Tab is closed, so tabOpen should be false
@@ -330,25 +421,32 @@ chrome.runtime.onMessage.addListener((message) => {
     } else if (message.state === STATE_CONNECTING) {
       tabOpen = true; // During connecting, tab should be open
     } else {
-      // For other states, check storage for tab ID
-      chrome.storage.local.get(["socialora_instagram_tab_id"], (result) => {
+      // For other states, check storage for tab ID and queue state
+      chrome.storage.local.get(["socialora_instagram_tab_id", "isDMQueueActive"], (result) => {
         const hasTabId = !!result.socialora_instagram_tab_id;
+        const isQueueActive = result.isDMQueueActive || false;
         applyStateToUI(
           message.state || STATE_IDLE,
           message.user || null,
           message.error || null,
-          hasTabId
+          hasTabId,
+          isQueueActive
         );
       });
       return; // Early return since we're handling async
     }
     
-    applyStateToUI(
-      message.state || STATE_IDLE,
-      message.user || null,
-      message.error || null,
-      tabOpen
-    );
+    // Get queue state for CONNECTED state
+    chrome.storage.local.get(["isDMQueueActive"], (result) => {
+      const isQueueActive = result.isDMQueueActive || false;
+      applyStateToUI(
+        message.state || STATE_IDLE,
+        message.user || null,
+        message.error || null,
+        tabOpen,
+        isQueueActive
+      );
+    });
   }
   if (message.type === "CONNECTION_COMPLETE") {
     const user = message.user || null;
@@ -360,9 +458,10 @@ chrome.runtime.onMessage.addListener((message) => {
         socialora_connection_state: STATE_CONNECTED,
         socialora_connected_user: user,
         socialora_instagram_tab_id: tabId, // Store tab ID if tab is open
+        isDMQueueActive: false, // Ensure queue is inactive until user clicks PRESS TO START
       },
       () => {
-        applyStateToUI(STATE_CONNECTED, user, null, tabOpen);
+        applyStateToUI(STATE_CONNECTED, user, null, tabOpen, false);
         // Load profile picture after connection
         if (user && user.profilePicUrl) {
           loadProfilePicture(user.profilePicUrl, user.username);
@@ -376,6 +475,19 @@ chrome.runtime.onMessage.addListener((message) => {
       }
     );
   }
+  
+  // Listen for job polling state changes
+  if (message.type === "JOB_POLLING_STARTED") {
+    chrome.storage.local.set({ isDMQueueActive: true }, () => {
+      loadStateAndRender();
+    });
+  }
+  
+  if (message.type === "JOB_POLLING_STOPPED") {
+    chrome.storage.local.set({ isDMQueueActive: false }, () => {
+      loadStateAndRender();
+    });
+  }
 });
 
 // ---------------------------------------------------------------------------
@@ -388,6 +500,7 @@ if (grabBtn) {
 if (stopBtn) {
   stopBtn.addEventListener("click", stopConnection);
 }
+
 
 
 // ---------------------------------------------------------------------------
