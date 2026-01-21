@@ -6,10 +6,12 @@ export async function GET(request: NextRequest) {
     const igUserId = request.nextUrl.searchParams.get("ig_user_id");
 
     if (!igUserId) {
-      return NextResponse.json(
-        { success: false, error: "ig_user_id query parameter is required" },
-        { status: 400 }
-      );
+      const errorResponse = {
+        success: false,
+        error: "ig_user_id query parameter is required",
+      };
+      console.log("API Response (Missing ig_user_id):", errorResponse);
+      return NextResponse.json(errorResponse, { status: 400 });
     }
 
     const now = new Date();
@@ -27,10 +29,12 @@ export async function GET(request: NextRequest) {
     });
 
     if (!account || !account.cookies) {
-      return NextResponse.json(
-        { success: false, error: "Instagram account not ready" },
-        { status: 404 }
-      );
+      const errorResponse = {
+        success: false,
+        error: "Instagram account not ready",
+      };
+      console.log("API Response (Account not ready):", errorResponse);
+      return NextResponse.json(errorResponse, { status: 404 });
     }
 
     // --------------------------------------------------
@@ -39,22 +43,21 @@ export async function GET(request: NextRequest) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const dailyCount =
-      await prisma.accountDailyMessageCount.findUnique({
-        where: {
-          instagramAccountId_date: {
-            instagramAccountId: account.id,
-            date: today,
-          },
+    const dailyCount = await prisma.accountDailyMessageCount.findUnique({
+      where: {
+        instagramAccountId_date: {
+          instagramAccountId: account.id,
+          date: today,
         },
-      });
+      },
+    });
 
     const sentToday = dailyCount?.messageCount ?? 0;
     const limit = account.dailyDmLimit;
     const available = Math.max(0, limit - sentToday);
 
     if (available === 0) {
-      return NextResponse.json({
+      const response = {
         success: true,
         jobs: [],
         limit: {
@@ -62,7 +65,9 @@ export async function GET(request: NextRequest) {
           max: limit,
           available: 0,
         },
-      });
+      };
+      console.log("API Response (Limit reached):", response);
+      return NextResponse.json(response);
     }
 
     // --------------------------------------------------
@@ -82,27 +87,34 @@ export async function GET(request: NextRequest) {
     // 4. FORMAT RESPONSE (STATIC_JOB SHAPE)
     //    ⚠️ ALL IDENTITY DATA COMES FROM JOB_QUEUE COLUMNS
     // --------------------------------------------------
-    const formattedJobs = jobs.map((job : any) => ({
-      id: job.id,
 
-      campaignId: job.campaignId,
-      campaignName: job.campaignName,
-
-      leadId: job.leadId,
-
-      recipientUsername: job.recipientUsername,
-      recipientUserId: job.recipientUserId,
-
-      jobType: "DM",
-      message: job.payload?.message ?? "",
-
-      scheduledAt: job.scheduledAt.toISOString(),
-    }));
+    const formattedJobs = jobs.map((job: any) => {
+      let message = job.payload?.message ?? "";
+      // Replace {{name}} and {{username}} in the message
+      if (typeof message === "string") {
+        message = message
+          .replace(/{{name}}/gi, job.recipient_username || "")
+          .replace(
+            /{{username}}/gi, job.recipientUsername || ""
+          );
+      }
+      return {
+        id: job.id,
+        campaignId: job.campaignId,
+        campaignName: job.campaignName,
+        leadId: job.leadId,
+        recipientUsername: job.recipientUsername,
+        recipientUserId: job.recipientUserId,
+        jobType: "DM",
+        message,
+        scheduledAt: job.scheduledAt.toISOString(),
+      };
+    });
 
     // Only return the top 5 jobs
     const top5Jobs = formattedJobs.slice(0, 5);
 
-    return NextResponse.json({
+    const response = {
       success: true,
       jobs: top5Jobs,
       limit: {
@@ -110,15 +122,16 @@ export async function GET(request: NextRequest) {
         max: limit,
         available,
       },
-    });
+    };
+    console.log("API Response (Success):", response);
+    return NextResponse.json(response);
   } catch (error: any) {
     console.error("❌ Error fetching jobs:", error);
-    return NextResponse.json(
-      {
-        success: false,
-        error: error.message || "Failed to fetch campaign jobs",
-      },
-      { status: 500 }
-    );
+    const errorResponse = {
+      success: false,
+      error: error.message || "Failed to fetch campaign jobs",
+    };
+    console.log("API Response (Exception):", errorResponse);
+    return NextResponse.json(errorResponse, { status: 500 });
   }
 }
