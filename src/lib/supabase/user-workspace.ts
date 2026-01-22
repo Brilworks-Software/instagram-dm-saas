@@ -164,7 +164,7 @@ export async function createUserWorkspace(
       supabase_auth_id: supabaseAuthId,
       workspace_id: workspace.id,
       name: name || null,
-      role: 'OWNER',
+      role: 'MEMBER',
     })
     .select()
     .single();

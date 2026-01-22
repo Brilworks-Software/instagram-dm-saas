@@ -37,12 +37,12 @@ export function CampaignListItem({
       style={{ animationDelay: `${index * 100}ms` }}>
       <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
         <div className="flex-1 min-w-0 w-full">
-          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-2">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 sm:gap-3 mb-2">
             <h3 className="text-base md:text-lg font-semibold text-foreground truncate">
               {campaign.name}
             </h3>
             <div className="flex items-center gap-2 flex-shrink-0">
-              <Badge variant={statusInfo.variant}>{statusInfo.label}</Badge>
+              <Badge variant={statusInfo.variant} className="pl-0 sm:pl-2">{statusInfo.label}</Badge>
               {campaign.instagramUsername && (
                 <span className="text-xs md:text-sm text-foreground-muted">
                   @{campaign.instagramUsername}
@@ -52,7 +52,7 @@ export function CampaignListItem({
           </div>
 
           {campaign.description && (
-            <p className="text-sm text-foreground-muted mb-4">
+            <p className="text-sm text-foreground-muted mb-4 truncate min-w-0">
               {campaign.description}
             </p>
           )}

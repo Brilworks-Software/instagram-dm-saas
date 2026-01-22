@@ -203,7 +203,7 @@ function SearchableTimezoneSelector({
                 }}
                 onKeyDown={handleKeyDown}
                 placeholder="Search timezones..."
-                className="w-full pl-9 pr-8 py-2 rounded-md bg-background border border-border text-foreground placeholder:text-foreground-muted focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20 text-sm"
+                className="w-full pl-9 pr-8 py-2 rounded-md bg-background border border-border text-foreground placeholder:text-foreground-muted focus:border-accent !outline-none !ring-0 text-sm"
                 aria-label="Search timezones"
               />
               {searchQuery && (

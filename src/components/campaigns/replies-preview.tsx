@@ -6,6 +6,7 @@ import { Avatar } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
+import { NewCampaignData } from './create-campaign-modal';
 
 interface Recipient {
   id: string;
@@ -26,11 +27,12 @@ interface ReplyData {
 }
 
 interface RepliesPreviewProps {
-  recipients: Recipient[];
-  className?: string;
+  readonly recipients: Recipient[];
+  readonly campaign: NewCampaignData;
+  readonly className?: string;
 }
 
-export function RepliesPreview({ recipients, className }: RepliesPreviewProps) {
+export function RepliesPreview({ recipients, campaign, className }: RepliesPreviewProps ) {
   const [repliesData, setRepliesData] = useState<Record<string, ReplyData>>({});
   const [isLoading, setIsLoading] = useState(true);
 
@@ -121,6 +123,88 @@ export function RepliesPreview({ recipients, className }: RepliesPreviewProps) {
       <div className="flex items-center gap-2 text-sm text-foreground-muted">
         <MessageCircle className="h-4 w-4" />
         <span>Reply History & Preview</span>
+      </div>
+
+      {/* Summary Stats */}
+      {recipients.length > 0 && (
+        <div className="grid grid-cols-3 gap-4 p-4 rounded-lg bg-background-elevated border border-border">
+          <div>
+            <p className="text-xs text-foreground-muted">Total Recipients</p>
+            <p className="text-lg font-bold text-foreground">{recipients.length}</p>
+          </div>
+          <div>
+            <p className="text-xs text-foreground-muted">Have Replied</p>
+            <p className="text-lg font-bold text-success">
+              {Object.values(repliesData).filter((r) => r.hasReplied).length}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs text-foreground-muted">No Previous Contact</p>
+            <p className="text-lg font-bold text-foreground-muted">
+              {Object.values(repliesData).filter((r) => !r.hasReplied).length}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Campaign Summary */}
+      <div className="p-4 rounded-lg bg-background-elevated border border-border">
+        <h3 className="text-sm font-medium text-foreground mb-3">
+          Campaign Summary
+        </h3>
+        <div className="grid grid-cols-2 gap-4 text-sm">
+          <div>
+            <p className="text-foreground-muted">Campaign Name</p>
+            <p className="font-medium text-foreground truncate min-w">
+              {campaign.name || "—"}
+            </p>
+          </div>
+          <div>
+            <p className="text-foreground-muted">Total Recipients</p>
+            <p className="font-medium text-foreground">
+              {campaign.contactIds.length + campaign.leadIds.length}
+            </p>
+          </div>
+          <div>
+            <p className="text-foreground-muted">Selected Accounts</p>
+            <p className="font-medium text-foreground">
+              {campaign.accountIds.length} account
+              {campaign.accountIds.length !== 1 ? "s" : ""}
+            </p>
+          </div>
+          <div>
+            <p className="text-foreground-muted">Messages Per Day</p>
+            <p className="font-medium text-foreground">
+              {campaign.messagesPerDay} per account
+              {campaign.accountIds.length > 1 && (
+                <span className="text-foreground-muted ml-1">
+                  (Total: {campaign.messagesPerDay * campaign.accountIds.length}
+                  /day)
+                </span>
+              )}
+            </p>
+          </div>
+          <div>
+            <p className="text-foreground-muted">Time Range</p>
+            <p className="font-medium text-foreground">
+              {campaign.sendStartTime} - {campaign.sendEndTime} (
+              {campaign.timezone})
+            </p>
+          </div>
+          <div>
+            <p className="text-foreground-muted">Message Sequence</p>
+            <p className="font-medium text-foreground">
+              {campaign.messageSteps.length} message
+              {campaign.messageSteps.length !== 1 ? "s" : ""}
+              {campaign.messageSteps.length > 1 && (
+                <span className="text-foreground-muted ml-1">
+                  ({campaign.messageSteps.length - 1} follow-up
+                  {campaign.messageSteps.length - 1 !== 1 ? "s" : ""})
+                </span>
+              )}
+            </p>
+          </div>
+        </div>
       </div>
 
       <div className="border border-border rounded-lg overflow-hidden">
@@ -226,28 +310,6 @@ export function RepliesPreview({ recipients, className }: RepliesPreviewProps) {
           </table>
         </div>
       </div>
-
-      {/* Summary Stats */}
-      {recipients.length > 0 && (
-        <div className="grid grid-cols-3 gap-4 p-4 rounded-lg bg-background-elevated border border-border">
-          <div>
-            <p className="text-xs text-foreground-muted">Total Recipients</p>
-            <p className="text-lg font-bold text-foreground">{recipients.length}</p>
-          </div>
-          <div>
-            <p className="text-xs text-foreground-muted">Have Replied</p>
-            <p className="text-lg font-bold text-success">
-              {Object.values(repliesData).filter((r) => r.hasReplied).length}
-            </p>
-          </div>
-          <div>
-            <p className="text-xs text-foreground-muted">No Previous Contact</p>
-            <p className="text-lg font-bold text-foreground-muted">
-              {Object.values(repliesData).filter((r) => !r.hasReplied).length}
-            </p>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

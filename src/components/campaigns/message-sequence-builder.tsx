@@ -371,7 +371,7 @@ export function MessageSequenceBuilder({
                             }}
                             placeholder="Hi {{name}}, I wanted to reach out about..."
                             rows={4}
-                            className="w-full px-4 py-3 rounded-lg bg-background-elevated border border-border text-foreground placeholder-foreground-subtle focus:border-accent focus:ring-2 focus:ring-accent/20 outline-none resize-none text-sm transition-all flex-1"
+                            className="w-full px-4 py-3 rounded-lg bg-background-elevated border border-border text-foreground placeholder-foreground-subtle focus:border-accent !outline-none !ring-0 resize-none text-sm transition-all flex-1"
                           />
 
                           <div className="flex items-center justify-between text-xs mt-auto">
@@ -447,7 +447,7 @@ export function MessageSequenceBuilder({
                               ),
                             })
                           }
-                          className="w-full px-4 py-2.5 rounded-lg bg-background border border-border text-foreground focus:border-accent focus:ring-2 focus:ring-accent/20 outline-none transition-all"
+                          className="w-full px-4 py-2.5 rounded-lg bg-background border border-border text-foreground focus:border-accent !outline-none !ring-0  transition-all"
                         />
                         <p className="text-xs text-foreground-subtle">
                           Days to wait after previous message. Follow-up will only send if recipient hasn't replied.

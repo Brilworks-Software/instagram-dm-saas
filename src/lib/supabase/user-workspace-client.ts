@@ -62,7 +62,7 @@ export async function getOrCreateUserWorkspaceId(): Promise<string | null> {
         supabase_auth_id: authUser.id,
         workspace_id: workspace.id,
         name: name || null,
-        role: 'OWNER',
+        role: 'MEMBER',
       })
       .select()
       .single();
