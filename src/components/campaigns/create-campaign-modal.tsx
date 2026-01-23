@@ -112,7 +112,32 @@ export function CreateCampaignModal({
 
     setIsCreating(true);
     try {
-      await onCreate(campaign);
+      // Calculate cumulative delay_days for each step based on stepOrder
+      // Sort steps by order to calculate cumulative delays
+      const sortedSteps = [...campaign.messageSteps].sort(
+        (a, b) => a.stepOrder - b.stepOrder
+      );
+      
+      // Calculate cumulative delays
+      let cumulativeDelay = 0;
+      const delayMap = new Map<number, number>();
+      sortedSteps.forEach((step) => {
+        cumulativeDelay += step.delayDays || 0;
+        delayMap.set(step.stepOrder, cumulativeDelay);
+      });
+
+      // Update steps with cumulative delays while preserving original array order
+      const stepsWithCumulativeDelay = campaign.messageSteps.map((step) => ({
+        ...step,
+        delayDays: delayMap.get(step.stepOrder) ?? step.delayDays ?? 0,
+      }));
+
+      const campaignWithCumulativeDelays = {
+        ...campaign,
+        messageSteps: stepsWithCumulativeDelay,
+      };
+
+      await onCreate(campaignWithCumulativeDelays);
       onClose();
     } catch (error) {
       console.error("Error creating campaign:", error);
