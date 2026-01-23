@@ -18,6 +18,11 @@
   },
   "dependencies": {
     "@babel/runtime": "^7.28.4",
+    "@nivo/bar": "^0.99.0",
+    "@nivo/core": "^0.99.0",
+    "@nivo/geo": "^0.99.0",
+    "@nivo/line": "^0.99.0",
+    "@nivo/pie": "^0.99.0",
     "@prisma/client": "^5.22.0",
     "@supabase/ssr": "^0.5.1",
     "@supabase/supabase-js": "^2.47.10",

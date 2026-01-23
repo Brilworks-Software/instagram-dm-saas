@@ -1,3 +1,8 @@
+/**
+ * Lead Scrape Profile API
+ * Extracts profile data and recent posts from Instagram HTML for a given user.
+ * Method: POST (expects Instagram HTML in request)
+ */
 import { NextRequest, NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';

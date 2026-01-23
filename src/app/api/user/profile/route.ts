@@ -1,3 +1,8 @@
+/**
+ * User Profile API
+ * Returns authenticated user's profile details (id, email, name, contact info, bio, avatar, timestamps).
+ * Method: GET
+ */
 import { NextRequest } from 'next/server';
 import { requireAuth } from '@/lib/server/auth';
 import { prisma } from '@/lib/server/prisma/client';

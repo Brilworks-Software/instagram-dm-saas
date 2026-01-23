@@ -1,3 +1,8 @@
+/**
+ * Instagram Accounts API
+ * Returns a list of Instagram accounts linked to the authenticated workspace.
+ * Method: GET
+ */
 import { NextRequest } from 'next/server';
 import { instagramOAuthService } from '@/lib/server/instagram/oauth-service';
 import { requireAuth } from '@/lib/server/auth';

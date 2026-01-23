@@ -4,6 +4,7 @@ import { Avatar } from '@/components/ui/avatar';
 import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
 import type { User } from '@supabase/supabase-js';
+import { getCurrentUserFromClientSide } from '@/hooks/use-user-workspace';
 import {
   BarChart3,
   ChevronDown,
@@ -45,6 +46,7 @@ export function Sidebar({ isOpen = false, onClose, onMenuClick }: SidebarProps) 
   const pathname = usePathname();
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -120,6 +122,12 @@ export function Sidebar({ isOpen = false, onClose, onMenuClick }: SidebarProps) 
     router.push("/login");
     router.refresh();
   };
+
+  useEffect(() => {
+    getCurrentUserFromClientSide()
+      .then(u => setIsAdmin(u?.role === "ADMIN"))
+      .catch(() => setIsAdmin(false))
+  }, []);
 
   const userName =
     user?.user_metadata?.full_name || user?.email?.split("@")[0] || "User";
@@ -214,51 +222,74 @@ export function Sidebar({ isOpen = false, onClose, onMenuClick }: SidebarProps) 
         </Link>
       </div>
 
-      {/* Main Navigation */}
-      <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-        <div className="mb-2 px-3">
-          <span className="text-xs font-medium text-foreground-subtle uppercase tracking-wider">
-            Main
-          </span>
-        </div>
-        {navigation.map((item) => {
-          const isActive =
-            pathname === item.href || pathname.startsWith(item.href + "/");
-          const showBadge = item.name === "Inbox" && unreadCount > 0;
-          return (
-            <Link
-              key={item.name}
-              href={item.href}
-              className={cn(
-                "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 group",
-                isActive
-                  ? "bg-accent/10 text-accent"
-                  : "text-foreground-muted hover:text-foreground hover:bg-background-elevated"
-              )}>
-              <item.icon
-                className={cn(
-                  "h-5 w-5",
-                  isActive
-                    ? "text-accent"
-                    : "text-foreground-subtle group-hover:text-foreground"
-                )}
-              />
-              <span className="flex-1">{item.name}</span>
-              {showBadge && (
-                <span
-                  className={cn(
-                    "px-2 py-0.5 rounded-full text-xs font-medium",
-                    isActive
-                      ? "bg-accent text-white"
-                      : "bg-accent/10 text-accent"
-                  )}>
-                  {unreadCount}
-                </span>
-              )}
-              {isActive && <ChevronRight className="h-4 w-4 text-accent" />}
-            </Link>
-          );
-        })}
+       {/* Main Navigation */}
+       <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+         <div className="mb-2 px-3">
+           <span className="text-xs font-medium text-foreground-subtle uppercase tracking-wider">
+             Main
+           </span>
+         </div>
+         {/* Admin Dashboard nav option, only for admin, and always at the very top */}
+         {isAdmin && (
+           <Link
+             href="/admin-dashboard"
+             className={cn(
+               "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 group",
+               pathname === "/admin-dashboard"
+                 ? "bg-accent/10 text-accent"
+                 : "text-foreground-muted hover:text-foreground hover:bg-background-elevated"
+             )}
+           >
+             <BarChart3
+               className={cn(
+                 "h-5 w-5",
+                 pathname === "/admin-dashboard"
+                   ? "text-accent"
+                   : "text-foreground-subtle group-hover:text-foreground"
+               )}
+             />
+             <span className="flex-1">Admin Dashboard</span>
+             {pathname === "/admin-dashboard" && <ChevronRight className="h-4 w-4 text-accent" />}
+           </Link>
+         )}
+         {navigation.map((item) => {
+           const isActive =
+             pathname === item.href || pathname.startsWith(item.href + "/");
+           const showBadge = item.name === "Inbox" && unreadCount > 0;
+           return (
+             <Link
+               key={item.name}
+               href={item.href}
+               className={cn(
+                 "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 group",
+                 isActive
+                   ? "bg-accent/10 text-accent"
+                   : "text-foreground-muted hover:text-foreground hover:bg-background-elevated"
+               )}>
+               <item.icon
+                 className={cn(
+                   "h-5 w-5",
+                   isActive
+                     ? "text-accent"
+                     : "text-foreground-subtle group-hover:text-foreground"
+                 )}
+               />
+               <span className="flex-1">{item.name}</span>
+               {showBadge && (
+                 <span
+                   className={cn(
+                     "px-2 py-0.5 rounded-full text-xs font-medium",
+                     isActive
+                       ? "bg-accent text-white"
+                       : "bg-accent/10 text-accent"
+                   )}>
+                   {unreadCount}
+                 </span>
+               )}
+               {isActive && <ChevronRight className="h-4 w-4 text-accent" />}
+             </Link>
+           );
+         })}
 
         <div className="mt-6 mb-2 px-3">
           <span className="text-xs font-medium text-foreground-subtle uppercase tracking-wider">
