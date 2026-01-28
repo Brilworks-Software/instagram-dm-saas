@@ -1351,7 +1351,7 @@ export default function InboxPage() {
                     ))}
                   </div>
                   {/* Desktop: Use regular list */}
-                  <div className="hidden lg:block flex-1">
+                  <div className="hidden lg:block flex-1 overflow-y-auto">
                     <ConversationList
                       conversations={filteredConversations}
                       selectedId={selectedConversation?.id || null}

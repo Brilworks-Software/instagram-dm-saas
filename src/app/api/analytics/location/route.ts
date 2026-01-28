@@ -15,22 +15,46 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const from = searchParams.get("from");
     const to = searchParams.get("to");
+    const country = searchParams.get("country");
 
-    const location = from && to
-      ? await prisma.$queryRaw`
-          SELECT location->>'country_name' AS country, COUNT(*)::int AS total
-          FROM tool_usage
-          WHERE location IS NOT NULL AND created_at BETWEEN ${new Date(from)} AND ${new Date(to)}
-          GROUP BY country
-          ORDER BY total DESC
-        `
-      : await prisma.$queryRaw`
-          SELECT location->>'country_name' AS country, COUNT(*)::int AS total
-          FROM tool_usage
-          WHERE location IS NOT NULL
-          GROUP BY country
-          ORDER BY total DESC
-        `;
+    let location;
+    if (from && to && country) {
+      // When filtering by country, return only that country's data
+      location = await prisma.$queryRaw`
+        SELECT location->>'country_name' AS country, COUNT(*)::int AS total
+        FROM tool_usage
+        WHERE location IS NOT NULL 
+          AND location->>'country_name' = ${country}
+          AND created_at BETWEEN ${new Date(from)} AND ${new Date(to)}
+        GROUP BY country
+        ORDER BY total DESC
+      `;
+    } else if (from && to) {
+      location = await prisma.$queryRaw`
+        SELECT location->>'country_name' AS country, COUNT(*)::int AS total
+        FROM tool_usage
+        WHERE location IS NOT NULL AND created_at BETWEEN ${new Date(from)} AND ${new Date(to)}
+        GROUP BY country
+        ORDER BY total DESC
+      `;
+    } else if (country) {
+      // When filtering by country, return only that country's data
+      location = await prisma.$queryRaw`
+        SELECT location->>'country_name' AS country, COUNT(*)::int AS total
+        FROM tool_usage
+        WHERE location IS NOT NULL AND location->>'country_name' = ${country}
+        GROUP BY country
+        ORDER BY total DESC
+      `;
+    } else {
+      location = await prisma.$queryRaw`
+        SELECT location->>'country_name' AS country, COUNT(*)::int AS total
+        FROM tool_usage
+        WHERE location IS NOT NULL
+        GROUP BY country
+        ORDER BY total DESC
+      `;
+    }
 
     return Response.json({ success: true, data: location });
   } catch (error: any) {

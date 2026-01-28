@@ -90,7 +90,7 @@ export function useCampaignsData(): UseCampaignsDataReturn {
       // Fetch leads
       const { data: leadsData } = await supabase
         .from("leads")
-        .select("id, ig_user_id, ig_username, full_name, profile_pic_url")
+        .select("id, ig_user_id, ig_username, full_name, profile_pic_url, status")
         .order("created_at", { ascending: false });
 
       if (leadsData) {
@@ -101,6 +101,7 @@ export function useCampaignsData(): UseCampaignsDataReturn {
             igUsername: l.ig_username || "",
             name: l.full_name,
             profilePictureUrl: l.profile_pic_url,
+            status: l.status,
           }))
         );
       }

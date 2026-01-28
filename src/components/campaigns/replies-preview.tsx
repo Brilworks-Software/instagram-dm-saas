@@ -205,6 +205,31 @@ export function RepliesPreview({ recipients, campaign, className }: RepliesPrevi
               )}
             </p>
           </div>
+          {campaign.schedule_type === "SPECIFIC_TIME" && campaign.scheduled_at && (
+            <>
+              <div>
+                <p className="text-foreground-muted">Start Date</p>
+                <p className="font-medium text-foreground">
+                  {new Date(campaign.scheduled_at).toLocaleDateString('en-US', {
+                    weekday: 'short',
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric',
+                  })}
+                </p>
+              </div>
+              <div>
+                <p className="text-foreground-muted">Start Time</p>
+                <p className="font-medium text-foreground">
+                  {new Date(campaign.scheduled_at).toLocaleTimeString('en-US', {
+                    hour: 'numeric',
+                    minute: '2-digit',
+                    hour12: true,
+                  })} ({campaign.timezone})
+                </p>
+              </div>
+            </>
+          )}
         </div>
       </div>
 

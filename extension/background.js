@@ -1080,6 +1080,66 @@ async function markJobAsCompleted(jobId, igMessageId = null, sentAt = null) {
 }
 
 /**
+ * Mark job as failed by calling the failed endpoint
+ * @param {string} jobId - Job ID to mark as failed
+ * @param {string} errorMessage - Failure reason
+ * @param {Date|string|null} failedAt - Optional timestamp when failure occurred
+ * @returns {Promise<boolean>} - true if status update succeeded
+ */
+async function markJobAsFailed(jobId, errorMessage = null, failedAt = null) {
+  try {
+    const config = await CONFIG.getCurrent();
+    const apiUrl = buildApiUrl(config.BACKEND_URL, 'api/campaigns/jobs/failed');
+
+    const payload = {
+      jobId: jobId,
+    };
+
+    if (errorMessage) {
+      payload.errorMessage = String(errorMessage);
+    }
+
+    if (failedAt) {
+      payload.failedAt = failedAt instanceof Date ? failedAt.toISOString() : failedAt;
+    }
+
+    console.log(`📤 Marking job ${jobId} as FAILED...`);
+
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => 'Unknown error');
+      console.error(`❌ Failed endpoint error: ${response.status} ${response.statusText}`, errorText);
+      return false;
+    }
+
+    const data = await response.json();
+
+    if (!data.success) {
+      console.error(`❌ Failed endpoint returned error:`, data.error || 'Unknown error');
+      return false;
+    }
+
+    if (data.alreadyProcessed) {
+      console.log(`ℹ️ Job ${jobId} was already marked as failed (or completed)`);
+    } else {
+      console.log(`✅ Job ${jobId} marked as FAILED successfully`);
+    }
+
+    return true;
+  } catch (error) {
+    console.error(`❌ Error calling failed endpoint for job ${jobId}:`, error);
+    return false;
+  }
+}
+
+/**
  * Send message to tab with retry logic
  * @param {number} tabId - Tab ID to send message to
  * @param {object} message - Message to send
@@ -1088,6 +1148,8 @@ async function markJobAsCompleted(jobId, igMessageId = null, sentAt = null) {
  * @returns {Promise<boolean>} - true if message sent successfully
  */
 async function sendMessageWithRetry(tabId, message, maxRetries, retryDelay) {
+  const jobId = message?.jobId || message?.job?.id;
+
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       const response = await new Promise((resolve, reject) => {
@@ -1114,7 +1176,6 @@ async function sendMessageWithRetry(tabId, message, maxRetries, retryDelay) {
         // Success: Mark job as completed in backend, then remove from queue
         console.log('✅ Job completed successfully!');
         
-        const jobId = message.jobId || message.job?.id;
         const igMessageId = response.igMessageId || null;
         const sentAt = new Date();
         
@@ -1178,6 +1239,36 @@ async function sendMessageWithRetry(tabId, message, maxRetries, retryDelay) {
         await new Promise(resolve => setTimeout(resolve, retryDelay));
       } else {
         console.error('❌ All retry attempts exhausted');
+
+        // Mark job as FAILED in backend so it doesn't stay stuck as QUEUED forever
+        if (jobId) {
+          const failureReason = `Extension retries exhausted: ${error?.message || 'Unknown error'}`;
+          const failedUpdated = await markJobAsFailed(jobId, failureReason, new Date());
+          if (!failedUpdated) {
+            console.warn(`⚠️ Failed to mark job as FAILED in backend. Job ID: ${jobId}`);
+          }
+
+          // Remove job from local queue so we can continue processing the rest
+          const { dmJobQueue = [], dmProcessedCount = 0 } =
+            await chrome.storage.local.get(['dmJobQueue', 'dmProcessedCount']);
+
+          await chrome.storage.local.set({
+            dmJobQueue: dmJobQueue.slice(1),
+            dmProcessedCount: dmProcessedCount + 1,
+          });
+
+          // Deactivate tab before continuing
+          try {
+            await chrome.tabs.update(tabId, { active: false });
+          } catch (e) {
+            // Ignore errors
+          }
+
+          console.log('⏭️ Skipping failed job and continuing to next one...');
+          scheduleNextJob(RETRY_DELAY_MINS);
+          return true;
+        }
+        
         // Deactivate tab before returning
         try {
           await chrome.tabs.update(tabId, { active: false });

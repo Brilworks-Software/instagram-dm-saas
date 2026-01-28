@@ -53,6 +53,7 @@ const config: Config = {
         "slide-in": "slideIn 0.3s ease-out",
         "slide-up": "slideUp 0.4s ease-out",
         "pulse-subtle": "pulseSubtle 2s ease-in-out infinite",
+        "shimmer": "shimmer 2s infinite",
       },
       keyframes: {
         fadeIn: {
@@ -70,6 +71,10 @@ const config: Config = {
         pulseSubtle: {
           "0%, 100%": { opacity: "1" },
           "50%": { opacity: "0.7" },
+        },
+        shimmer: {
+          "0%": { transform: "translateX(-100%)" },
+          "100%": { transform: "translateX(100%)" },
         },
       },
     },

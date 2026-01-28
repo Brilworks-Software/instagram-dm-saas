@@ -15,21 +15,42 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const from = searchParams.get("from");
     const to = searchParams.get("to");
+    const country = searchParams.get("country");
 
-    const usageTrend = from && to
-      ? await prisma.$queryRaw`
-          SELECT date_trunc('day', created_at) AS day, COUNT(*)::int AS total
-          FROM tool_usage
-          WHERE created_at BETWEEN ${new Date(from)} AND ${new Date(to)}
-          GROUP BY day
-          ORDER BY day ASC
-        `
-      : await prisma.$queryRaw`
-          SELECT date_trunc('day', created_at) AS day, COUNT(*)::int AS total
-          FROM tool_usage
-          GROUP BY day
-          ORDER BY day ASC
-        `;
+    let usageTrend;
+    if (from && to && country) {
+      usageTrend = await prisma.$queryRaw`
+        SELECT date_trunc('day', created_at) AS day, COUNT(*)::int AS total
+        FROM tool_usage
+        WHERE created_at BETWEEN ${new Date(from)} AND ${new Date(to)}
+          AND location->>'country_name' = ${country}
+        GROUP BY day
+        ORDER BY day ASC
+      `;
+    } else if (from && to) {
+      usageTrend = await prisma.$queryRaw`
+        SELECT date_trunc('day', created_at) AS day, COUNT(*)::int AS total
+        FROM tool_usage
+        WHERE created_at BETWEEN ${new Date(from)} AND ${new Date(to)}
+        GROUP BY day
+        ORDER BY day ASC
+      `;
+    } else if (country) {
+      usageTrend = await prisma.$queryRaw`
+        SELECT date_trunc('day', created_at) AS day, COUNT(*)::int AS total
+        FROM tool_usage
+        WHERE location->>'country_name' = ${country}
+        GROUP BY day
+        ORDER BY day ASC
+      `;
+    } else {
+      usageTrend = await prisma.$queryRaw`
+        SELECT date_trunc('day', created_at) AS day, COUNT(*)::int AS total
+        FROM tool_usage
+        GROUP BY day
+        ORDER BY day ASC
+      `;
+    }
 
     return Response.json({ success: true, data: usageTrend });
   } catch (error: any) {

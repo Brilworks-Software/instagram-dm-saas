@@ -1,6 +1,7 @@
 // Campaign list item component
 
-import { Play, Pause, Trash2, Users, MessageCircle } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Play, Pause, Trash2, Users, MessageCircle, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -24,23 +25,38 @@ export function CampaignListItem({
   onDelete,
   index,
 }: CampaignListItemProps) {
+  const router = useRouter();
   const progress = calculateProgress(campaign);
   const replyRate = calculateReplyRate(campaign);
   const statusInfo = statusColors[campaign.status];
 
+  const handleClick = (e: React.MouseEvent) => {
+    // Don't navigate if clicking on buttons
+    if ((e.target as HTMLElement).closest('button')) {
+      return;
+    }
+    router.push(`/campaigns/${campaign.id}`);
+  };
+
   return (
     <div
+      onClick={handleClick}
       className={cn(
-        "bg-background-secondary rounded-xl border border-border p-4 md:p-6 transition-all hover:border-border-hover",
+        "bg-background-secondary rounded-xl border border-border p-4 md:p-6 transition-all hover:border-border-hover cursor-pointer",
         "animate-slide-up"
       )}
       style={{ animationDelay: `${index * 100}ms` }}>
       <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
         <div className="flex-1 min-w-0 w-full">
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 sm:gap-3 mb-2">
-            <h3 className="text-base md:text-lg font-semibold text-foreground truncate">
-              {campaign.name}
-            </h3>
+            <div className="flex items-center gap-2 min-w-0">
+              <h3
+                className="text-base md:text-lg font-semibold text-foreground truncate min-w-0"
+                title={campaign.name}>
+                {campaign.name}
+              </h3>
+              <ExternalLink className="h-4 w-4 text-foreground-subtle flex-shrink-0" />
+            </div>
             <div className="flex items-center gap-2 flex-shrink-0">
               <Badge variant={statusInfo.variant} className="pl-0 sm:pl-2">{statusInfo.label}</Badge>
               {campaign.instagramUsername && (

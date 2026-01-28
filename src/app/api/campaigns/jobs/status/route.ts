@@ -81,6 +81,30 @@ export async function POST(req: NextRequest) {
       if (!contact) {
         throw new Error("Contact not found for given Instagram user ID");
       }
+      
+      // 2.3.1 UPDATE LEAD STATUS TO CONTACTED (if lead exists)
+      const lead = await tx.lead.findUnique({
+        where: {
+          igUserId_workspaceId: {
+            igUserId: contact.igUserId,
+            workspaceId: job.workspaceId,
+          },
+        },
+      });
+      
+      if (lead) {
+        await tx.lead.update({
+          where: { id: lead.id },
+          data: {
+            status: "contacted",
+            timesContacted: { increment: 1 },
+            lastContactedAt: now,
+            dmSentAt: now,
+            updatedAt: now,
+          },
+        });
+      }
+      
       const conversation = await tx.conversation.upsert({
         where: {
           instagramAccountId_contactId: {
@@ -141,7 +165,8 @@ export async function POST(req: NextRequest) {
       const remainingJobs = await tx.jobQueue.count({
         where: {
           campaignId: job.campaignId,
-          status: { not: "COMPLETED" },
+          // Treat FAILED as terminal too, otherwise campaigns can get stuck
+          status: { notIn: ["COMPLETED", "FAILED"] },
         },
       });
       if (remainingJobs === 0) {

@@ -45,7 +45,7 @@ export async function getIPLocation(ip: string): Promise<IPLocation | null> {
   console.log('🌐 Fetching location for IP:', ip);
   
   try {
-    const url = `https://ipapi.co/${ip}/json/`;
+    const url = `https://freeipapi.com/api/json/${ip}`;
 
     const response = await fetch(url, {
       headers: {
@@ -75,18 +75,18 @@ export async function getIPLocation(ip: string): Promise<IPLocation | null> {
     }
 
     // Check if we got valid location data
-    if (!data.city && !data.region && !data.country_name) {
+    if (!data.cityName && !data.regionName && !data.countryName) {
       console.warn("⚠️ No location data in response:", data);
       return null;
     }
 
     const location: IPLocation = {
-      city: data.city || "",
-      region: data.region || "",
-      country: data.country_name || "",
-      countryCode: data.country_code || "",
-      timezone: data.timezone || "",
-      isp: data.org || "",
+      city: data.cityName || "",
+      region: data.regionName || "",
+      country: data.countryName || "",
+      countryCode: data.countryCode || "",
+      timezone: data.timeZones[0] || "",
+      isp: data.asnOrganization || "",
     };
 
     console.log('✅ Parsed location:', location);

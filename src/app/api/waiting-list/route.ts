@@ -15,24 +15,61 @@ export async function POST(request: NextRequest) {
   try {
     // Parse request body
     const body = await request.json();
-    const { email, instagram_id, message, previous_page, client_ip } = body as {
+    const { email, instagram_id, message, previous_page, client_ip, ip_info } = body as {
       email: string | null;
       instagram_id: string | null;
       message?: string | null;
       previous_page?: string | null;
       client_ip?: string | null;
+      ip_info?: { city?: string; region?: string; country_name?: string, country_code?: string, timezone?: string, isp?: string } | null;
     };
 
     // Get client IP - prefer client-provided IP (from ipify.org), fallback to headers
     // This avoids localhost issues (::1, 127.0.0.1) when running locally
     let clientIP = client_ip || getClientIP(request);
 
-    // Skip location lookup for localhost IPs (they won't work with ipapi.co)
-    const isLocalhost =
-      clientIP === "::1" ||
-      clientIP === "127.0.0.1" ||
-      clientIP === "localhost" ||
-      clientIP === "unknown";
+    // Use client-provided location info if available, otherwise fallback to server-side lookup
+    let location = null;
+    if (ip_info && (ip_info.city || ip_info.region || ip_info.country_name)) {
+      // Use client-provided location data
+      location = {
+        city: ip_info.city || "",
+        region: ip_info.region || "",
+        country: ip_info.country_name || "",
+        countryCode: ip_info.country_code || "",
+        timezone: ip_info.timezone || "",
+        isp: ip_info.isp || "",
+      };
+      console.log("✅ Using client-provided location:", location);
+    } else {
+      // Fallback to server-side location lookup (only if not localhost)
+      const isLocalhost =
+        clientIP === "::1" ||
+        clientIP === "127.0.0.1" ||
+        clientIP === "localhost" ||
+        clientIP === "unknown";
+
+      if (!isLocalhost) {
+        console.log("🔍 Falling back to server-side location lookup for IP:", clientIP);
+        try {
+          const locationPromise = getIPLocation(clientIP);
+          const timeoutPromise = new Promise<null>(
+            (resolve) => setTimeout(() => {
+              console.warn("⏱️ Location lookup timed out after 3 seconds");
+              resolve(null);
+            }, 3000)
+          );
+          location = await Promise.race([locationPromise, timeoutPromise]);
+          if (location) {
+            console.log("✅ Server-side location lookup successful:", location);
+          }
+        } catch (locationError) {
+          console.error("❌ Server-side location lookup failed:", locationError);
+        }
+      } else {
+        console.log("🏠 Skipping location lookup for localhost IP:", clientIP);
+      }
+    }
 
     const referer = request.headers.get("referer");
     const pageURL = referer || null;
@@ -101,38 +138,8 @@ export async function POST(request: NextRequest) {
     
     if (waitingListId) {
       try {
-        // Start location lookup (non-blocking) - only if not localhost
-        let location = null;
-        if (!isLocalhost) {
-          console.log("🔍 Starting location lookup for IP:", clientIP);
-          try {
-            // Wait for location with a timeout to avoid blocking notification
-            const locationPromise = getIPLocation(clientIP);
-            const timeoutPromise = new Promise<null>(
-              (resolve) => setTimeout(() => {
-                console.warn("⏱️ Location lookup timed out after 3 seconds");
-                resolve(null);
-              }, 3000) // 3 second timeout
-            );
-            
-            location = await Promise.race([locationPromise, timeoutPromise]);
-            
-            if (location) {
-              console.log("✅ Location lookup successful:", location);
-            } else {
-              console.warn("⚠️ Location lookup returned null");
-            }
-          } catch (locationError) {
-            console.error(
-              "❌ Location lookup failed, sending notification without location:",
-              locationError
-            );
-          }
-        } else {
-          console.log("🏠 Skipping location lookup for localhost IP:", clientIP);
-        }
-
-        console.log("🌍 Location lookup complete", { location, isLocalhost, clientIP });
+        // Location is already fetched (client-side preferred, server-side fallback)
+        console.log("🌍 Using location data:", { location, clientIP });
 
         // Send notification with location data (or empty if unavailable)
         console.log("📤 Sending Slack notification...");

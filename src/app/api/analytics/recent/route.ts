@@ -15,20 +15,53 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const from = searchParams.get("from");
     const to = searchParams.get("to");
-    const dateFilter = from && to ? { createdAt: { gte: new Date(from), lte: new Date(to) } } : {};
+    const country = searchParams.get("country");
 
-    const recent = await prisma.toolUsage.findMany({
-      where: dateFilter,
-      orderBy: { createdAt: "desc" },
-      take: 20,
-      select: {
-        id: true,
-        toolType: true,
-        instaId: true,
-        createdAt: true,
-        location: true,
-      },
-    });
+    // Use raw SQL for accurate JSON filtering
+    let recent;
+    if (from && to && country) {
+      recent = await prisma.$queryRaw`
+        SELECT id, tool_type as "toolType", insta_id as "instaId", created_at as "createdAt", location
+        FROM tool_usage
+        WHERE created_at BETWEEN ${new Date(from)} AND ${new Date(to)}
+          AND location->>'country_name' = ${country}
+        ORDER BY created_at DESC
+        LIMIT 20
+      `;
+    } else if (from && to) {
+      recent = await prisma.toolUsage.findMany({
+        where: { createdAt: { gte: new Date(from), lte: new Date(to) } },
+        orderBy: { createdAt: "desc" },
+        take: 20,
+        select: {
+          id: true,
+          toolType: true,
+          instaId: true,
+          createdAt: true,
+          location: true,
+        },
+      });
+    } else if (country) {
+      recent = await prisma.$queryRaw`
+        SELECT id, tool_type as "toolType", insta_id as "instaId", created_at as "createdAt", location
+        FROM tool_usage
+        WHERE location->>'country_name' = ${country}
+        ORDER BY created_at DESC
+        LIMIT 20
+      `;
+    } else {
+      recent = await prisma.toolUsage.findMany({
+        orderBy: { createdAt: "desc" },
+        take: 20,
+        select: {
+          id: true,
+          toolType: true,
+          instaId: true,
+          createdAt: true,
+          location: true,
+        },
+      });
+    }
 
     return Response.json({ success: true, data: recent });
   } catch (error: any) {

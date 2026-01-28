@@ -611,7 +611,7 @@ function RecipientsStep({
               No leads available
             </p>
           ) : (
-            leads.map((lead) => (
+            leads.filter((lead: any) => lead.status !== "contacted").map((lead: Lead) => (
               <label
                 key={lead.id}
                 className="flex items-center gap-3 p-2 rounded-lg hover:bg-background-elevated cursor-pointer">

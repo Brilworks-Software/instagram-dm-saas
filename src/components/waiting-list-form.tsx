@@ -76,16 +76,36 @@ export function WaitingListForm({ open, onOpenChange }: WaitingListFormProps) {
     setIsSubmitting(true);
 
     try {
-      // Get client IP from ipify.org (client-side - gets real IP even when running locally)
+      // Get client IP and location info (client-side - gets real IP even when running locally)
       let clientIP: string | null = null;
+      let ipInfo: { city?: string; region?: string; country_name?: string, country_code?: string, timezone?: string, isp?: string } | null = null;
+
       try {
+        // 1️⃣ Get public IP
         const ipResponse = await fetch("https://api.ipify.org?format=json");
         if (ipResponse.ok) {
           const ipData = await ipResponse.json();
           clientIP = ipData.ip || null;
         }
+
+        // 2️⃣ Get location from ipapi.co
+        if (clientIP) {
+          const geoResponse = await fetch(`https://ipapi.co/${clientIP}/json/`);
+          if (geoResponse.ok) {
+            const geoData = await geoResponse.json();
+            ipInfo = {
+              city: geoData.city,
+              region: geoData.region,
+              country_name: geoData.country_name,
+              country_code: geoData.country_code,
+              timezone: geoData.timezone,
+              isp: geoData.org,
+            };
+          }
+        }
       } catch (ipError) {
-        console.error("Failed to get IP from ipify:", ipError);
+        // best-effort only (never block form submit)
+        console.error("Failed to get IP/location info:", ipError);
       }
 
       // Get previous page from sessionStorage or document.referrer
@@ -99,7 +119,7 @@ export function WaitingListForm({ open, onOpenChange }: WaitingListFormProps) {
         sessionStorage.setItem("previousPage", window.location.href);
       }
 
-      // Submit to API with client IP
+      // Submit to API with client IP and location info
       const response = await fetch("/api/waiting-list", {
         method: "POST",
         headers: {
@@ -111,6 +131,7 @@ export function WaitingListForm({ open, onOpenChange }: WaitingListFormProps) {
           message: message.trim() || null,
           previous_page: previousPage || null,
           client_ip: clientIP, // Send client IP to avoid localhost issues
+          ip_info: ipInfo, // Send location info from client-side
         }),
       });
 
