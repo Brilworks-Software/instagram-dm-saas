@@ -584,6 +584,7 @@ model JobQueue {
   jobType        String @map("job_type")
   payload        Json
   scheduledAt    DateTime @map("scheduled_at")
+  sentAt         DateTime? @map("sent_at") @db.Timestamptz(6)
   status         String   @default("QUEUED")
 
   // Optional snapshots (NULLABLE in Supabase)

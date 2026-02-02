@@ -13,6 +13,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const parsedSentAt =
+      sentAt != null && sentAt !== "" ? new Date(sentAt) : null;
+    if (parsedSentAt && Number.isNaN(parsedSentAt.getTime())) {
+      return NextResponse.json(
+        { success: false, error: "sentAt must be a valid ISO date string" },
+        { status: 400 }
+      );
+    }
+
     // --------------------------------------------------
     // 1. FETCH JOB (AND LOCK INTENTIONALLY)
     // --------------------------------------------------
@@ -29,27 +38,52 @@ export async function POST(req: NextRequest) {
 
     // Idempotency guard
     if (job.status === "COMPLETED") {
-      return NextResponse.json({ success: true, alreadyProcessed: true });
+      // If older completed rows don't have sentAt yet, allow a safe backfill.
+      if (!job.sentAt && parsedSentAt) {
+        await prisma.jobQueue.update({
+          where: { id: job.id },
+          data: {
+            sentAt: parsedSentAt,
+            updatedAt: parsedSentAt,
+          },
+        });
+        return NextResponse.json({
+          success: true,
+          alreadyProcessed: true,
+          updatedSentAt: true,
+          sentAt: parsedSentAt.toISOString(),
+        });
+      }
+
+      return NextResponse.json({
+        success: true,
+        alreadyProcessed: true,
+        sentAt: job.sentAt ? job.sentAt.toISOString() : null,
+      });
     }
 
     // --------------------------------------------------
     // 2. TRANSACTION (ALL OR NOTHING)
     // --------------------------------------------------
     await prisma.$transaction(async (tx) => {
-      const now = sentAt ? new Date(sentAt) : new Date();
+      const now = parsedSentAt ?? new Date();
 
       // 2.1 MARK JOB COMPLETED
       await tx.jobQueue.update({
         where: { id: job.id },
         data: {
           status: "COMPLETED",
+          sentAt: now,
           updatedAt: now,
         },
       });
 
       // 2.2 DAILY MESSAGE COUNT
-      const today = new Date(now);
-      today.setHours(0, 0, 0, 0);
+      // Format date as YYYY-MM-DD to ensure proper DATE field storage (without timezone)
+      // This ensures the date is stored as '2026-01-21' format, not '2026-01-21T00:00:00.000Z'
+      const todayStr = now.toISOString().split("T")[0]; // YYYY-MM-DD format
+      const today = new Date(todayStr);
+      
       await tx.accountDailyMessageCount.upsert({
         where: {
           instagramAccountId_date: {
