@@ -724,7 +724,7 @@ const JOB_POLL_INTERVAL_MINS = 5; // Poll for new jobs every 5 minutes
 const MIN_DELAY_MINS = 5; // 5 minutes base delay between DMs
 const JITTER_MINS = 5; // Up to 5 minutes of extra randomness
 const RETRY_DELAY_MINS = 1; // 1 minute retry delay on failure
-
+const MAX_JOB_RETRIES = 3; // Maximum number of times to retry a job that reports content script errors
 // Instagram DM URL (will be used to find/create background tab)
 const INSTAGRAM_DM_URL = 'https://www.instagram.com/direct/inbox/';
 
@@ -898,6 +898,7 @@ async function pollForPendingJobs() {
       leadId: job.leadId,
       recipientUserId: job.recipientUserId,
       scheduledAt: job.scheduledAt,
+      retryCount: 0, // Initialize retry counter for job-level retry tracking
     }));
     
     if (jobs.length === 0) {
@@ -1082,8 +1083,41 @@ async function processNextDMJob() {
       console.warn('   Could not activate tab, continuing anyway:', e);
     }
     
+    // Check retry count before processing
+    const currentRetryCount = currentJob.retryCount || 0;
+    
+    if (currentRetryCount >= MAX_JOB_RETRIES) {
+      console.error(`❌ Job ${currentJob.id} has exceeded maximum retry attempts (${MAX_JOB_RETRIES}). Marking as failed.`);
+      
+      // Mark job as FAILED in backend
+      const failureReason = `Job exceeded maximum retry attempts (${MAX_JOB_RETRIES})`;
+      const failedUpdated = await markJobAsFailed(currentJob.id, failureReason, new Date());
+      if (!failedUpdated) {
+        console.warn(`⚠️ Failed to mark job as FAILED in backend. Job ID: ${currentJob.id}`);
+      }
+      
+      // Remove job from queue
+      const newQueue = dmJobQueue.slice(1);
+      const newProcessedCount = dmProcessedCount + 1;
+      await chrome.storage.local.set({ 
+        dmJobQueue: newQueue,
+        dmProcessedCount: newProcessedCount
+      });
+      
+      // Deactivate tab
+      try {
+        await chrome.tabs.update(tab.id, { active: false });
+      } catch (e) {
+        // Ignore errors
+      }
+      
+      console.log('⏭️ Skipping failed job and continuing to next one...');
+      scheduleNextJob(RETRY_DELAY_MINS);
+      return;
+    }
+    
     // Send EXECUTE_COLD_DM to automation-script.js
-    const messageSuccess = await sendMessageWithRetry(
+    const result = await sendMessageWithRetry(
       tab.id,
       { 
         action: 'EXECUTE_COLD_DM',
@@ -1091,24 +1125,71 @@ async function processNextDMJob() {
         message: currentJob.message,
         jobId: currentJob.id
       },
-      3, // max retries
+      3, // max retries for connection errors
       1000 // 1 second between retries
     );
     
-    if (!messageSuccess) {
-      console.error('❌ Content script not responding after retries');
+    // Handle result based on error type
+    if (result.success) {
+      // Job completed successfully or was handled (marked as failed) by sendMessageWithRetry
+      // sendMessageWithRetry already handled queue updates and scheduling
+      return;
+    }
+    
+    // Job failed - check error type
+    if (result.errorType === 'content_script_error') {
+      // Content script reported an error - increment retry count and retry at job level
+      console.log(`🔁 Content script error (retry ${currentRetryCount + 1}/${MAX_JOB_RETRIES}). Retrying job in ${RETRY_DELAY_MINS} minute(s)...`);
+      
+      // Increment retry count in the job
+      const updatedJob = { ...currentJob, retryCount: currentRetryCount + 1 };
+      const updatedQueue = [updatedJob, ...dmJobQueue.slice(1)];
+      await chrome.storage.local.set({ 
+        dmJobQueue: updatedQueue
+      });
+      
+      // Schedule retry
+      scheduleNextJob(RETRY_DELAY_MINS);
+      return;
+    } else if (result.errorType === 'connection_error') {
+      // Connection error - sendMessageWithRetry already exhausted its retries
+      // Increment job retry count and retry at job level
+      console.log(`🔁 Connection error (retry ${currentRetryCount + 1}/${MAX_JOB_RETRIES}). Retrying job in ${RETRY_DELAY_MINS} minute(s)...`);
+      
+      // Increment retry count in the job
+      const updatedJob = { ...currentJob, retryCount: currentRetryCount + 1 };
+      const updatedQueue = [updatedJob, ...dmJobQueue.slice(1)];
+      await chrome.storage.local.set({ 
+        dmJobQueue: updatedQueue
+      });
+      
       // Ensure tab is deactivated
       try {
         await chrome.tabs.update(tab.id, { active: false });
       } catch (e) {
         // Ignore errors
       }
-      console.log('🔁 Retrying job in', RETRY_DELAY_MINS, 'minute(s)...');
+      
+      // Schedule retry
       scheduleNextJob(RETRY_DELAY_MINS);
       return;
     }
     
-    // Message sent successfully, response handled in sendMessageWithRetry
+    // Unknown error type - treat as connection error
+    console.error('❌ Unknown error type, treating as connection error');
+    const updatedJob = { ...currentJob, retryCount: currentRetryCount + 1 };
+    const updatedQueue = [updatedJob, ...dmJobQueue.slice(1)];
+    await chrome.storage.local.set({ 
+      dmJobQueue: updatedQueue
+    });
+    
+    try {
+      await chrome.tabs.update(tab.id, { active: false });
+    } catch (e) {
+      // Ignore errors
+    }
+    
+    scheduleNextJob(RETRY_DELAY_MINS);
     
   } catch (error) {
     console.error('❌ Error in processNextDMJob:', error);
@@ -1240,9 +1321,9 @@ async function markJobAsFailed(jobId, errorMessage = null, failedAt = null) {
  * Send message to tab with retry logic
  * @param {number} tabId - Tab ID to send message to
  * @param {object} message - Message to send
- * @param {number} maxRetries - Maximum retry attempts
+ * @param {number} maxRetries - Maximum retry attempts for connection errors
  * @param {number} retryDelay - Delay between retries in ms
- * @returns {Promise<boolean>} - true if message sent successfully
+ * @returns {Promise<{success: boolean, errorType: string|null, errorMessage: string|null, igMessageId: string|null}>} - Result object
  */
 async function sendMessageWithRetry(tabId, message, maxRetries, retryDelay) {
   const jobId = message?.jobId || message?.job?.id;
@@ -1266,7 +1347,18 @@ async function sendMessageWithRetry(tabId, message, maxRetries, retryDelay) {
           await new Promise(resolve => setTimeout(resolve, retryDelay));
           continue;
         }
-        return false;
+        // Deactivate tab before returning
+        try {
+          await chrome.tabs.update(tabId, { active: false });
+        } catch (e) {
+          // Ignore errors
+        }
+        return { 
+          success: false, 
+          errorType: 'connection_error', 
+          errorMessage: 'No response from content script',
+          igMessageId: null
+        };
       }
       
       if (response.status === 'success') {
@@ -1313,9 +1405,15 @@ async function sendMessageWithRetry(tabId, message, maxRetries, retryDelay) {
         console.log(`📊 Progress: ${newProcessedCount} completed, ${newQueue.length} remaining\n`);
         
         scheduleNextJob(randomDelay);
-        return true;
+        return { 
+          success: true, 
+          errorType: null, 
+          errorMessage: null,
+          igMessageId: igMessageId
+        };
       } else {
-        // Error from content script - deactivate tab before retrying
+        // Error from content script - return error info for job-level retry handling
+        // Deactivate tab before returning
         try {
           await chrome.tabs.update(tabId, { active: false });
         } catch (e) {
@@ -1323,9 +1421,12 @@ async function sendMessageWithRetry(tabId, message, maxRetries, retryDelay) {
         }
         
         console.error('❌ Content script reported error:', response.message || 'Unknown error');
-        console.log('🔁 Retrying in', RETRY_DELAY_MINS, 'minute(s)...');
-        scheduleNextJob(RETRY_DELAY_MINS);
-        return true; // Message was delivered, but job failed
+        return { 
+          success: false, 
+          errorType: 'content_script_error', 
+          errorMessage: response.message || 'Unknown error',
+          igMessageId: null
+        };
       }
       
     } catch (error) {
@@ -1363,7 +1464,12 @@ async function sendMessageWithRetry(tabId, message, maxRetries, retryDelay) {
 
           console.log('⏭️ Skipping failed job and continuing to next one...');
           scheduleNextJob(RETRY_DELAY_MINS);
-          return true;
+          return { 
+            success: true, // true because we handled it (marked as failed and removed)
+            errorType: 'connection_error', 
+            errorMessage: error?.message || 'Unknown error',
+            igMessageId: null
+          };
         }
         
         // Deactivate tab before returning
@@ -1372,7 +1478,12 @@ async function sendMessageWithRetry(tabId, message, maxRetries, retryDelay) {
         } catch (e) {
           // Ignore errors
         }
-        return false;
+        return { 
+          success: false, 
+          errorType: 'connection_error', 
+          errorMessage: error?.message || 'Unknown error',
+          igMessageId: null
+        };
       }
     }
   }
@@ -1384,7 +1495,12 @@ async function sendMessageWithRetry(tabId, message, maxRetries, retryDelay) {
     // Ignore errors
   }
   
-  return false;
+  return { 
+    success: false, 
+    errorType: 'connection_error', 
+    errorMessage: 'All retry attempts exhausted',
+    igMessageId: null
+  };
 }
 
 /**

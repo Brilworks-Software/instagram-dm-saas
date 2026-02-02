@@ -165,6 +165,29 @@ export default function InstagramSettingsPage() {
         return;
       }
 
+      // Get today's date in YYYY-MM-DD format
+      const today = new Date().toISOString().split("T")[0];
+
+      // Fetch daily message counts for today for all accounts
+      const accountIds = (data || []).map((acc: any) => acc.id);
+      const dailyCountMap = new Map<string, number>();
+      
+      // Only query if we have account IDs
+      if (accountIds.length > 0) {
+        const { data: dailyCounts, error: dailyCountsError } = await supabase
+          .from("account_daily_message_count")
+          .select("instagram_account_id, message_count")
+          .in("instagram_account_id", accountIds)
+          .eq("date", today);
+
+        // Create a map of account ID to message count for quick lookup
+        if (dailyCounts && !dailyCountsError) {
+          dailyCounts.forEach((count: any) => {
+            dailyCountMap.set(count.instagram_account_id, count.message_count || 0);
+          });
+        }
+      }
+
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const transformedAccounts: InstagramAccount[] = (data || []).map(
         (acc: any) => ({
@@ -174,7 +197,7 @@ export default function InstagramSettingsPage() {
           profilePictureUrl: acc.profile_picture_url,
           isActive: acc.is_active,
           dailyDmLimit: acc.daily_dm_limit,
-          dmsSentToday: acc.dms_sent_today,
+          dmsSentToday: dailyCountMap.get(acc.id) || 0,
           createdAt: acc.created_at,
         })
       );
@@ -841,10 +864,32 @@ export default function InstagramSettingsPage() {
   const handleRefresh = async (accountId: string) => {
     try {
       const supabase = createClient();
-      await supabase
-        .from("instagram_accounts")
-        .update({ dms_sent_today: 0 })
-        .eq("id", accountId);
+      const today = new Date().toISOString().split("T")[0];
+      
+      // First, try to update existing record
+      const { data: existing } = await supabase
+        .from("account_daily_message_count")
+        .select("id")
+        .eq("instagram_account_id", accountId)
+        .eq("date", today)
+        .single();
+
+      if (existing) {
+        // Update existing record
+        await supabase
+          .from("account_daily_message_count")
+          .update({ message_count: 0 })
+          .eq("id", existing.id);
+      } else {
+        // Insert new record
+        await supabase
+          .from("account_daily_message_count")
+          .insert({
+            instagram_account_id: accountId,
+            date: today,
+            message_count: 0,
+          });
+      }
 
       setAccounts((prev) =>
         prev.map((a) => (a.id === accountId ? { ...a, dmsSentToday: 0 } : a))
