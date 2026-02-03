@@ -101,7 +101,7 @@ export default function PrivacyPage() {
 
             <h3 className="text-xl font-semibold text-foreground mb-3 mt-6">2.2.1 Chrome Extension Data Collection</h3>
             <p className="text-foreground-muted leading-relaxed mb-4">
-              Our Chrome extension ("SocialOra - Instagram Session Grabber") facilitates easy account connection by:
+              Our Chrome extension ("Socialora – Smart DM Automation") facilitates easy account connection by:
             </p>
             <ul className="list-disc list-inside text-foreground-muted space-y-2 mb-4">
               <li><strong>Reading Instagram Cookies:</strong> The extension accesses cookies from instagram.com when you click "Grab Instagram Session" while logged into Instagram in your browser</li>
