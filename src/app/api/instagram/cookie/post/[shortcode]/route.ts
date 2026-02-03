@@ -71,16 +71,18 @@ export async function POST(
     }
 
     // Handle carousel (multiple images)
+    // Type assertion needed because carousel_media exists at runtime but not in types
+    const mediaItemAny = mediaItem as any;
     const images: string[] = [];
-    if (mediaItem.carousel_media) {
+    if (mediaItemAny.carousel_media) {
       // This is a carousel post
-      for (const carouselItem of mediaItem.carousel_media) {
+      for (const carouselItem of mediaItemAny.carousel_media) {
         const imageUrl = carouselItem.image_versions2?.candidates?.[0]?.url || carouselItem.thumbnail_url;
         if (imageUrl) images.push(imageUrl);
       }
     } else {
       // Single image post
-      const imageUrl = mediaItem.image_versions2?.candidates?.[0]?.url || mediaItem.thumbnail_url;
+      const imageUrl = mediaItem.image_versions2?.candidates?.[0]?.url || mediaItemAny.thumbnail_url;
       if (imageUrl) images.push(imageUrl);
     }
 
@@ -90,7 +92,7 @@ export async function POST(
       postUrl: `https://www.instagram.com/p/${mediaItem.code}/`,
       imageUrl: images[0], // Keep for backward compatibility
       images, // All images for carousel
-      isCarousel: !!mediaItem.carousel_media,
+      isCarousel: !!mediaItemAny.carousel_media,
       caption: mediaItem.caption?.text || '',
       likeCount: mediaItem.like_count || 0,
       commentCount: mediaItem.comment_count || 0,
