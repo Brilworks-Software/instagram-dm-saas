@@ -595,7 +595,33 @@ export default function InstagramSettingsPage() {
           // Parse account metadata from URL (if provided)
           let accountMetadata: any = {};
           if (accountParam) {
-            accountMetadata = JSON.parse(atob(accountParam));
+            try {
+              // Try standard Base64 decode with URL decoding
+              const decodedParam = decodeURIComponent(accountParam);
+              accountMetadata = JSON.parse(atob(decodedParam));
+              console.log(
+                "Received account metadata from extension:",
+                accountMetadata
+              );
+            } catch (decodeError) {
+              console.error("Failed to decode account parameter:", decodeError);
+              // Try URL-safe Base64 decode (replace - with +, _ with /)
+              try {
+                const urlSafeDecoded = accountParam
+                  .replace(/-/g, "+")
+                  .replace(/_/g, "/");
+                const decodedParam = decodeURIComponent(urlSafeDecoded);
+                accountMetadata = JSON.parse(atob(decodedParam));
+                console.log(
+                  "Successfully decoded using URL-safe Base64",
+                  accountMetadata
+                );
+              } catch (fallbackError) {
+                console.error("All decode attempts failed:", fallbackError);
+                // Continue without metadata - we still have the user ID
+                accountMetadata = {};
+              }
+            }
           }
 
           console.log("Received Instagram user ID from extension:", igUserId);
@@ -750,7 +776,21 @@ export default function InstagramSettingsPage() {
       // Legacy support: Handle old format with full account data
       if (connectedData) {
         try {
-          const accountData = JSON.parse(atob(connectedData));
+          let accountData;
+          try {
+            // Try standard Base64 decode with URL decoding
+            const decodedData = decodeURIComponent(connectedData);
+            accountData = JSON.parse(atob(decodedData));
+          } catch (decodeError) {
+            console.error("Failed to decode connected data:", decodeError);
+            // Try URL-safe Base64 decode (replace - with +, _ with /)
+            const urlSafeDecoded = connectedData
+              .replace(/-/g, "+")
+              .replace(/_/g, "/");
+            const decodedData = decodeURIComponent(urlSafeDecoded);
+            accountData = JSON.parse(atob(decodedData));
+            console.log("Successfully decoded using URL-safe Base64");
+          }
           console.log(
             "Received account data from extension (legacy format):",
             accountData

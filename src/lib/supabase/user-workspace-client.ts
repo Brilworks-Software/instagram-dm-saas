@@ -7,7 +7,8 @@ type Workspace = Database['public']['Tables']['workspaces']['Row'];
 
 /**
  * Client-side function to get or create user's workspace
- * This ensures the user always has a workspace
+ * SIMPLIFIED: Since we're not using the workspace concept,
+ * this just returns the user's auth ID as their workspace ID
  */
 export async function getOrCreateUserWorkspaceId(): Promise<string | null> {
   const supabase = createClient();
@@ -20,7 +21,7 @@ export async function getOrCreateUserWorkspaceId(): Promise<string | null> {
     return null;
   }
 
-  console.log('Authenticated user:', authUser.id, authUser.email);
+  console.log('Using auth user ID as workspace:', authUser.id, authUser.email);
 
   // Get user record from users table
   let { data: user, error: userError } = await supabase

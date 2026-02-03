@@ -374,7 +374,13 @@ async function handleCookiesReady(cookies) {
     fullName: user.fullName,
     profilePicUrl: user.profilePicUrl,
   };
-  const encodedMetadata = btoa(JSON.stringify(accountMetadata));
+  // Use URL-safe Base64 encoding (replace + with -, / with _, and remove padding =)
+  console.log("backgroundjs debug 377", btoa(JSON.stringify(accountMetadata)));
+  const encodedMetadata = btoa(JSON.stringify(accountMetadata))
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
+  console.log("backgroundjs debug 384", encodedMetadata);
   const redirectUrl = `${cleanAppUrl}/settings/instagram?ig_user_id=${user.pk}&account=${encodedMetadata}`;
 
   // Prefer reusing an existing app tab if one is already open
