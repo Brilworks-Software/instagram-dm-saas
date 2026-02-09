@@ -2,6 +2,7 @@ import { Providers } from "@/components/providers";
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
+import Script from "next/script";
 
 const inter = Inter({
   variable: "--font-geist-sans",
@@ -150,6 +151,22 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark" suppressHydrationWarning>
+      <head>
+        {/* Google Analytics */}
+        <Script
+          src="https://www.googletagmanager.com/gtag/js?id=G-9W0M481EGS"
+          strategy="afterInteractive"
+        />
+
+        <Script id="google-analytics" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-9W0M481EGS');
+          `}
+        </Script>
+      </head>
       <body
         className={`${inter.variable} ${jetbrainsMono.variable} antialiased bg-background text-foreground`}
       >
