@@ -39,6 +39,24 @@ export async function POST(
       // Ignore friendship errors
     }
 
+    // Get recent posts (only for public accounts or accounts we follow)
+    let recentPosts: any[] = [];
+    if (!profile.is_private || friendshipStatus?.following) {
+      try {
+        const userFeed = ig.feed.user(user.pk);
+        const posts = await userFeed.items();
+        recentPosts = posts.slice(0, 3).map((post: any) => ({
+          thumbnail: post.image_versions2?.candidates?.[0]?.url || post.thumbnail_url,
+          postUrl: `https://www.instagram.com/p/${post.code}/`,
+          likes: post.like_count,
+          comments: post.comment_count,
+        }));
+      } catch (e) {
+        console.log('Could not fetch recent posts:', e);
+        // Ignore post fetch errors
+      }
+    }
+
     const profileData = {
       pk: profile.pk.toString(),
       username: profile.username,
@@ -56,6 +74,7 @@ export async function POST(
       followedByViewer: friendshipStatus?.following || false,
       followsViewer: friendshipStatus?.followed_by || false,
       blockedByViewer: friendshipStatus?.blocking || false,
+      recentPosts,
     };
 
     return NextResponse.json({

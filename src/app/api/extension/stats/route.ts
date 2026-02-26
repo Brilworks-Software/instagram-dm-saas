@@ -48,28 +48,53 @@ export async function POST(request: NextRequest) {
 
     const workspaceId = instagramAccount.workspaceId;
 
-    // Calculate start of today in UTC
+    // Format date as YYYY-MM-DD to ensure proper DATE field storage (without timezone)
+    // This ensures the date is stored as '2026-01-21' format, not '2026-01-21T00:00:00.000Z'
     const now = new Date();
-    const todayStart = new Date(
-      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
-    );
+    const todayStr = now.toISOString().split("T")[0]; // YYYY-MM-DD format
+    const today = new Date(todayStr);
 
-    // Count actual messages sent today (more accurate than using dms_sent_today counter)
-    const messagesToday = await prisma.message.count({
+    // Get all Instagram accounts in the workspace
+    const workspaceAccounts = await prisma.instagramAccount.findMany({
       where: {
-        direction: "OUTBOUND",
-        createdAt: {
-          gte: todayStart,
-        },
-        conversation: {
-          instagramAccount: {
-            workspaceId,
-          },
-        },
+        workspaceId,
+      },
+      select: {
+        id: true,
       },
     });
 
+    const accountIds = workspaceAccounts.map((account) => account.id);
+
+    // Count messages sent today using accountDailyMessageCount table
+    // Sum up messageCount for all accounts in the workspace for today's date
+    let messagesToday = 0;
+    if (accountIds.length > 0) {
+      const dailyCounts = await prisma.accountDailyMessageCount.findMany({
+        where: {
+          instagramAccountId: {
+            in: accountIds,
+          },
+          date: today,
+        },
+        select: {
+          messageCount: true,
+        },
+      });
+
+      // Sum up all message counts for today
+      messagesToday = dailyCounts.reduce(
+        (sum, count) => sum + (count.messageCount || 0),
+        0
+      );
+    }
+
     // Also reset stale dms_sent_today counters in the background (don't block)
+    // Note: This is kept for backward compatibility, but accountDailyMessageCount is now the source of truth
+    const todayStart = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
+    );
+    
     prisma.instagramAccount
       .findMany({
         where: {

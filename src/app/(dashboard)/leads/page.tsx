@@ -352,6 +352,111 @@ export default function LeadsPage() {
     console.log('getCookies: No cookies found. Available keys:', Object.keys(localStorage).filter(k => k.includes('cookie') || k.includes('socialora')));
     return null;
   };
+
+  // Load batch of search results with random delays
+  const loadNextBatch = useCallback(async (count: number) => {
+    if (!selectedAccount || searchResults.length === 0) return;
+
+    const cookies = getCookies();
+    if (!cookies) {
+      toast.error('Session expired', {
+        description: 'Please reconnect your Instagram account.',
+      });
+      return;
+    }
+
+    // Get keywords from preset or custom input
+    let keywords: string[] = [];
+    if (selectedPreset) {
+      const preset = KEYWORD_PRESETS.find(p => p.name === selectedPreset);
+      keywords = preset?.keywords || [];
+    }
+    const customKeywords = bioKeywords.split(',').map(k => k.trim()).filter(k => k);
+    keywords = [...keywords, ...customKeywords];
+
+    setIsLoadingBatch(true);
+    const startIndex = currentBatchIndex;
+    const endIndex = Math.min(startIndex + count, searchResults.length);
+    const batch = searchResults.slice(startIndex, endIndex);
+    
+    setLoadingProgress({ current: 0, total: batch.length });
+
+    const newDisplayedResults: any[] = [];
+
+    for (let i = 0; i < batch.length; i++) {
+      const userProfile = batch[i];
+      
+      try {
+        setLoadingProgress({ current: i + 1, total: batch.length });
+        
+        // Fetch full profile with bio
+        const profileRes = await fetch(`/api/instagram/cookie/user/${userProfile.username}/profile`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ cookies }),
+        });
+        const profileData = await profileRes.json();
+        
+        const profile = profileData.success ? profileData.profile : userProfile;
+        const bio = profile.bio || '';
+        
+        // Use smart keyword matching
+        const matchedKeywords = matchKeywordsInBio(bio, keywords);
+        
+        // Add to displayed results with full profile data
+        newDisplayedResults.push({
+          ...profile,
+          username: profile.username || userProfile.username,
+          fullName: profile.fullName || userProfile.fullName,
+          bio: profile.bio,
+          matchedKeywords,
+          source: userProfile.source,
+          matchedKeyword: userProfile.matchedKeyword,
+        });
+
+        // Update displayed results immediately (incremental display)
+        setDisplayedSearchResults(prev => [...prev, {
+          ...profile,
+          username: profile.username || userProfile.username,
+          fullName: profile.fullName || userProfile.fullName,
+          bio: profile.bio,
+          matchedKeywords,
+          source: userProfile.source,
+          matchedKeyword: userProfile.matchedKeyword,
+        }]);
+
+        // Random delay between 5-15 seconds (except for the last item)
+        if (i < batch.length - 1) {
+          const delay = getRandomDelay();
+          console.log(`Waiting ${formatDelayTime(delay)} before next profile...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      } catch (error) {
+        console.error(`Failed to load profile ${userProfile.username}:`, error);
+      }
+    }
+
+    setCurrentBatchIndex(endIndex);
+    setIsLoadingBatch(false);
+    setLoadingProgress({ current: 0, total: 0 });
+
+    if (endIndex >= searchResults.length) {
+      toast.success('All profiles loaded!', {
+        description: `Loaded ${displayedSearchResults.length + newDisplayedResults.length} profiles`,
+      });
+    }
+  }, [selectedAccount, searchResults, selectedPreset, bioKeywords, currentBatchIndex, displayedSearchResults.length]);
+
+  // Auto-trigger batch loading when search results change
+  useEffect(() => {
+    if (searchResults.length > 0 && displayedSearchResults.length === 0 && !isLoadingBatch && currentBatchIndex === 0) {
+      // Delay slightly to ensure state is settled
+      const timer = setTimeout(() => {
+        loadNextBatch(batchSize);
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [searchResults, displayedSearchResults.length, isLoadingBatch, currentBatchIndex, loadNextBatch, batchSize]);
   
   // State for search errors
   const [searchError, setSearchError] = useState<string | null>(null);
@@ -460,13 +565,6 @@ export default function LeadsPage() {
           setSearchResults(results);
           setDisplayedSearchResults([]);
           setCurrentBatchIndex(0);
-          
-          // Automatically trigger loading first batch if we have results
-          if (results.length > 0) {
-            setTimeout(() => {
-              loadNextBatch(batchSize);
-            }, 500);
-          }
         } else {
           // For load more, just add to search results
           setSearchResults(results);
@@ -578,100 +676,6 @@ export default function LeadsPage() {
       });
     } finally {
       setIsLoadingTargetUser(false);
-    }
-  };
-
-  // Load batch of search results with random delays
-  const loadNextBatch = async (count: number) => {
-    if (!selectedAccount || searchResults.length === 0) return;
-
-    const cookies = getCookies();
-    if (!cookies) {
-      toast.error('Session expired', {
-        description: 'Please reconnect your Instagram account.',
-      });
-      return;
-    }
-
-    // Get keywords from preset or custom input
-    let keywords: string[] = [];
-    if (selectedPreset) {
-      const preset = KEYWORD_PRESETS.find(p => p.name === selectedPreset);
-      keywords = preset?.keywords || [];
-    }
-    const customKeywords = bioKeywords.split(',').map(k => k.trim()).filter(k => k);
-    keywords = [...keywords, ...customKeywords];
-
-    setIsLoadingBatch(true);
-    const startIndex = currentBatchIndex;
-    const endIndex = Math.min(startIndex + count, searchResults.length);
-    const batch = searchResults.slice(startIndex, endIndex);
-    
-    setLoadingProgress({ current: 0, total: batch.length });
-
-    const newDisplayedResults: any[] = [];
-
-    for (let i = 0; i < batch.length; i++) {
-      const userProfile = batch[i];
-      
-      try {
-        setLoadingProgress({ current: i + 1, total: batch.length });
-        
-        // Fetch full profile with bio
-        const profileRes = await fetch(`/api/instagram/cookie/user/${userProfile.username}/profile`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ cookies }),
-        });
-        const profileData = await profileRes.json();
-        
-        const profile = profileData.success ? profileData.profile : userProfile;
-        const bio = profile.bio || '';
-        
-        // Use smart keyword matching
-        const matchedKeywords = matchKeywordsInBio(bio, keywords);
-        
-        // Add to displayed results with full profile data
-        newDisplayedResults.push({
-          ...profile,
-          username: profile.username || userProfile.username,
-          fullName: profile.fullName || userProfile.fullName,
-          bio: profile.bio,
-          matchedKeywords,
-          source: userProfile.source,
-          matchedKeyword: userProfile.matchedKeyword,
-        });
-
-        // Update displayed results immediately (incremental display)
-        setDisplayedSearchResults(prev => [...prev, {
-          ...profile,
-          username: profile.username || userProfile.username,
-          fullName: profile.fullName || userProfile.fullName,
-          bio: profile.bio,
-          matchedKeywords,
-          source: userProfile.source,
-          matchedKeyword: userProfile.matchedKeyword,
-        }]);
-
-        // Random delay between 5-15 seconds (except for the last item)
-        if (i < batch.length - 1) {
-          const delay = getRandomDelay();
-          console.log(`Waiting ${formatDelayTime(delay)} before next profile...`);
-          await new Promise(resolve => setTimeout(resolve, delay));
-        }
-      } catch (error) {
-        console.error(`Failed to load profile ${userProfile.username}:`, error);
-      }
-    }
-
-    setCurrentBatchIndex(endIndex);
-    setIsLoadingBatch(false);
-    setLoadingProgress({ current: 0, total: 0 });
-
-    if (endIndex >= searchResults.length) {
-      toast.success('All profiles loaded!', {
-        description: `Loaded ${displayedSearchResults.length + newDisplayedResults.length} profiles`,
-      });
     }
   };
 
@@ -1636,12 +1640,12 @@ export default function LeadsPage() {
                       <div
                         key={`${user.pk}-${i}`}
                         className={cn(
-                          "p-3 rounded-lg border transition-colors",
+                          "p-3 rounded-lg border transition-colors flex flex-col",
                           user.source === "bio_match"
                             ? "bg-emerald-500/5 border-emerald-500/20 hover:bg-emerald-500/10"
                             : "bg-background-elevated border-border hover:bg-background-elevated/80"
                         )}>
-                        <div className="flex items-start gap-3">
+                        <div className="flex items-start gap-3 mb-3 flex-1">
                           <Avatar
                             src={user.profilePicUrl}
                             name={user.username}
@@ -1698,22 +1702,22 @@ export default function LeadsPage() {
                                 </span>
                               )}
                             </div>
-
-                            {/* View Profile Button */}
-                            <Button
-                              size="sm"
-                              variant="secondary"
-                              className="mt-2 w-full text-xs"
-                              onClick={() => {
-                                setProfileModalUsername(user.username);
-                                setShowLeadProfileModal(true);
-                              }}
-                            >
-                              <Eye className="h-3 w-3 mr-1" />
-                              View Profile
-                            </Button>
                           </div>
                         </div>
+
+                        {/* View Profile Button - Full width at bottom */}
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          className="w-full text-xs mt-auto"
+                          onClick={() => {
+                            setProfileModalUsername(user.username);
+                            setShowLeadProfileModal(true);
+                          }}
+                        >
+                          <Eye className="h-3 w-3 mr-1" />
+                          View Profile
+                        </Button>
                       </div>
                     ))}
                   </div>
@@ -3037,6 +3041,8 @@ export default function LeadsPage() {
           setShowLeadProfileModal(false);
         }}
         isAlreadyLead={leads.some(l => l.igUsername === profileModalUsername)}
+        cookies={getCookies()}
+        selectedAccount={selectedAccount}
       />
     </div>
   );

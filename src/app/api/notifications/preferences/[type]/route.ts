@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { notificationService } from '@/lib/server/notifications/notification-service';
 import { requireAuth } from '@/lib/server/auth';
-import { NotificationType } from '@prisma/client';
+import { Notification } from '@prisma/client';
 
 export async function PUT(
   request: NextRequest,
@@ -17,7 +17,7 @@ export async function PUT(
 
     const result = await notificationService.updatePreference(
       auth.workspaceId,
-      type as NotificationType,
+      type as Notification['type'],
       preferences,
       auth.userId,
     );

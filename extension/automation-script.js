@@ -519,14 +519,22 @@ async function performColdDmSequence(messageText, targetUsername) {
             chatBox.dispatchEvent(new InputEvent('input', { bubbles: true }));
         } catch (e) {}
 
-        // Type Message
+        // Type Message with human-like simulation
         try {
-            await setChatBoxText(chatBox, messageText);
-            await sleep(60);
+            console.log("⌨️ Simulating human typing...");
+            await simulateHumanTyping(chatBox, messageText);
+            await sleep(100); // Small pause after typing
         } catch (err) {
-            console.error('Text set failed, using fallback typing', err);
-            for (const ch of messageText) {
-                try { document.execCommand('insertText', false, ch); } catch (_) { }
+            console.error('Human typing simulation failed, trying setChatBoxText fallback', err);
+            try {
+                await setChatBoxText(chatBox, messageText);
+                await sleep(60);
+            } catch (setErr) {
+                console.error('setChatBoxText also failed, using basic character insertion', setErr);
+                // Last resort: basic character insertion without delays
+                for (const ch of messageText) {
+                    try { document.execCommand('insertText', false, ch); } catch (_) { }
+                }
             }
         }
 

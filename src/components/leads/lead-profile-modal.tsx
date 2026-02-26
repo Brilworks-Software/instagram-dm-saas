@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Avatar } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { PostDetailModal } from './post-detail-modal';
 
 interface ProfileData {
   success: boolean;
@@ -36,6 +37,8 @@ interface LeadProfileModalProps {
   onClose: () => void;
   onAddToLeads?: (username: string) => void;
   isAlreadyLead?: boolean;
+  cookies?: any; // Instagram cookies for authenticated requests
+  selectedAccount?: any; // Selected Instagram account
 }
 
 export function LeadProfileModal({ 
@@ -43,11 +46,21 @@ export function LeadProfileModal({
   isOpen, 
   onClose, 
   onAddToLeads,
-  isAlreadyLead = false 
+  isAlreadyLead = false,
+  cookies,
+  selectedAccount
 }: LeadProfileModalProps) {
   const [profileData, setProfileData] = useState<ProfileData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // Post detail modal state
+  const [selectedPostShortcode, setSelectedPostShortcode] = useState<string | null>(null);
+  const [isPostModalOpen, setIsPostModalOpen] = useState(false);
+  
+  // Nested profile modal state (for viewing liker/commenter profiles)
+  const [nestedProfileUsername, setNestedProfileUsername] = useState<string | null>(null);
+  const [isNestedProfileOpen, setIsNestedProfileOpen] = useState(false);
 
   useEffect(() => {
     if (isOpen && username) {
@@ -61,19 +74,54 @@ export function LeadProfileModal({
     setProfileData(null);
 
     try {
-      const response = await fetch('/api/leads/scrape-profile', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username }),
-      });
+      // Use cookie-based API if cookies are available (more reliable and gets recent posts)
+      if (cookies && selectedAccount) {
+        const response = await fetch(`/api/instagram/cookie/user/${username}/profile`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ cookies }),
+        });
 
-      const data = await response.json();
+        const data = await response.json();
 
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to fetch profile');
+        if (!response.ok || !data.success) {
+          throw new Error(data.error || 'Failed to fetch profile');
+        }
+
+        // Transform the profile data to match our interface
+        const profile = data.profile;
+        setProfileData({
+          success: true,
+          username: profile.username,
+          profileUrl: `https://www.instagram.com/${profile.username}/`,
+          profilePicUrl: profile.profilePicUrl,
+          fullName: profile.fullName,
+          bio: profile.bio,
+          followerCount: profile.followerCount,
+          followingCount: profile.followingCount,
+          postCount: profile.postCount || profile.mediaCount,
+          isVerified: profile.isVerified,
+          isPrivate: profile.isPrivate,
+          isBusiness: profile.isBusiness,
+          externalUrl: profile.externalUrl,
+          recentPosts: profile.recentPosts || [],
+        });
+      } else {
+        // Fallback to scraper API if no cookies (less reliable)
+        const response = await fetch('/api/leads/scrape-profile', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to fetch profile');
+        }
+
+        setProfileData(data);
       }
-
-      setProfileData(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load profile');
     } finally {
@@ -227,48 +275,55 @@ export function LeadProfileModal({
                 )}
               </div>
 
-              {/* Recent Posts */}
-              {profileData.recentPosts && profileData.recentPosts.length > 0 && (
+              {/* Recent Posts - Only show for public accounts */}
+              {!profileData.isPrivate && profileData.recentPosts && profileData.recentPosts.length > 0 && (
                 <div>
                   <h4 className="text-lg font-semibold text-foreground mb-4">
                     Recent Posts
                   </h4>
                   <div className="grid grid-cols-3 gap-2">
-                    {profileData.recentPosts.map((post, index) => (
-                      <a
-                        key={index}
-                        href={post.postUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="relative aspect-square rounded-lg overflow-hidden group cursor-pointer"
-                      >
-                        <img
-                          src={post.thumbnail}
-                          alt={`Post ${index + 1}`}
-                          className="w-full h-full object-cover transition-transform group-hover:scale-110"
-                        />
-                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4">
-                          {post.likes !== undefined && (
-                            <div className="flex items-center gap-1 text-white text-sm font-semibold">
-                              <Heart className="w-4 h-4 fill-white" />
-                              {formatNumber(post.likes)}
-                            </div>
-                          )}
-                          {post.comments !== undefined && (
-                            <div className="flex items-center gap-1 text-white text-sm font-semibold">
-                              <MessageCircle className="w-4 h-4 fill-white" />
-                              {formatNumber(post.comments)}
-                            </div>
-                          )}
+                    {profileData.recentPosts.slice(0, 3).map((post, index) => {
+                      // Extract shortcode from post URL
+                      const shortcode = post.postUrl.match(/\/p\/([^/]+)\//)?.[1] || '';
+                      
+                      return (
+                        <div
+                          key={index}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            setSelectedPostShortcode(shortcode);
+                            setIsPostModalOpen(true);
+                          }}
+                          className="relative aspect-square rounded-lg overflow-hidden group cursor-pointer"
+                        >
+                          <img
+                            src={post.thumbnail}
+                            alt={`Post ${index + 1}`}
+                            className="w-full h-full object-cover transition-transform group-hover:scale-110"
+                          />
+                          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4">
+                            {post.likes !== undefined && (
+                              <div className="flex items-center gap-1 text-white text-sm font-semibold">
+                                <Heart className="w-4 h-4 fill-white" />
+                                {formatNumber(post.likes)}
+                              </div>
+                            )}
+                            {post.comments !== undefined && (
+                              <div className="flex items-center gap-1 text-white text-sm font-semibold">
+                                <MessageCircle className="w-4 h-4 fill-white" />
+                                {formatNumber(post.comments)}
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      </a>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               )}
 
               {/* Private Account Message */}
-              {profileData.isPrivate && (!profileData.recentPosts || profileData.recentPosts.length === 0) && (
+              {profileData.isPrivate && (
                 <div className="text-center py-8 px-4 bg-background-muted rounded-xl">
                   <p className="text-sm text-foreground-muted">
                     🔒 This account is private. Posts are not visible.
@@ -278,6 +333,39 @@ export function LeadProfileModal({
             </div>
           )}
         </div>
+
+        {/* Post Detail Modal */}
+        {selectedPostShortcode && (
+          <PostDetailModal
+            shortcode={selectedPostShortcode}
+            isOpen={isPostModalOpen}
+            onClose={() => {
+              setIsPostModalOpen(false);
+              setSelectedPostShortcode(null);
+            }}
+            cookies={cookies}
+            onUserClick={(username) => {
+              setIsPostModalOpen(false);
+              setNestedProfileUsername(username);
+              setIsNestedProfileOpen(true);
+            }}
+          />
+        )}
+
+        {/* Nested Profile Modal (for likers/commenters) */}
+        {nestedProfileUsername && (
+          <LeadProfileModal
+            username={nestedProfileUsername}
+            isOpen={isNestedProfileOpen}
+            onClose={() => {
+              setIsNestedProfileOpen(false);
+              setNestedProfileUsername(null);
+            }}
+            cookies={cookies}
+            selectedAccount={selectedAccount}
+            onAddToLeads={onAddToLeads}
+          />
+        )}
 
         {/* Footer Actions */}
         {profileData && !error && (

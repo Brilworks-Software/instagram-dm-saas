@@ -2,6 +2,7 @@ import { Providers } from "@/components/providers";
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
+import Script from "next/script";
 
 const inter = Inter({
   variable: "--font-geist-sans",
@@ -125,6 +126,10 @@ export const metadata: Metadata = {
       "max-image-preview": "large",
       "max-snippet": -1,
     },
+    // Allow all AI crawlers and search engines
+    "max-image-preview": "large",
+    "max-snippet": -1,
+    "max-video-preview": -1,
   },
   alternates: {
     canonical: "/",
@@ -150,6 +155,48 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark" suppressHydrationWarning>
+      <head>
+        {/* AI Crawler Optimization - Meta tags for better AI indexing */}
+        <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+        <meta name="googlebot" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+        <meta name="bingbot" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+        
+        {/* Allow AI crawlers explicitly */}
+        <meta name="GPTBot" content="index, follow" />
+        <meta name="ChatGPT-User" content="index, follow" />
+        <meta name="CCBot" content="index, follow" />
+        <meta name="anthropic-ai" content="index, follow" />
+        <meta name="Claude-Web" content="index, follow" />
+        <meta name="PerplexityBot" content="index, follow" />
+        <meta name="Applebot-Extended" content="index, follow" />
+        <meta name="Google-Extended" content="index, follow" />
+        
+        {/* Structured data hint for AI crawlers */}
+        <meta name="format-detection" content="telephone=no, email=no, address=no" />
+        
+        {/* Google Analytics */}
+        <Script
+          src="https://www.googletagmanager.com/gtag/js?id=G-9W0M481EGS"
+          strategy="afterInteractive"
+        />
+
+        <Script id="google-analytics" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-9W0M481EGS');
+          `}
+        </Script>
+
+        {/* Google AdSense */}
+        <Script
+          async
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7068210205141615"
+          crossOrigin="anonymous"
+          strategy="afterInteractive"
+        />
+      </head>
       <body
         className={`${inter.variable} ${jetbrainsMono.variable} antialiased bg-background text-foreground`}
       >

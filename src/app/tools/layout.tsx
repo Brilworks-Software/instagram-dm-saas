@@ -55,6 +55,24 @@ export const metadata: Metadata = {
   alternates: {
     canonical: '/tools',
   },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+    // Allow all AI crawlers and search engines
+    'max-image-preview': 'large',
+    'max-snippet': -1,
+    'max-video-preview': -1,
+  },
+  other: {
+    'google-adsense-account': 'ca-pub-7068210205141615',
+  },
 };
 
 export default function ToolsLayout({
@@ -96,6 +114,28 @@ export default function ToolsLayout({
         id="tools-page-structured-data"
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(toolsPageSchema) }}
+      />
+      {/* Google AdSense Meta Tag */}
+      <Script
+        id="google-adsense-meta"
+        strategy="afterInteractive"
+        dangerouslySetInnerHTML={{
+          __html: `
+            if (!document.querySelector('meta[name="google-adsense-account"]')) {
+              const meta = document.createElement('meta');
+              meta.name = 'google-adsense-account';
+              meta.content = 'ca-pub-7068210205141615';
+              document.head.appendChild(meta);
+            }
+          `,
+        }}
+      />
+      {/* Google AdSense Script */}
+      <Script
+        async
+        src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7068210205141615"
+        crossOrigin="anonymous"
+        strategy="afterInteractive"
       />
       {children}
     </>
