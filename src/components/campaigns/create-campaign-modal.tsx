@@ -61,6 +61,8 @@ export function CreateCampaignModal({
   const [step, setStep] = useState(0); // Start at step 0 (scheduling)
   const [isCreating, setIsCreating] = useState(false);
   const [campaign, setCampaign] = useState<NewCampaignData>(INITIAL_CAMPAIGN);
+  const [leadLists, setLeadLists] = useState<any[]>([]);
+  const [selectedLeadListIds, setSelectedLeadListIds] = useState<string[]>([]);
 
   // Set user's timezone on mount
   useEffect(() => {
@@ -77,6 +79,50 @@ export function CreateCampaignModal({
       setCampaign(INITIAL_CAMPAIGN);
     }
   }, [isOpen]);
+
+  // Fetch lead lists on open
+  useEffect(() => {
+    if (isOpen) {
+      fetch("/api/leads/lists")
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.success) setLeadLists(data.lists || []);
+        });
+    }
+  }, [isOpen]);
+
+  // When selectedLeadListIds changes, update campaign.leadIds to include all leads from selected lists (union)
+  useEffect(() => {
+    if (!selectedLeadListIds.length) return;
+    const leadsFromLists = leadLists
+      .filter((list) => selectedLeadListIds.includes(list.id))
+      .flatMap((list) => list.members.map((m: any) => m.lead.id));
+    setCampaign((prev) => ({
+      ...prev,
+      leadIds: Array.from(new Set([...prev.leadIds, ...leadsFromLists])),
+    }));
+    // eslint-disable-next-line
+  }, [selectedLeadListIds]);
+
+  // Remove leads from deselected lists
+  useEffect(() => {
+    if (!leadLists.length) return;
+    const allSelectedLeads = leadLists
+      .filter((list) => selectedLeadListIds.includes(list.id))
+      .flatMap((list) => list.members.map((m: any) => m.lead.id));
+    setCampaign((prev) => ({
+      ...prev,
+      leadIds: prev.leadIds.filter(
+        (id) =>
+          allSelectedLeads.includes(id) ||
+          // keep if user manually selected (not from a list)
+          !leadLists.some((list) =>
+            list.members.some((m: any) => m.lead.id === id)
+          )
+      ),
+    }));
+    // eslint-disable-next-line
+  }, [selectedLeadListIds, leadLists]);
 
   const validateStep = (stepNumber: number): boolean => {
     switch (stepNumber) {
@@ -420,43 +466,46 @@ export function CreateCampaignModal({
 
           {/* Step 2: Select Recipients */}
           {step === 2 && (
-            <RecipientsStep
-              contacts={contacts}
-              leads={leads}
-              selectedContactIds={campaign.contactIds}
-              selectedLeadIds={campaign.leadIds}
-              onContactToggle={(id) => {
-                setCampaign((prev) => ({
-                  ...prev,
-                  contactIds: prev.contactIds.includes(id)
-                    ? prev.contactIds.filter((cid) => cid !== id)
-                    : [...prev.contactIds, id],
-                }));
-              }}
-              onLeadToggle={(id) => {
-                setCampaign((prev) => ({
-                  ...prev,
-                  leadIds: prev.leadIds.includes(id)
-                    ? prev.leadIds.filter((lid) => lid !== id)
-                    : [...prev.leadIds, id],
-                }));
-              }}
-            />
+              <RecipientsStep
+                contacts={contacts}
+                leads={leads}
+                selectedContactIds={campaign.contactIds}
+                selectedLeadIds={campaign.leadIds}
+                onContactToggle={(id) => {
+                  setCampaign((prev) => ({
+                    ...prev,
+                    contactIds: prev.contactIds.includes(id)
+                      ? prev.contactIds.filter((cid) => cid !== id)
+                      : [...prev.contactIds, id],
+                  }));
+                }}
+                onLeadToggle={(id) => {
+                  setCampaign((prev) => ({
+                    ...prev,
+                    leadIds: prev.leadIds.includes(id)
+                      ? prev.leadIds.filter((lid) => lid !== id)
+                      : [...prev.leadIds, id],
+                  }));
+                }}
+                leadLists={leadLists.map((l) => ({ id: l.id, name: l.name }))}
+                selectedLeadListIds={selectedLeadListIds}
+                onLeadListChange={setSelectedLeadListIds}
+              />
           )}
 
           {/* Step 3: Select Instagram Account(s) */}
           {step === 3 && (
-            <AccountSelector
-              accounts={accounts}
-              selectedAccountIds={campaign.accountIds}
-              onSelectionChange={(ids) =>
-                setCampaign((prev) => ({ ...prev, accountIds: ids }))
-              }
-              onReconnect={(accountId) => {
+              <AccountSelector
+                accounts={accounts}
+                selectedAccountIds={campaign.accountIds}
+                onSelectionChange={(ids) =>
+                  setCampaign((prev) => ({ ...prev, accountIds: ids }))
+                }
+                onReconnect={(accountId) => {
                 console.log("Reconnect account:", accountId);
-                window.location.href = "/settings/instagram";
-              }}
-            />
+                  window.location.href = "/settings/instagram";
+                }}
+              />
           )}
 
           {/* Step 4: Message Sequence Builder */}
@@ -549,6 +598,9 @@ function RecipientsStep({
   selectedLeadIds,
   onContactToggle,
   onLeadToggle,
+  leadLists = [],
+  selectedLeadListIds = [],
+  onLeadListChange,
 }: {
   contacts: Contact[];
   leads: Lead[];
@@ -556,49 +608,94 @@ function RecipientsStep({
   selectedLeadIds: string[];
   onContactToggle: (id: string) => void;
   onLeadToggle: (id: string) => void;
+  leadLists?: { id: string; name: string }[];
+  selectedLeadListIds?: string[];
+  onLeadListChange?: (ids: string[]) => void;
 }) {
+  const [listSearch, setListSearch] = useState("");
+  const filteredLists = leadLists.filter((list) =>
+    list.name.toLowerCase().includes(listSearch.toLowerCase())
+  );
+  const toggleLeadList = (listId: string) => {
+    if (!onLeadListChange) return;
+    if (selectedLeadListIds.includes(listId)) {
+      onLeadListChange(selectedLeadListIds.filter((id) => id !== listId));
+    } else {
+      onLeadListChange([...selectedLeadListIds, listId]);
+    }
+  };
   return (
     <div className="space-y-4">
-      <div>
-        <h3 className="text-sm font-medium text-foreground mb-4">
-          Select Contacts
-        </h3>
-        <div className="max-h-64 overflow-y-auto border border-border rounded-lg p-2 space-y-2">
-          {contacts.length === 0 ? (
-            <p className="text-sm text-foreground-muted text-center py-4">
-              No contacts available
-            </p>
-          ) : (
-            contacts.map((contact) => (
-              <label
-                key={contact.id}
-                className="flex items-center gap-3 p-2 rounded-lg hover:bg-background-elevated cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={selectedContactIds.includes(contact.id)}
-                  onChange={() => onContactToggle(contact.id)}
-                  className="rounded border-border"
-                />
-                <div className="flex items-center gap-2 flex-1">
-                  <Avatar
-                    src={contact.profilePictureUrl}
-                    alt={contact.igUsername}
-                    name={contact.name || contact.igUsername}
-                    size="sm"
+      {/* Lead List Multi-Select UI */}
+      <div className="mb-4">
+        {leadLists.length > 0 ? (
+          <>
+            <div className="mb-2 flex items-center justify-between">
+              <span className="font-medium text-sm text-foreground">Select Lead List(s)</span>
+              {selectedLeadListIds.length > 0 && (
+                <span className="text-xs text-accent font-semibold bg-accent/10 rounded px-2 py-0.5 ml-2">
+                  {selectedLeadListIds.length} selected
+                </span>
+              )}
+            </div>
+            {/* Selected chips */}
+            <div className="flex flex-wrap gap-2 mb-2">
+              {selectedLeadListIds.map((id) => {
+                const list = leadLists.find((l) => l.id === id);
+                if (!list) return null;
+                return (
+                  <span
+                    key={id}
+                    className="bg-accent text-white rounded-full px-3 py-1 text-xs flex items-center gap-1 cursor-pointer"
+                    onClick={() => toggleLeadList(id)}
+                  >
+                    {list.name}
+                    <span className="ml-1 text-white/80">&times;</span>
+                  </span>
+                );
+              })}
+            </div>
+            {/* Search input */}
+            <input
+              type="text"
+              placeholder="Search lists..."
+              value={listSearch}
+              onChange={(e) => setListSearch(e.target.value)}
+              className="w-full px-3 py-2 mb-2 rounded border border-border bg-background text-foreground text-sm"
+            />
+            {/* List options */}
+            <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto">
+              {filteredLists.map((list) => (
+                <label
+                  key={list.id}
+                  className={
+                    "flex items-center gap-2 px-3 py-2 rounded cursor-pointer border " +
+                    (selectedLeadListIds.includes(list.id)
+                      ? "bg-accent/10 border-accent"
+                      : "bg-background border-border hover:border-border-hover")
+                  }
+                >
+                  <input
+                    type="checkbox"
+                    checked={selectedLeadListIds.includes(list.id)}
+                    onChange={() => toggleLeadList(list.id)}
+                    className="accent-accent h-4 w-4 rounded border-border"
                   />
-                  <div>
-                    <p className="text-sm font-medium text-foreground">
-                      {contact.name || contact.igUsername}
-                    </p>
-                    <p className="text-xs text-foreground-muted">
-                      @{contact.igUsername}
-                    </p>
-                  </div>
-                </div>
-              </label>
-            ))
-          )}
-        </div>
+                  <span className="text-sm text-foreground">
+                    {list.name}
+                  </span>
+                </label>
+              ))}
+              {filteredLists.length === 0 && (
+                <span className="col-span-2 text-xs text-foreground-muted text-center">No lists found</span>
+              )}
+            </div>
+          </>
+        ) : (
+          <div className="text-xs text-foreground-muted text-center py-4 border border-dashed border-border rounded-lg">
+            No lead lists available
+          </div>
+        )}
       </div>
 
       <div>
@@ -614,7 +711,8 @@ function RecipientsStep({
             leads.filter((lead: any) => lead.status !== "contacted").map((lead: Lead) => (
               <label
                 key={lead.id}
-                className="flex items-center gap-3 p-2 rounded-lg hover:bg-background-elevated cursor-pointer">
+                className="flex items-center gap-3 p-2 rounded-lg hover:bg-background-elevated cursor-pointer"
+              >
                 <input
                   type="checkbox"
                   checked={selectedLeadIds.includes(lead.id)}
@@ -645,6 +743,51 @@ function RecipientsStep({
           Selected: {selectedContactIds.length + selectedLeadIds.length}{" "}
           recipients
         </p>
+      </div>
+
+      {/* ...existing code for contacts and leads... */}
+      <div>
+        <h3 className="text-sm font-medium text-foreground mb-4">
+          Select Contacts
+        </h3>
+        <div className="max-h-64 overflow-y-auto border border-border rounded-lg p-2 space-y-2">
+          {contacts.length === 0 ? (
+            <p className="text-sm text-foreground-muted text-center py-4">
+              No contacts available
+            </p>
+          ) : (
+            contacts.map((contact) => (
+              <label
+                key={contact.id}
+                className="flex items-center gap-3 p-2 rounded-lg hover:bg-background-elevated cursor-pointer"
+              >
+                <input
+                  type="checkbox"
+                  checked={selectedContactIds.includes(contact.id)}
+                  onChange={() => onContactToggle(contact.id)}
+                  className="rounded border-border"
+                />
+                <div className="flex items-center gap-2 flex-1">
+                  {contact.profilePictureUrl && (
+                    <img
+                      src={contact.profilePictureUrl}
+                      alt={contact.igUsername}
+                      className="w-8 h-8 rounded-full"
+                    />
+                  )}
+                  <div>
+                    <p className="text-sm font-medium text-foreground">
+                      {contact.name || contact.igUsername}
+                    </p>
+                    <p className="text-xs text-foreground-muted">
+                      @{contact.igUsername}
+                    </p>
+                  </div>
+                </div>
+              </label>
+            ))
+          )}
+        </div>
       </div>
     </div>
   );
