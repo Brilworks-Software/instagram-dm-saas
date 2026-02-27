@@ -36,7 +36,7 @@
     "lucide-react": "^0.556.0",
     "marked": "^17.0.1",
     "next": "14.2.33",
-    "next-mdx-remote": "^5.0.0",
+    "next-mdx-remote": "^6.0.0",
     "posthog-js": "^1.305.0",
     "puppeteer": "^24.32.1",
     "puppeteer-extra": "^3.3.6",
