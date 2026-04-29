@@ -5,11 +5,11 @@ type SlackWebhookPayload = {
 export async function postToSlack(text: string) {
   const url = process.env.SLACK_URL;
   const token = process.env.SLACK_TOKEN;
-  const channel = process.env.SLACK_CHANNEL_ID;
+  const channel = process.env.SLACK_TOOLS_CHANNEL_ID;
 
   if (!url || !token || !channel) {
     if (process.env.NODE_ENV !== 'production') {
-      console.warn('[Slack] Missing env vars; set SLACK_URL, SLACK_TOKEN, SLACK_CHANNEL_ID');
+      console.warn('[Slack] Missing env vars; set SLACK_URL, SLACK_TOKEN, SLACK_TOOLS_CHANNEL_ID');
     }
     return;
   }
